@@ -62,7 +62,8 @@ namespace MysticalWeapons.Armor
     internal class ShardplateHelm : ShardplatePiece
     {
         public override string PrefabName => "ShardplateHelm";
-        public override string[] SourcePrefabs => new[] { "HelmetFlametal", "HelmetPadded" };
+        // Drakescale helm: its swept-back crest reads more like a Shardhelm than the Flametal helmet
+        public override string[] SourcePrefabs => new[] { "HelmetDrake", "HelmetFlametal", "HelmetPadded" };
         public override string DisplayName => "Shardplate Helm";
         public override string Description =>
             "A seamless helm with a narrow eye-slit. When the visor locks, the world sharpens " +
