@@ -16,7 +16,7 @@ namespace MysticalWeapons.Weapons
         protected override string DefaultDamagePerLevel => "slash:6";
         protected override string DefaultRecipe => "Iron:20,FineWood:6,LeatherScraps:6";
         protected override int DefaultStationLevel => 2;
-        protected override float DefaultModelScale => 0.9f;
+        protected override float ModelScale => 0.9f;
         public override float IconAngle => 90f; // cutting edge up
 
         public override MaterialSpec[] Materials => new[]

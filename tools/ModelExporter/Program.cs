@@ -6,8 +6,22 @@ using UnityEngine;
 
 // Usage: ModelExporter [outputDirectory] [--verify]
 //   Exports every code-built model to OBJ. --verify re-imports each file and checks it matches.
+// Usage: ModelExporter --load <file.obj>
+//   Loads a custom model the way the mod will and prints what it found.
+if (args.Length == 2 && args[0] == "--load")
+{
+    var model = new MeshBuilder(4);
+    var textures = ObjImport.Load(args[1], model);
+    var perSub = string.Join(", ", model.Tris.Select((t, i) => $"submesh {i}: {t.Count / 6} tris"));
+    Console.WriteLine($"{model.Verts.Count / 6} triangles ({perSub}); bounds {Bounds(model)}");
+    foreach (var kv in textures) Console.WriteLine($"texture for submesh {kv.Key}: {kv.Value} (exists: {File.Exists(kv.Value)})");
+    var withUv = model.Uvs.Count(u => u != Vector2.zero);
+    Console.WriteLine($"vertices with UVs: {withUv}/{model.Uvs.Count}");
+    return 0;
+}
+
 var verify = args.Contains("--verify");
-var outDir = Path.GetFullPath(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "models");
+var outDir = Path.GetFullPath(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "exports");
 var failed = false;
 
 foreach (var item in Plugin.Items)

@@ -1,12 +1,109 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace MysticalWeapons
 {
+    /// <summary>How a replacement model is positioned inside the cloned item.</summary>
+    internal struct ModelPlacement
+    {
+        /// <summary>Rotate model +Y onto the original's longest axis (weapons: grip along the handle).</summary>
+        public bool AutoAlign;
+        /// <summary>Scale the model to the original's largest dimension and centre it on the original.</summary>
+        public bool FitToOriginal;
+        public Vector3 Rotation;
+        public Vector3 Offset;
+        public float Scale;
+    }
+
     internal static class ModelUtil
     {
-        /// <summary>Hides the cloned weapon's renderers and puts our model under its "attach" child.</summary>
-        public static void ReplaceModel(GameObject prefab, MysticalWeapon weapon, Mesh mesh)
+        /// <summary>Folder next to the plugin DLL where edited models can be dropped.</summary>
+        public static string CustomModelDir =>
+            Path.Combine(Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? "", "models");
+
+        /// <summary>
+        /// Loads "{prefabName}.obj" (and its textures) from <see cref="CustomModelDir"/>.
+        /// Returns null if there is none or it fails to load.
+        /// </summary>
+        public static MeshBuilder LoadCustomModel(string prefabName, int submeshes)
+        {
+            var path = Path.Combine(CustomModelDir, prefabName + ".obj");
+            if (!File.Exists(path)) return null;
+            try
+            {
+                var builder = new MeshBuilder(submeshes);
+                var texturePaths = ObjImport.Load(path, builder);
+                builder.Textures = new Texture2D[submeshes];
+                foreach (var kv in texturePaths)
+                {
+                    if (!File.Exists(kv.Value))
+                    {
+                        Plugin.Log.LogWarning($"{prefabName}: texture {kv.Value} not found");
+                        continue;
+                    }
+                    var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true) { name = Path.GetFileName(kv.Value) };
+                    if (LoadImage(tex, File.ReadAllBytes(kv.Value))) builder.Textures[kv.Key] = tex;
+                }
+                Plugin.Log.LogInfo($"{prefabName}: using custom model {path} ({builder.Verts.Count / 6} triangles, " +
+                                   $"{texturePaths.Count} textures)");
+                return builder;
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogError($"{prefabName}: could not load {path}, using the default model. {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ImageConversion.LoadImage(Texture2D, byte[]). Called through reflection because Unity 6 also
+        /// has a ReadOnlySpan overload whose type lives in Unity's mscorlib, which the compiler cannot see.
+        /// </summary>
+        private static bool LoadImage(Texture2D tex, byte[] data)
+        {
+            var method = typeof(ImageConversion).GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]) });
+            return method != null && (bool)method.Invoke(null, new object[] { tex, data });
+        }
+
+        /// <summary>
+        /// Recolours a (readable) texture in place: each pixel's brightness is multiplied by <paramref name="multiply"/>
+        /// (components may exceed 1 to brighten; the source colours are dropped so stray hues like red
+        /// scratches take on the tint), then <paramref name="glow"/> is added - a little everywhere
+        /// and strongly on bright details such as glyphs and edges - scaled by <paramref name="glowAmount"/>.
+        /// </summary>
+        public static void GradeTexture(Texture2D tex, Color multiply, Color glow, float glowAmount)
+        {
+            var px = tex.GetPixels();
+            for (var i = 0; i < px.Length; i++)
+            {
+                var c = px[i];
+                var grey = c.grayscale;
+                var highlight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.7f, grey));
+                var g = glow * (glowAmount * (0.15f + 0.85f * highlight));
+                px[i] = new Color(
+                    Mathf.Clamp01(grey * multiply.r + g.r),
+                    Mathf.Clamp01(grey * multiply.g + g.g),
+                    Mathf.Clamp01(grey * multiply.b + g.b),
+                    c.a);
+            }
+            tex.SetPixels(px);
+            tex.Apply(true);
+        }
+
+        /// <summary>Textured parts show their texture as-is: their base colour becomes white.</summary>
+        public static MaterialSpec[] WithTextures(MaterialSpec[] specs, MeshBuilder builder)
+        {
+            var result = (MaterialSpec[])specs.Clone();
+            for (var i = 0; i < result.Length; i++)
+                if (builder.Textures != null && i < builder.Textures.Length && builder.Textures[i])
+                    result[i].Color = Color.white;
+            return result;
+        }
+
+        /// <summary>Hides the cloned item's renderers and puts our model under its "attach" child.</summary>
+        public static GameObject ReplaceModel(GameObject prefab, string name, MeshBuilder builder,
+            MaterialSpec[] specs, ModelPlacement place)
         {
             var attach = FindDeep(prefab.transform, "attach") ?? prefab.transform;
 
@@ -33,25 +130,55 @@ namespace MysticalWeapons
                     else bounds.Encapsulate(p);
                 }
             }
-            Plugin.Log.LogInfo($"{weapon.PrefabName}: original model bounds center {bounds.center}, size {bounds.size}");
+            Plugin.Log.LogInfo($"{name}: original model bounds center {bounds.center}, size {bounds.size}");
 
-            var materials = new Material[weapon.Materials.Length];
+            var mesh = builder.ToMesh(name);
+            var materials = new Material[specs.Length];
             for (var i = 0; i < materials.Length; i++)
-                materials[i] = MakeMaterial(baseMat, weapon.Materials[i], $"{weapon.PrefabName}_mat{i}");
+                materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null);
 
-            var model = new GameObject(weapon.PrefabName + "_model");
+            if (materials.Length > 0)
+            {
+                var m0 = materials[0];
+                Plugin.Log.LogInfo($"{name}: shader {m0.shader.name}; _Color {m0.HasProperty("_Color")}, _MainTex {m0.HasProperty("_MainTex")}, " +
+                                   $"_EmissionColor {m0.HasProperty("_EmissionColor")}, _EmissionMap {m0.HasProperty("_EmissionMap")}");
+            }
+
+            var model = new GameObject(name + "_model");
             model.layer = attach.gameObject.layer;
             model.transform.SetParent(attach, false);
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
             model.AddComponent<MeshRenderer>().sharedMaterials = materials;
 
-            var rotation = weapon.AutoAlign.Value && hasBounds ? AlignToHandle(bounds) : Quaternion.identity;
-            model.transform.localRotation = rotation * Quaternion.Euler(weapon.ModelRotation.Value);
-            model.transform.localPosition = weapon.ModelOffset.Value;
-            model.transform.localScale = Vector3.one * weapon.ModelScale.Value;
-
-            weapon.DecorateModel(model);
+            var rotation = place.AutoAlign && hasBounds ? AlignToHandle(bounds) : Quaternion.identity;
+            rotation *= Quaternion.Euler(place.Rotation);
+            var scale = place.Scale;
+            var position = place.Offset;
+            if (place.FitToOriginal && hasBounds)
+            {
+                // Uniformly scale our rotated mesh to the original's largest dimension, centred on it
+                var ours = RotatedBounds(mesh.bounds, rotation);
+                scale *= bounds.size.MaxComponent() / Mathf.Max(ours.size.MaxComponent(), 1e-4f);
+                position += bounds.center - ours.center * scale;
+                Plugin.Log.LogInfo($"{name}: fitted custom model at {position}, scale {scale:0.###}");
+            }
+            model.transform.localRotation = rotation;
+            model.transform.localPosition = position;
+            model.transform.localScale = Vector3.one * scale;
+            return model;
         }
+
+        private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
+        {
+            var result = new Bounds(rotation * b.center, Vector3.zero);
+            for (var i = 0; i < 8; i++)
+                result.Encapsulate(rotation * (b.center + Vector3.Scale(b.extents,
+                    new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))));
+            return result;
+        }
+
+        private static float MaxComponent(this Vector3 v) => Mathf.Max(v.x, Mathf.Max(v.y, v.z));
 
         /// <summary>
         /// Model +Y along the original's longest axis (pointing the way most of the weapon extends
@@ -69,18 +196,21 @@ namespace MysticalWeapons
             return Quaternion.LookRotation(Vector3.Cross(right, up), up);
         }
 
-        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name)
+        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name, Texture2D texture)
         {
             var mat = baseMat ? new Material(baseMat) : new Material(Shader.Find("Standard"));
             mat.name = name;
             foreach (var prop in new[] { "_MainTex", "_BumpMap", "_MetallicGlossMap", "_EmissionMap" })
                 if (mat.HasProperty(prop)) mat.SetTexture(prop, null);
+            if (texture && mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
             mat.color = spec.Color;
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", spec.Gloss);
             if (spec.Emission.maxColorComponent > 0f && mat.HasProperty("_EmissionColor"))
             {
                 mat.EnableKeyword("_EMISSION");
                 mat.SetColor("_EmissionColor", spec.Emission);
+                // Textured: glow follows the texture, so bright details (glyphs, edges) glow most
+                if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
             }
             return mat;
         }
@@ -113,9 +243,11 @@ namespace MysticalWeapons
         // ---------------------------------------------------------------- icon
 
         /// <summary>Rasterises the model, seen from the front, into an inventory icon.</summary>
-        public static Sprite RenderIcon(MeshBuilder b, MaterialSpec[] mats, float angleDeg, int size = 128)
+        public static Sprite RenderIcon(MeshBuilder b, MaterialSpec[] mats, float angleDeg, int size = 128,
+            Quaternion? view = null)
         {
-            var rot = Quaternion.Euler(0f, 0f, angleDeg);
+            // view turns the model to face the camera (looking down -Z), angleDeg then spins the icon
+            var rot = Quaternion.Euler(0f, 0f, angleDeg) * (view ?? Quaternion.identity);
             var pts = new Vector3[b.Verts.Count];
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
@@ -139,9 +271,10 @@ namespace MysticalWeapons
             for (var sub = 0; sub < b.Tris.Length; sub++)
             {
                 var tris = b.Tris[sub];
+                var texture = b.Textures != null && sub < b.Textures.Length ? b.Textures[sub] : null;
                 for (var t = 0; t < tris.Count; t += 3)
                 {
-                    var n = rot * b.Normals[tris[t]];
+                    var n = rot * (b.Normals[tris[t]] + b.Normals[tris[t + 1]] + b.Normals[tris[t + 2]]).normalized;
                     if (n.z <= 0.001f) continue; // facing away from the camera
 
                     var shade = 0.55f + 0.45f * Mathf.Max(0f, Vector3.Dot(n, light));
@@ -150,7 +283,11 @@ namespace MysticalWeapons
 
                     Vector3 p0 = pts[tris[t]], p1 = pts[tris[t + 1]], p2 = pts[tris[t + 2]];
                     Vector2 a = (Vector2)p0 * scale + offset, bb = (Vector2)p1 * scale + offset, cc = (Vector2)p2 * scale + offset;
-                    FillTriangle(a, bb, cc, p0.z, p1.z, p2.z, c, color, depth, size);
+                    var textured = texture ? new TexturedTri
+                    {
+                        Texture = texture, Ua = b.Uvs[tris[t]], Ub = b.Uvs[tris[t + 1]], Uc = b.Uvs[tris[t + 2]], Tint = c
+                    } : (TexturedTri?)null;
+                    FillTriangle(a, bb, cc, p0.z, p1.z, p2.z, c, color, depth, size, textured);
                 }
             }
 
@@ -219,8 +356,15 @@ namespace MysticalWeapons
             }
         }
 
+        private struct TexturedTri
+        {
+            public Texture2D Texture;
+            public Vector2 Ua, Ub, Uc;
+            public Color Tint;
+        }
+
         private static void FillTriangle(Vector2 a, Vector2 b, Vector2 c, float za, float zb, float zc,
-            Color col, Color[] color, float[] depth, int size)
+            Color col, Color[] color, float[] depth, int size, TexturedTri? tex = null)
         {
             var area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
             if (Mathf.Abs(area) < 1e-6f) return;
@@ -241,7 +385,14 @@ namespace MysticalWeapons
                 var i = y * size + x;
                 if (z <= depth[i]) continue;
                 depth[i] = z;
-                color[i] = col;
+                if (tex is TexturedTri t)
+                {
+                    var uv = t.Ua * w0 + t.Ub * w1 + t.Uc * w2;
+                    var texel = t.Texture.GetPixelBilinear(uv.x, uv.y) * t.Tint;
+                    texel.a = 1f;
+                    color[i] = texel;
+                }
+                else color[i] = col;
             }
         }
     }
