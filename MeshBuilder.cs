@@ -1,0 +1,146 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace MysticalWeapons
+{
+    /// <summary>
+    /// Small toolkit for building low-poly weapon meshes in code. Every triangle is added
+    /// double-sided with flat normals, so winding order never matters.
+    /// </summary>
+    internal class MeshBuilder
+    {
+        public readonly List<Vector3> Verts = new List<Vector3>();
+        public readonly List<Vector3> Normals = new List<Vector3>();
+        public readonly List<int>[] Tris;
+
+        public MeshBuilder(int submeshes)
+        {
+            Tris = new List<int>[submeshes];
+            for (var i = 0; i < submeshes; i++) Tris[i] = new List<int>();
+        }
+
+        public static Vector3 V(Vector2 p, float z) => new Vector3(p.x, p.y, z);
+
+        public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c)
+        {
+            var n = Vector3.Cross(b - a, c - a);
+            if (n.sqrMagnitude < 1e-12f) return;
+            n.Normalize();
+            Add(sub, a, b, c, n);
+            Add(sub, a, c, b, -n);
+        }
+
+        private void Add(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 n)
+        {
+            var i = Verts.Count;
+            Verts.Add(a); Verts.Add(b); Verts.Add(c);
+            Normals.Add(n); Normals.Add(n); Normals.Add(n);
+            Tris[sub].Add(i); Tris[sub].Add(i + 1); Tris[sub].Add(i + 2);
+        }
+
+        public void Quad(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            Tri(sub, a, b, c);
+            Tri(sub, a, c, d);
+        }
+
+        /// <summary>Extrudes a convex 2D polygon (in XY) to a slab of the given half thickness.</summary>
+        public void Slab(int sub, Vector2[] poly, float h)
+        {
+            for (var i = 1; i < poly.Length - 1; i++)
+            {
+                Tri(sub, V(poly[0], h), V(poly[i], h), V(poly[i + 1], h));
+                Tri(sub, V(poly[0], -h), V(poly[i], -h), V(poly[i + 1], -h));
+            }
+            for (var i = 0; i < poly.Length; i++)
+            {
+                var p = poly[i];
+                var q = poly[(i + 1) % poly.Length];
+                Quad(sub, V(p, h), V(q, h), V(q, -h), V(p, -h));
+            }
+        }
+
+        public void Box(int sub, Rect r, float h) => Slab(sub, new[]
+        {
+            new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin),
+            new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax)
+        }, h);
+
+        /// <summary>A prism along Y (shafts, grips, collars).</summary>
+        public void Prism(int sub, float y0, float y1, float radius, int sides = 8, float x = 0f)
+        {
+            var bottom = new Vector3[sides];
+            var top = new Vector3[sides];
+            for (var i = 0; i < sides; i++)
+            {
+                var a = (i + 0.5f) * Mathf.PI * 2f / sides;
+                var off = new Vector3(Mathf.Cos(a) * radius + x, 0f, Mathf.Sin(a) * radius);
+                bottom[i] = off + Vector3.up * y0;
+                top[i] = off + Vector3.up * y1;
+            }
+            for (var i = 0; i < sides; i++)
+            {
+                var j = (i + 1) % sides;
+                Quad(sub, bottom[i], bottom[j], top[j], top[i]);
+                if (i > 0 && i < sides - 1)
+                {
+                    Tri(sub, bottom[0], bottom[i], bottom[j]);
+                    Tri(sub, top[0], top[i], top[j]);
+                }
+            }
+        }
+
+        /// <summary>One cross-section of a blade along Y.</summary>
+        public struct Station
+        {
+            public float Y, Left, Right, Thickness;
+            public Station(float y, float left, float right, float thickness)
+            {
+                Y = y; Left = left; Right = right; Thickness = thickness;
+            }
+            public Station(float y, float halfWidth, float thickness) : this(y, halfWidth, halfWidth, thickness) { }
+        }
+
+        /// <summary>
+        /// A blade along Y with a diamond cross-section: sharp edges at +-X, spine at +-Z.
+        /// Left/Right widths can differ for asymmetric blades.
+        /// </summary>
+        public void Blade(int sub, params Station[] s)
+        {
+            Vector3[] Ring(Station st) => new[]
+            {
+                new Vector3(-st.Left, st.Y, 0f), new Vector3(0f, st.Y, st.Thickness),
+                new Vector3(st.Right, st.Y, 0f), new Vector3(0f, st.Y, -st.Thickness)
+            };
+
+            for (var i = 0; i < s.Length - 1; i++)
+            {
+                var a = Ring(s[i]);
+                var b = Ring(s[i + 1]);
+                for (var k = 0; k < 4; k++)
+                {
+                    var n = (k + 1) % 4;
+                    Quad(sub, a[k], a[n], b[n], b[k]);
+                }
+            }
+            var first = Ring(s[0]);
+            var last = Ring(s[s.Length - 1]);
+            Quad(sub, first[0], first[1], first[2], first[3]);
+            Quad(sub, last[0], last[1], last[2], last[3]);
+        }
+
+        public Mesh ToMesh(string name)
+        {
+            var mesh = new Mesh { name = name + "_mesh" };
+            if (Verts.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            mesh.SetVertices(Verts);
+            mesh.SetNormals(Normals);
+            mesh.SetUVs(0, new List<Vector2>(new Vector2[Verts.Count]));
+            mesh.subMeshCount = Tris.Length;
+            for (var i = 0; i < Tris.Length; i++) mesh.SetTriangles(Tris[i], i);
+            mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
+            return mesh;
+        }
+    }
+}
