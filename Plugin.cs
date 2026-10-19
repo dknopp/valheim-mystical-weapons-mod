@@ -13,7 +13,7 @@ namespace MysticalWeapons
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "dankn.valheim.mysticalweapons";
-        public const string Version = "1.4.2";
+        public const string Version = "1.5.0";
 
         internal static ManualLogSource Log;
 

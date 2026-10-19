@@ -1,3 +1,4 @@
+using System.IO;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -68,8 +69,8 @@ namespace MysticalWeapons
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
-            var builder = new MeshBuilder(Materials.Length);
-            BuildModel(builder);
+            var builder = LoadCustomModel() ?? new MeshBuilder(Materials.Length);
+            if (builder.Verts.Count == 0) BuildModel(builder);
             Icon = ModelUtil.RenderIcon(builder, Materials, IconAngle);
 
             if (HasDamage)
@@ -80,6 +81,32 @@ namespace MysticalWeapons
             shared.m_icons = new[] { Icon };
 
             ModelUtil.ReplaceModel(prefab, this, builder.ToMesh(PrefabName));
+        }
+
+        /// <summary>Folder next to the plugin DLL where edited models can be dropped.</summary>
+        public static string CustomModelDir =>
+            Path.Combine(Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? "", "models");
+
+        /// <summary>
+        /// A "{PrefabName}.obj" in <see cref="CustomModelDir"/> replaces the code-built model.
+        /// Returns null (use the built-in model) if there is none or it fails to load.
+        /// </summary>
+        private MeshBuilder LoadCustomModel()
+        {
+            var path = Path.Combine(CustomModelDir, PrefabName + ".obj");
+            if (!File.Exists(path)) return null;
+            try
+            {
+                var builder = new MeshBuilder(Materials.Length);
+                ObjImport.Load(path, builder);
+                Plugin.Log.LogInfo($"{PrefabName}: using custom model {path} ({builder.Verts.Count / 6} triangles)");
+                return builder;
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogError($"{PrefabName}: could not load {path}, using the built-in model. {e.Message}");
+                return null;
+            }
         }
 
         private static HitData.DamageTypes ParseDamage(string spec)

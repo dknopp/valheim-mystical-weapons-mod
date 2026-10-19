@@ -1,0 +1,24 @@
+newmtl Shardblade_0
+Kd 0.8 0.82 0.86
+Ke 0 0 0
+Ns 810
+d 1
+
+newmtl Shardblade_1
+Kd 0.34 0.36 0.42
+Ke 0 0 0
+Ns 630
+d 1
+
+newmtl Shardblade_2
+Kd 0.12 0.1 0.1
+Ke 0 0 0
+Ns 180
+d 1
+
+newmtl Shardblade_3
+Kd 0.55 0.8 1
+Ke 0.3 0.6 1
+Ns 810
+d 1
+

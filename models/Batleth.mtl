@@ -1,0 +1,12 @@
+newmtl Batleth_0
+Kd 0.72 0.72 0.76
+Ke 0 0 0
+Ns 675
+d 1
+
+newmtl Batleth_1
+Kd 0.22 0.13 0.07
+Ke 0 0 0
+Ns 180
+d 1
+

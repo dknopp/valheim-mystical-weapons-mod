@@ -1,0 +1,18 @@
+newmtl Sylspear_0
+Kd 0.82 0.88 0.95
+Ke 0.08 0.16 0.26
+Ns 720
+d 1
+
+newmtl Sylspear_1
+Kd 0.92 0.96 1
+Ke 0.35 0.6 0.9
+Ns 810
+d 1
+
+newmtl Sylspear_2
+Kd 0.68 0.78 0.9
+Ke 0.18 0.32 0.5
+Ns 720
+d 1
+
