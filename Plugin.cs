@@ -3,6 +3,7 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using MysticalWeapons.Armor;
+using MysticalWeapons.Hallows;
 using MysticalWeapons.Weapons;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ namespace MysticalWeapons
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "dankn.valheim.mysticalweapons";
-        public const string Version = "1.3.0";
+        public const string Version = "1.4.1";
 
         internal static ManualLogSource Log;
 
@@ -26,6 +27,9 @@ namespace MysticalWeapons
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
+            new ElderWand(),
+            new ResurrectionStone(),
+            new InvisibilityCloak(),
         };
 
         private void Awake()
@@ -36,44 +40,76 @@ namespace MysticalWeapons
             Log.LogInfo($"Loaded {Items.Count} mystical items.");
         }
 
+        /// <summary>Any vanilla item; if it is missing the database is not loaded yet.</summary>
+        private const string VanillaProbe = "Wood";
+
         internal static void RegisterItems(ObjectDB db)
         {
-            if (db.m_items == null || db.m_items.Count == 0) return;
+            if (db.m_items == null || !db.m_items.Exists(go => go && go.name == VanillaProbe)) return;
 
             var added = false;
             foreach (var item in Items)
             {
                 if (!item.Enabled.Value) continue;
-                var prefab = item.GetOrCreatePrefab(name => db.m_items.Find(go => go && go.name == name));
-                if (!prefab) continue;
-
-                if (!db.m_items.Contains(prefab))
+                Guard(item, () =>
                 {
-                    db.m_items.Add(prefab);
-                    added = true;
-                }
-                item.RegisterExtras(db);
+                    var prefab = item.GetOrCreatePrefab(name => db.m_items.Find(go => go && go.name == name));
+                    if (!prefab) return;
+
+                    if (!db.m_items.Contains(prefab))
+                    {
+                        if (TakenByOther(db.m_items, prefab)) return;
+                        db.m_items.Add(prefab);
+                        added = true;
+                    }
+                    item.RegisterExtras(db);
+                });
             }
-            if (added) AccessTools.Method(typeof(ObjectDB), "UpdateRegisters")?.Invoke(db, null);
+            if (added)
+                Guard(null, () => AccessTools.Method(typeof(ObjectDB), "UpdateRegisters")?.Invoke(db, null));
 
             foreach (var item in Items)
-                if (item.Enabled.Value && item.Prefab) item.AddRecipe(db);
+                if (item.Enabled.Value && item.Prefab && db.m_items.Contains(item.Prefab))
+                    Guard(item, () => item.AddRecipe(db));
         }
 
         internal static void RegisterNetPrefabs(ZNetScene scene)
         {
+            if (!scene.m_prefabs.Exists(go => go && go.name == VanillaProbe)) return;
             var named = AccessTools.Field(typeof(ZNetScene), "m_namedPrefabs").GetValue(scene)
                 as Dictionary<int, GameObject>;
 
             foreach (var item in Items)
             {
                 if (!item.Enabled.Value) continue;
-                var prefab = item.GetOrCreatePrefab(name => scene.m_prefabs.Find(go => go && go.name == name));
-                if (!prefab) continue;
+                Guard(item, () =>
+                {
+                    var prefab = item.GetOrCreatePrefab(name => scene.m_prefabs.Find(go => go && go.name == name));
+                    if (!prefab || scene.m_prefabs.Contains(prefab) || TakenByOther(scene.m_prefabs, prefab)) return;
 
-                if (!scene.m_prefabs.Contains(prefab)) scene.m_prefabs.Add(prefab);
-                if (named != null) named[prefab.name.GetStableHashCode()] = prefab;
+                    scene.m_prefabs.Add(prefab);
+                    if (named != null) named[prefab.name.GetStableHashCode()] = prefab;
+                });
             }
+        }
+
+        /// <summary>Another mod already registered a prefab with this name (e.g. the old standalone Bat'leth).</summary>
+        private static bool TakenByOther(List<GameObject> prefabs, GameObject ours)
+        {
+            if (!prefabs.Exists(go => go && go != ours && go.name == ours.name)) return false;
+            Log.LogWarning($"Another mod already adds an item named '{ours.name}'; skipping ours. " +
+                           "If that is the old Bat'leth mod, uninstall it - Mystical Weapons includes the bat'leth.");
+            return true;
+        }
+
+        /// <summary>
+        /// Registration runs inside Valheim's startup; an exception escaping here would abort the
+        /// main menu setup (matchmaking, PlayFab...). Log it and carry on instead.
+        /// </summary>
+        private static void Guard(MysticalItem item, System.Action action)
+        {
+            try { action(); }
+            catch (System.Exception e) { Log.LogError($"{item?.PrefabName ?? "Registration"} failed: {e}"); }
         }
     }
 

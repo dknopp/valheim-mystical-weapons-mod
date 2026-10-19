@@ -12,8 +12,13 @@ No Jotunn and no asset bundles: weapon models are built in code, armor is recolo
 | Shardblade | `Shardblade` | The Stormlight Archive | Huge two-hander that chops trees and mines rock. Light, no durability |
 | Andúril | `Anduril` | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Recipe consumes an Iron Sword - the shards of Narsil |
 | Shardplate Helm / Breastplate / Greaves | `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves` | The Stormlight Archive | Flametal recoloured slate with Stormlight-blue seams. Full set: +150 carry weight, faster stamina, resistant to blunt/slash/pierce |
+| The Elder Wand | `ElderWand` | Harry Potter | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability |
+| The Resurrection Stone | `ResurrectionStone` | Harry Potter | Utility slot. Die while wearing it and your skills are not lowered |
+| The Cloak of Invisibility | `InvisibilityCloak` | Harry Potter | Monsters cannot see you while you sneak (they can still hear you) |
 
-All items are crafted at the forge. Recipes, stats, crafting station and model/colour tweaks are
+**Deathly Hallows set:** wand in hand + stone + cloak = **Master of Death**: 1.5x health regen, 1.25x stamina regen, resistant to poison, immune to spirit damage.
+
+Most items are crafted at the forge; the wand and cloak at the workbench. Recipes, stats, crafting station and model/colour tweaks are
 configurable in `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
 
 ## Installing
@@ -31,8 +36,10 @@ dotnet build -c Release
 ```
 
 The build references Valheim from `C:\Program Files (x86)\Steam\steamapps\common\Valheim` and BepInEx
-from the r2modman `Default` profile, and copies the DLL into that profile. Override with
-`-p:ValheimDir=...` and `-p:BepInExDir=...`.
+from the `Default` profile of Gale (or r2modman if Gale is not installed), and copies the DLL into that
+profile. Override with `-p:ValheimDir=...` and `-p:BepInExDir=...`.
+
+Do not install the old standalone Bat'leth mod alongside this one: Mystical Weapons includes the bat'leth.
 
 ## Adding an item
 

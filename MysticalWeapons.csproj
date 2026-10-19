@@ -7,7 +7,14 @@
     <Nullable>disable</Nullable>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
-    <BepInExDir Condition="'$(BepInExDir)' == ''">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BepInExDir>
+    <!-- Mod manager profile to build against and deploy to: Gale first, then r2modman -->
+    <GaleBepInExDir>$(APPDATA)\com.kesomannen.gale\valheim\profiles\Default\BepInEx</GaleBepInExDir>
+    <R2BepInExDir>$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</R2BepInExDir>
+    <BepInExDir Condition="'$(BepInExDir)' == '' And Exists('$(GaleBepInExDir)\core\BepInEx.dll')">$(GaleBepInExDir)</BepInExDir>
+    <BepInExDir Condition="'$(BepInExDir)' == ''">$(R2BepInExDir)</BepInExDir>
+    <!-- Gale names plugin folders Author-ModName -->
+    <PluginFolder Condition="'$(BepInExDir)' == '$(GaleBepInExDir)'">Dank-MysticalWeapons</PluginFolder>
+    <PluginFolder Condition="'$(PluginFolder)' == ''">MysticalWeapons</PluginFolder>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
   </PropertyGroup>
 
@@ -26,10 +33,11 @@
     <Reference Include="netstandard" HintPath="$(ManagedDir)\netstandard.dll" Private="false" />
   </ItemGroup>
 
-  <!-- Copy the built plugin straight into the r2modman profile -->
+  <!-- Copy the built plugin straight into the mod manager profile -->
   <Target Name="DeployToProfile" AfterTargets="Build" Condition="Exists('$(BepInExDir)')">
-    <MakeDir Directories="$(BepInExDir)\plugins\MysticalWeapons" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)\plugins\MysticalWeapons" />
+    <MakeDir Directories="$(BepInExDir)\plugins\$(PluginFolder)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)\plugins\$(PluginFolder)" />
+    <Message Importance="high" Text="Deployed to $(BepInExDir)\plugins\$(PluginFolder)" />
   </Target>
 
 </Project>

@@ -83,16 +83,20 @@ namespace MysticalWeapons
         }
 
         /// <summary>A prism along Y (shafts, grips, collars).</summary>
-        public void Prism(int sub, float y0, float y1, float radius, int sides = 8, float x = 0f)
+        public void Prism(int sub, float y0, float y1, float radius, int sides = 8, float x = 0f) =>
+            Taper(sub, y0, y1, radius, radius, sides, x);
+
+        /// <summary>A prism along Y whose radius changes from <paramref name="r0"/> to <paramref name="r1"/>.</summary>
+        public void Taper(int sub, float y0, float y1, float r0, float r1, int sides = 8, float x = 0f)
         {
             var bottom = new Vector3[sides];
             var top = new Vector3[sides];
             for (var i = 0; i < sides; i++)
             {
                 var a = (i + 0.5f) * Mathf.PI * 2f / sides;
-                var off = new Vector3(Mathf.Cos(a) * radius + x, 0f, Mathf.Sin(a) * radius);
-                bottom[i] = off + Vector3.up * y0;
-                top[i] = off + Vector3.up * y1;
+                var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                bottom[i] = dir * r0 + new Vector3(x, y0, 0f);
+                top[i] = dir * r1 + new Vector3(x, y1, 0f);
             }
             for (var i = 0; i < sides; i++)
             {
