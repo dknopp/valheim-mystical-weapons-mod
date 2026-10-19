@@ -17,8 +17,8 @@ namespace MysticalWeapons.Hallows
             "Hallows. Turn it thrice in your hand: what death takes from you, it returns.";
 
         protected override bool HasDamage => false;
-        protected override bool DefaultAutoAlign => false;
-        protected override float DefaultModelScale => 2f; // a real-size pebble would vanish on the ground
+        protected override bool AutoAlign => false;
+        protected override float ModelScale => 2f; // a real-size pebble would vanish on the ground
         protected override string DefaultRecipe => "Obsidian:10,Silver:4,SurtlingCore:3";
         protected override int DefaultStationLevel => 3;
         public override float IconAngle => 0f;

@@ -67,8 +67,19 @@ namespace MysticalWeapons.Armor
         public override string DisplayName => "Shardplate Helm";
         public override string Description =>
             "A seamless helm with a narrow eye-slit. When the visor locks, the world sharpens " +
-            "and Stormlight hums in your ears.";
+            "and Stormlight hums in your ears.\n\n<size=80%>Model: \"Shardplate\" by Krajkoa, CC BY 4.0</size>";
         protected override string DefaultRecipe => "Silver:10,BlackMetal:10,Crystal:5";
+
+        // Custom model (models/ShardplateHelm.obj): it faces -Z, Valheim's head faces +Z.
+        // Fitted to the Drake helmet, whose swept-back crest centres it too far back: nudge it forward.
+        protected override Vector3 CustomModelRotation => new Vector3(0f, 180f, 0f);
+        protected override Vector3 CustomModelOffset => new Vector3(0f, 0f, 0.03f);
+        // In front of the visor (model space, before the 180° turn) so it lights the outside of the helm
+        protected override Vector3 CustomModelLightPosition => new Vector3(0f, 0.05f, -0.35f);
+        // Krajkoa's plate is painted near-black; lift it to Stormlit slate-blue and let it glow
+        protected override float DefaultCustomBrightness => 2.4f;
+        protected override float DefaultCustomGlow => 1f;
+        protected override float DefaultCustomLight => 0.8f;
     }
 
     internal class ShardplateBreastplate : ShardplatePiece

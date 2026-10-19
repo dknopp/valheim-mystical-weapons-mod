@@ -19,6 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="tools/**" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
@@ -29,6 +30,7 @@
     <Reference Include="assembly_utils" HintPath="$(ManagedDir)\assembly_utils.dll" Private="false" />
     <Reference Include="UnityEngine" HintPath="$(ManagedDir)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(ManagedDir)\UnityEngine.ImageConversionModule.dll" Private="false" />
     <Reference Include="UnityEngine.ParticleSystemModule" HintPath="$(ManagedDir)\UnityEngine.ParticleSystemModule.dll" Private="false" />
     <Reference Include="netstandard" HintPath="$(ManagedDir)\netstandard.dll" Private="false" />
   </ItemGroup>
@@ -37,6 +39,11 @@
   <Target Name="DeployToProfile" AfterTargets="Build" Condition="Exists('$(BepInExDir)')">
     <MakeDir Directories="$(BepInExDir)\plugins\$(PluginFolder)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)\plugins\$(PluginFolder)" />
+    <!-- Custom models shipped with the mod (models/<Prefab>.obj + textures + credits) -->
+    <ItemGroup>
+      <ShippedModel Include="models\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ShippedModel)" DestinationFolder="$(BepInExDir)\plugins\$(PluginFolder)\models" />
     <Message Importance="high" Text="Deployed to $(BepInExDir)\plugins\$(PluginFolder)" />
   </Target>
 

@@ -28,8 +28,11 @@ namespace MysticalWeapons
     {
         protected virtual string DefaultDamage => "";
         protected virtual string DefaultDamagePerLevel => "";
-        protected virtual float DefaultModelScale => 1f;
-        protected virtual bool DefaultAutoAlign => true;
+        // Model placement inside the cloned item (code only, not configurable)
+        protected virtual float ModelScale => 1f;
+        protected virtual bool AutoAlign => true;
+        protected virtual Vector3 ModelRotation => Vector3.zero;
+        protected virtual Vector3 ModelOffset => Vector3.zero;
         /// <summary>False for non-weapons with a code-built model (e.g. trinkets): no damage config.</summary>
         protected virtual bool HasDamage => true;
 
@@ -45,10 +48,6 @@ namespace MysticalWeapons
 
         private ConfigEntry<string> _damage;
         private ConfigEntry<string> _damagePerLevel;
-        public ConfigEntry<bool> AutoAlign;
-        public ConfigEntry<Vector3> ModelRotation;
-        public ConfigEntry<Vector3> ModelOffset;
-        public ConfigEntry<float> ModelScale;
 
         public override void BindConfig(ConfigFile cfg)
         {
@@ -60,17 +59,19 @@ namespace MysticalWeapons
                     "Damage types, e.g. slash:80,pierce:20. Types: blunt slash pierce chop pickaxe fire frost lightning poison spirit");
                 _damagePerLevel = cfg.Bind(s, "DamagePerLevel", DefaultDamagePerLevel, "Extra damage per upgrade level.");
             }
-            AutoAlign = cfg.Bind(s, "ModelAutoAlign", DefaultAutoAlign, "Line the model up with the original item's longest axis.");
-            ModelRotation = cfg.Bind(s, "ModelRotation", Vector3.zero, "Extra euler rotation of the model.");
-            ModelOffset = cfg.Bind(s, "ModelOffset", Vector3.zero, "Local position offset of the model.");
-            ModelScale = cfg.Bind(s, "ModelScale", DefaultModelScale, "Uniform model scale.");
         }
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
-            var builder = new MeshBuilder(Materials.Length);
-            BuildModel(builder);
-            Icon = ModelUtil.RenderIcon(builder, Materials, IconAngle);
+            // A "{PrefabName}.obj" in the plugin's models folder replaces the code-built model
+            var builder = ModelUtil.LoadCustomModel(PrefabName, Materials.Length);
+            if (builder == null)
+            {
+                builder = new MeshBuilder(Materials.Length);
+                BuildModel(builder);
+            }
+            var specs = ModelUtil.WithTextures(Materials, builder);
+            Icon = ModelUtil.RenderIcon(builder, specs, IconAngle);
 
             if (HasDamage)
             {
@@ -79,7 +80,14 @@ namespace MysticalWeapons
             }
             shared.m_icons = new[] { Icon };
 
-            ModelUtil.ReplaceModel(prefab, this, builder.ToMesh(PrefabName));
+            var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, new ModelPlacement
+            {
+                AutoAlign = AutoAlign,
+                Rotation = ModelRotation,
+                Offset = ModelOffset,
+                Scale = ModelScale
+            });
+            DecorateModel(model);
         }
 
         private static HitData.DamageTypes ParseDamage(string spec)

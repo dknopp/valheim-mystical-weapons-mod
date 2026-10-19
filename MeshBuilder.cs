@@ -11,7 +11,10 @@ namespace MysticalWeapons
     {
         public readonly List<Vector3> Verts = new List<Vector3>();
         public readonly List<Vector3> Normals = new List<Vector3>();
+        public readonly List<Vector2> Uvs = new List<Vector2>();
         public readonly List<int>[] Tris;
+        /// <summary>Optional texture per submesh (imported models only).</summary>
+        public Texture2D[] Textures;
 
         public MeshBuilder(int submeshes)
         {
@@ -26,15 +29,34 @@ namespace MysticalWeapons
             var n = Vector3.Cross(b - a, c - a);
             if (n.sqrMagnitude < 1e-12f) return;
             n.Normalize();
-            Add(sub, a, b, c, n);
-            Add(sub, a, c, b, -n);
+            Add(sub, a, b, c, n, n, n, Vector2.zero, Vector2.zero, Vector2.zero);
+            Add(sub, a, c, b, -n, -n, -n, Vector2.zero, Vector2.zero, Vector2.zero);
         }
 
-        private void Add(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 n)
+        /// <summary>
+        /// A double-sided triangle with texture coordinates and (optionally smooth) vertex normals,
+        /// for imported models. Missing normals fall back to the flat face normal.
+        /// </summary>
+        public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c, Vector2 ua, Vector2 ub, Vector2 uc,
+            Vector3? na = null, Vector3? nb = null, Vector3? nc = null)
+        {
+            var n = Vector3.Cross(b - a, c - a);
+            if (n.sqrMagnitude < 1e-12f) return;
+            n.Normalize();
+            Vector3 n0 = na ?? n, n1 = nb ?? n, n2 = nc ?? n;
+            // Give the vertex normals to whichever copy faces the same way they point
+            var s = Vector3.Dot(n0 + n1 + n2, n) >= 0f ? 1f : -1f;
+            Add(sub, a, b, c, s * n0, s * n1, s * n2, ua, ub, uc);
+            Add(sub, a, c, b, -s * n0, -s * n2, -s * n1, ua, uc, ub);
+        }
+
+        private void Add(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 na, Vector3 nb, Vector3 nc,
+            Vector2 ua, Vector2 ub, Vector2 uc)
         {
             var i = Verts.Count;
             Verts.Add(a); Verts.Add(b); Verts.Add(c);
-            Normals.Add(n); Normals.Add(n); Normals.Add(n);
+            Normals.Add(na); Normals.Add(nb); Normals.Add(nc);
+            Uvs.Add(ua); Uvs.Add(ub); Uvs.Add(uc);
             Tris[sub].Add(i); Tris[sub].Add(i + 1); Tris[sub].Add(i + 2);
         }
 
@@ -155,7 +177,7 @@ namespace MysticalWeapons
             if (Verts.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.SetVertices(Verts);
             mesh.SetNormals(Normals);
-            mesh.SetUVs(0, new List<Vector2>(new Vector2[Verts.Count]));
+            mesh.SetUVs(0, Uvs);
             mesh.subMeshCount = Tris.Length;
             for (var i = 0; i < Tris.Length; i++) mesh.SetTriangles(Tris[i], i);
             mesh.RecalculateBounds();

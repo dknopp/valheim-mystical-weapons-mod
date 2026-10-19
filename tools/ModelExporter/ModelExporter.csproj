@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Exports the code-built weapon models to OBJ for Blender, without starting Valheim. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+    <BepInExCore>$(APPDATA)\com.kesomannen.gale\valheim\profiles\Default\BepInEx\core</BepInExCore>
+    <BepInExCore Condition="!Exists('$(BepInExCore)')">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Default\BepInEx\core</BepInExCore>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <ProjectReference Include="..\..\MysticalWeapons.csproj" />
+    <!-- Copied next to the exe so the pure-managed Unity maths types can load outside the game -->
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedDir)\UnityEngine.CoreModule.dll" Private="true" />
+  </ItemGroup>
+  <Target Name="CopyModDependencies" AfterTargets="Build">
+    <Copy SourceFiles="$(ManagedDir)\assembly_valheim.dll;$(ManagedDir)\assembly_utils.dll;$(ManagedDir)\UnityEngine.dll;$(ManagedDir)\UnityEngine.ParticleSystemModule.dll;$(BepInExCore)\BepInEx.dll;$(BepInExCore)\0Harmony.dll" DestinationFolder="$(OutDir)" />
+  </Target>
+</Project>
