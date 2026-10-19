@@ -12,7 +12,7 @@ namespace MysticalWeapons
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "dankn.valheim.mysticalweapons";
-        public const string Version = "1.2.0";
+        public const string Version = "1.3.0";
 
         internal static ManualLogSource Log;
 
@@ -22,6 +22,7 @@ namespace MysticalWeapons
             new Batleth(),
             new Sylspear(),
             new Shardblade(),
+            new Anduril(),
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),

@@ -66,6 +66,22 @@ namespace MysticalWeapons
             new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax)
         }, h);
 
+        /// <summary>A flat band of the given half width following a 2D path (curved guards, ribbons).</summary>
+        public void Ribbon(int sub, Vector2[] path, float halfWidth, float h)
+        {
+            for (var i = 0; i < path.Length - 1; i++)
+            {
+                var dir = (path[i + 1] - path[i]).normalized;
+                var side = new Vector2(-dir.y, dir.x) * halfWidth;
+                var ext = dir * halfWidth * 0.5f; // overlap segments so joints have no gaps
+                Slab(sub, new[]
+                {
+                    path[i] - ext - side, path[i + 1] + ext - side,
+                    path[i + 1] + ext + side, path[i] - ext + side
+                }, h);
+            }
+        }
+
         /// <summary>A prism along Y (shafts, grips, collars).</summary>
         public void Prism(int sub, float y0, float y1, float radius, int sides = 8, float x = 0f)
         {
