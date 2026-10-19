@@ -70,7 +70,8 @@ adds a soft light in front of it. Placement is deliberately not configurable; co
 `ModelExporter.exe --load models/ShardplateHelm.obj` shows how the mod will read a custom model.
 
 The repo's `models/` folder holds custom models that ship with the mod; the build copies it into the
-plugin folder. `exports/` holds reference exports of the code-built weapons.
+plugin folder. `exports/` is where the exporter writes the code-built weapons; it is not committed
+(run the exporter to generate it).
 
 ## Credits
 
