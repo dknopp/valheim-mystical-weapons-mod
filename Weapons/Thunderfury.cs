@@ -194,38 +194,64 @@ namespace MysticalWeapons.Weapons
             private static void Prefix(Character __instance, HitData hit)
             {
                 if (LightningChance == null) return;
-                // The lightning's own hits carry no slash and no skill, so they never loose more
-                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None || hit.m_damage.m_slash <= 0f) return;
                 if (!(hit.GetAttacker() is Player attacker) || attacker != Player.m_localPlayer) return;
                 var weapon = attacker.GetCurrentWeapon();
                 if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != "Thunderfury") return;
+                // TEMP: every lightning hit while holding Thunderfury, to see where the chain lands
+                if (hit.m_damage.m_lightning > 0f && hit.m_damage.m_slash <= 0f)
+                    Plugin.Log.LogInfo($"Thunderfury: lightning hit {__instance.m_name} for {hit.m_damage.m_lightning:0}");
+                // The lightning's own hits carry no slash and no skill, so they never loose more
+                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None || hit.m_damage.m_slash <= 0f) return;
 
                 if (_rolledFrame == Time.frameCount) return;
                 _rolledFrame = Time.frameCount;
                 if (Time.time < _nextLightning || Random.value >= LightningChance.Value) return;
-                if (Strike(attacker, __instance)) _nextLightning = Time.time + LightningCooldown.Value;
+                if (Strike(attacker, __instance, hit, weapon)) _nextLightning = Time.time + LightningCooldown.Value;
             }
         }
 
-        private static bool Strike(Player attacker, Character target)
+        private static readonly string[] StrikeEffects = { "fx_chainlightning_hit", "sfx_weapons_lightning_impact" };
+
+        /// <summary>
+        /// Strikes the creature hit with lightning (with the vanilla flash and crack, so it reads on a lone
+        /// target too), then spawns vanilla chain lightning there, set up as a vanilla on-hit spawn, to leap on.
+        /// </summary>
+        private static bool Strike(Player attacker, Character target, HitData swing, ItemDrop.ItemData weapon)
         {
-            var prefab = ZNetScene.instance ? ZNetScene.instance.GetPrefab(ChainLightningPrefab) : null;
-            if (!prefab)
+            var scene = ZNetScene.instance;
+            if (!scene) return false;
+            var point = target.GetCenterPoint();
+
+            var bolt = new HitData
             {
-                Plugin.Log.LogWarning($"Thunderfury: no '{ChainLightningPrefab}' prefab, no lightning");
-                return false;
+                m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value },
+                m_point = point,
+                m_dir = swing.m_dir,
+                m_skill = Skills.SkillType.None
+            };
+            bolt.SetAttacker(attacker);
+            target.Damage(bolt);
+
+            foreach (var name in StrikeEffects)
+            {
+                var fx = scene.GetPrefab(name);
+                if (fx) Object.Instantiate(fx, point, Quaternion.identity);
+                else Plugin.Log.LogWarning($"Thunderfury: no '{name}' prefab");
             }
-            var go = Object.Instantiate(prefab, target.GetCenterPoint(), Quaternion.identity);
-            var aoe = go.GetComponent<Aoe>();
+
+            var prefab = scene.GetPrefab(ChainLightningPrefab);
+            var go = prefab ? Object.Instantiate(prefab, point, Quaternion.identity) : null;
+            var aoe = go ? go.GetComponent<Aoe>() : null;
             if (!aoe)
             {
-                Plugin.Log.LogWarning($"Thunderfury: '{ChainLightningPrefab}' has no Aoe, no lightning");
-                Object.Destroy(go);
-                return false;
+                Plugin.Log.LogWarning($"Thunderfury: no '{ChainLightningPrefab}' with an Aoe, lightning won't leap");
+                if (go) Object.Destroy(go);
+                return true;
             }
-            aoe.Setup(attacker, Vector3.zero, -1f, null, null, null);
+            aoe.Setup(attacker, Vector3.zero, -1f, swing, weapon, null);
             aoe.m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value };
             aoe.m_skill = Skills.SkillType.None;
+            Plugin.Log.LogInfo($"Thunderfury: TEMP struck {target.m_name}, chain lightning spawned");
             return true;
         }
     }
