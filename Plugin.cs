@@ -16,6 +16,7 @@ namespace MysticalWeapons
         public const string Version = "1.6.3";
 
         internal static ManualLogSource Log;
+        internal static Plugin Instance;
 
         /// <summary>Every item in the mod. Add new ones here.</summary>
         internal static readonly List<MysticalItem> Items = new List<MysticalItem>
@@ -35,7 +36,9 @@ namespace MysticalWeapons
         private void Awake()
         {
             Log = Logger;
+            Instance = this;
             foreach (var item in Items) item.BindConfig(Config);
+            ItemReport.BindConfig(Config);
             new Harmony(Guid).PatchAll();
             Log.LogInfo($"Loaded {Items.Count} mystical items.");
         }
@@ -71,6 +74,8 @@ namespace MysticalWeapons
             foreach (var item in Items)
                 if (item.Enabled.Value && item.Prefab && db.m_items.Contains(item.Prefab))
                     Guard(item, () => item.AddRecipe(db));
+
+            ItemReport.Schedule(db);
         }
 
         internal static void RegisterNetPrefabs(ZNetScene scene)
