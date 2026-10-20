@@ -23,6 +23,8 @@ namespace MysticalWeapons.Weapons
             "The hammer of Ragnaros the Firelord, forged of flaming elementium and etched with runes " +
             "that flow like lava. Those it strikes are wreathed in fire.";
 
+        // The Demolisher's material would otherwise show its own textures and metal colour through ours
+        protected override bool CleanMaterials => true;
         protected override string DefaultDamage => "blunt:165";
         protected override string DefaultDamagePerLevel => "blunt:6";
         // The consumed sledge stands in for the Sulfuron Hammer, the Surtling cores for the Eye of Sulfuras

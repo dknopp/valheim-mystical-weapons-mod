@@ -14,6 +14,8 @@ namespace MysticalWeapons
         public Vector3 Rotation;
         public Vector3 Offset;
         public float Scale;
+        /// <summary>Clear everything the cloned item's material had (see <see cref="MysticalWeapon.CleanMaterials"/>).</summary>
+        public bool CleanMaterials;
     }
 
     internal static class ModelUtil
@@ -142,7 +144,8 @@ namespace MysticalWeapons
             var materials = new Material[specs.Length];
             for (var i = 0; i < materials.Length; i++)
                 materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
-                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null);
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null,
+                    place.CleanMaterials);
 
             if (materials.Length > 0)
             {
@@ -202,10 +205,26 @@ namespace MysticalWeapons
             return Quaternion.LookRotation(Vector3.Cross(right, up), up);
         }
 
-        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name, Texture2D texture)
+        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name, Texture2D texture, bool clean)
         {
             var mat = baseMat ? new Material(baseMat) : new Material(Shader.Find("Standard"));
             mat.name = name;
+            if (!clean)
+            {
+                foreach (var prop in new[] { "_MainTex", "_BumpMap", "_MetallicGlossMap", "_EmissionMap" })
+                    if (mat.HasProperty(prop)) mat.SetTexture(prop, null);
+                if (texture && mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
+                mat.color = spec.Color;
+                if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", spec.Gloss);
+                if (spec.Emission.maxColorComponent > 0f && mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", spec.Emission);
+                    if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
+                }
+                return mat;
+            }
+
             // Clear every texture the cloned item had, not only the main ones: e.g. the ice staff's
             // detail map would otherwise show its frost through our texture
             var cleared = new List<string>();

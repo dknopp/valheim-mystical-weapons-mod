@@ -1,3 +1,4 @@
+using System.Linq;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -79,6 +80,12 @@ namespace MysticalWeapons
         protected virtual Vector3 ModelOffset => Vector3.zero;
         /// <summary>False for non-weapons with a code-built model (e.g. trinkets): no damage config.</summary>
         protected virtual bool HasDamage => true;
+        /// <summary>
+        /// Opt in to clearing everything the cloned item's material had: every texture, its metal
+        /// colour and its glow, so none of the vanilla look shows through. Off: only the main textures
+        /// are cleared, as for every item made before this option.
+        /// </summary>
+        protected virtual bool CleanMaterials => false;
 
         /// <summary>Materials, indexed by the submesh numbers used in <see cref="BuildModel"/>.</summary>
         public abstract MaterialSpec[] Materials { get; }
@@ -111,7 +118,10 @@ namespace MysticalWeapons
             var builder = ModelUtil.LoadCustomModel(PrefabName, Materials.Length);
             if (builder == null)
             {
-                builder = new MeshBuilder(Materials.Length);
+                builder = new MeshBuilder(Materials.Length)
+                {
+                    ProjectUvs = Plugin.TexturedModels.Value && Materials.Any(m => !string.IsNullOrEmpty(m.Texture))
+                };
                 BuildModel(builder);
                 if (Plugin.TexturedModels.Value) BorrowTextures(builder);
             }
@@ -131,7 +141,8 @@ namespace MysticalWeapons
                 AutoAlign = AutoAlign,
                 Rotation = ModelRotation,
                 Offset = ModelOffset,
-                Scale = ModelScale
+                Scale = ModelScale,
+                CleanMaterials = CleanMaterials
             });
             DecorateModel(model);
         }

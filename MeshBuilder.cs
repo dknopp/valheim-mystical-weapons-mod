@@ -15,6 +15,11 @@ namespace MysticalWeapons
         public readonly List<int>[] Tris;
         /// <summary>Optional texture per submesh (imported models, or textures borrowed from vanilla items).</summary>
         public Texture2D[] Textures;
+        /// <summary>
+        /// Give code-built faces box-projected texture coordinates (see <see cref="Project"/>), for parts
+        /// that borrow a vanilla texture. Off: every coordinate is zero, as before textures were borrowed.
+        /// </summary>
+        public bool ProjectUvs;
 
         public MeshBuilder(int submeshes)
         {
@@ -29,7 +34,8 @@ namespace MysticalWeapons
             var n = Vector3.Cross(b - a, c - a);
             if (n.sqrMagnitude < 1e-12f) return;
             n.Normalize();
-            Vector2 ua = Project(a, n), ub = Project(b, n), uc = Project(c, n);
+            Vector2 ua = Vector2.zero, ub = Vector2.zero, uc = Vector2.zero;
+            if (ProjectUvs) { ua = Project(a, n); ub = Project(b, n); uc = Project(c, n); }
             Add(sub, a, b, c, n, n, n, ua, ub, uc);
             Add(sub, a, c, b, -n, -n, -n, ua, uc, ub);
         }
