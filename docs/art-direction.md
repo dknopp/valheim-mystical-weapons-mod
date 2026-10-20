@@ -92,6 +92,9 @@ fantasy of the source deciding where that is.
   fireball adds very roughly 5 to 8%.
 - **Hidden power counts:** no durability, stamina instead of eitr, extra carry weight or stealth are
   real power. Choose them on purpose and weigh them against the rest.
+- **Set bonuses:** only when the lore treats the items as a set (Shardplate, the Deathly Hallows). The
+  bonus plays out the set's fantasy (holding all three Hallows makes you Master of Death) and counts
+  as hidden power: about the size of a vanilla set bonus, one or two effects, not a stack.
 - **Lasting longer:** if the lore calls for an item that grows with its wielder, two options to
   suggest rather than default to: upgrade levels gated by later forge levels and materials (damage per
   level tracking each new biome's peer; materials that change per level need a small patch), or a
