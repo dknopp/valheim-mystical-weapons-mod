@@ -50,6 +50,7 @@ When an item gets a custom model (Thunderfury onwards), Claude Code does the han
   showing a screenshot and triangle count after each. I react and steer; I may tweak by hand, but
   I'm not expected to. Before a part, Claude captures close-up angles of it; when my read of the
   reference differs from Claude's, Claude checks it in the viewer rather than going with either.
+  Setting up the Blender MCP, and the problems we hit: `blender-mcp.md`.
 - **Texture and export:** Claude scripts the bake and export (as for Sulfuras), so they can be re-run.
 
 ## Finding vanilla prefabs
