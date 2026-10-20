@@ -158,8 +158,13 @@ namespace MysticalWeapons
 
         private static int Triangles(GameObject prefab, bool worn)
         {
+            var renderers = Renderers(prefab, worn);
+            // Rigid armor (most helmets) has no skinned model: the player wears its "attach" child as is
+            if (worn && renderers.Count == 0 && IsArmor(prefab))
+                renderers = Renderers(prefab, false).Where(r => UnderAttach(prefab, r)).ToList();
+
             var count = 0;
-            foreach (var r in Renderers(prefab, worn))
+            foreach (var r in renderers)
             {
                 var mesh = MeshOf(r);
                 if (!mesh) continue;
@@ -220,7 +225,8 @@ namespace MysticalWeapons
 
         /// <summary>
         /// Visible mesh renderers: enabled, not switched off below the prefab root, and only the most
-        /// detailed LOD. Worn = the skinned model under "attach_skin" that shows on the player.
+        /// detailed LOD. Worn = the skinned model under "attach_skin" that shows on the player
+        /// (see <see cref="Triangles"/> for rigid pieces).
         /// </summary>
         private static List<Renderer> Renderers(GameObject prefab, bool worn)
         {
@@ -247,6 +253,13 @@ namespace MysticalWeapons
                 if (!hidden && underSkin == worn) list.Add(r);
             }
             return list;
+        }
+
+        private static bool UnderAttach(GameObject prefab, Renderer r)
+        {
+            for (var t = r.transform; t && t != prefab.transform; t = t.parent)
+                if (t.name == "attach") return true;
+            return false;
         }
 
         private static Mesh MeshOf(Renderer r) =>
