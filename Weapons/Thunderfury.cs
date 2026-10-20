@@ -28,12 +28,13 @@ namespace MysticalWeapons.Weapons
         protected override string DefaultDamage => "slash:145";
         protected override string DefaultDamagePerLevel => "slash:6";
         // The Thunderstones stand in for the two Bindings of the Windseeker
-        protected override string DefaultRecipe => "SwordNiedhoggLightning:1,FlametalNew:20,Iolite:2,Thunderstone:2";
+        protected override string DefaultRecipe => "SwordNiedhoggLightning:1,FlametalNew:20,GemstoneBlue:2,Thunderstone:2"; // GemstoneBlue is Iolite
         protected override string DefaultStation => "blackforge";
         protected override int DefaultStationLevel => 4;
 
         private ConfigEntry<float> _grain;
         private ConfigEntry<bool> _orbCrackle;
+        private ConfigEntry<float> _crackleSize;
         internal static ConfigEntry<float> LightningChance;
         internal static ConfigEntry<float> LightningCooldown;
         internal static ConfigEntry<float> LightningDamage;
@@ -49,6 +50,8 @@ namespace MysticalWeapons.Weapons
             LightningDamage = cfg.Bind(PrefabName, "LightningDamage", 60f,
                 "Lightning damage of each strike of the chain. Lightning hurts wet creatures more.");
             _orbCrackle = cfg.Bind(PrefabName, "OrbCrackle", true, "Small lightning sparks crackling around the orb.");
+            _crackleSize = cfg.Bind(PrefabName, "OrbCrackleSize", 0.3f,
+                "Size and amount of the orb's sparks, relative to Nidhogg the Thundering's.");
         }
 
         private const int Steel = 0, Orb = 1;
@@ -107,8 +110,8 @@ namespace MysticalWeapons.Weapons
         }
 
         /// <summary>
-        /// Borrows the sparks that run along Nidhögg the Thundering's blade, each placed on a small sphere
-        /// around the orb at half size. Only systems on the sword itself, not its dropped-item sparkle.
+        /// Borrows the sparks that run along Nidhögg the Thundering's blade, placed on a small sphere
+        /// around the orb and scaled down. Only the lightning: its glow and smoke dwarf our small orb.
         /// </summary>
         private void AddOrbCrackle(GameObject model)
         {
@@ -123,8 +126,10 @@ namespace MysticalWeapons.Weapons
             orb.transform.SetParent(model.transform, false);
             orb.transform.localPosition = new Vector3(0f, OrbY, 0f);
 
+            var size = _crackleSize.Value;
             foreach (var source in attach.GetComponentsInChildren<ParticleSystem>(true))
             {
+                if (source.name != "Lightning") continue;
                 var r = source.GetComponent<ParticleSystemRenderer>();
                 var go = Object.Instantiate(source.gameObject, orb.transform, false);
                 go.name = source.name;
@@ -137,7 +142,8 @@ namespace MysticalWeapons.Weapons
                 var ps = go.GetComponent<ParticleSystem>();
                 var main = ps.main;
                 main.playOnAwake = true;
-                main.startSizeMultiplier *= CrackleSize;
+                main.startSizeMultiplier *= size;
+                main.startSpeedMultiplier *= size;
                 main.simulationSpace = ParticleSystemSimulationSpace.Local;
                 var shape = ps.shape;
                 shape.enabled = true;
@@ -147,7 +153,7 @@ namespace MysticalWeapons.Weapons
                 shape.scale = Vector3.one;
                 shape.radius = 0.04f;
                 var emission = ps.emission;
-                emission.rateOverTimeMultiplier *= CrackleSize;
+                emission.rateOverTimeMultiplier *= size;
                 Plugin.Log.LogInfo($"{PrefabName}: orb crackle from '{source.name}' " +
                                    $"(material '{(r && r.sharedMaterial ? r.sharedMaterial.name : "")}')");
             }
@@ -157,9 +163,6 @@ namespace MysticalWeapons.Weapons
                 Object.Destroy(orb);
             }
         }
-
-        /// <summary>How big and how many of the Thundering's sparks, relative to the sword's.</summary>
-        private const float CrackleSize = 0.5f;
 
         private static Transform FindAttach(Transform t)
         {
@@ -218,6 +221,7 @@ namespace MysticalWeapons.Weapons
             aoe.Setup(attacker, Vector3.zero, -1f, null, null, null);
             aoe.m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value };
             aoe.m_skill = Skills.SkillType.None;
+            Plugin.Log.LogInfo($"Thunderfury: chain lightning at {target.m_name}");
             return true;
         }
     }
