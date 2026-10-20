@@ -87,3 +87,11 @@ plugin folder. `exports/` is where the exporter writes the code-built weapons; i
 - **Armor:** subclass `MysticalArmor` in `Armor/` with a source armor piece, tint and glow colour.
 
 Then add it to `Plugin.Items`.
+
+### Item report
+
+To see how items look next to vanilla, set `[Debug] ItemReport = true` in the config and launch to
+the main menu. `BepInEx/MysticalItemReport` then holds a picture of each item beside its vanilla peer
+from eight angles, and `report.txt` (triangles and texture sizes next to the peer, plus the most
+detailed vanilla item of the same kind). The peer is the cloned source unless the item sets
+`VanillaPeer`. Triangle counts are about twice what Blender shows.
