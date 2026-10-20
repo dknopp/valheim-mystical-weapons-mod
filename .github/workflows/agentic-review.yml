@@ -1,0 +1,106 @@
+name: "Agentic Review Security Gate"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  verify-security-checks:
+    name: "Verify Agent Cryptographic Proof"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Signature, Author, and Commit SHA
+        uses: actions/github-script@v7
+        env:
+          SIGNING_SECRET: ${{ secrets.AGENT_SIGNING_SECRET }}
+          ALLOWED_AUTHORS: ${{ secrets.AGENT_ALLOWED_AUTHORS }}
+        with:
+          script: |
+            const crypto = require('crypto');
+            
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info("Not a pull request event context. Skipping.");
+              return;
+            }
+
+            const prHeadSha = pr.head.sha;
+            const issueNumber = pr.number;
+            
+            // Layer 2: Author Allowlist Configuration
+            // Add GitHub handles of authorized developers or bot accounts allowed to submit results
+            const allowedAuthors = process.env.ALLOWED_AUTHORS.split(',').map(author => author.trim().toLowerCase());
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+
+            // Find the latest agent review comment
+            const agentComment = comments.reverse().find(comment => 
+              comment.body.includes("### 🤖 Secured Agentic Review Report")
+            );
+
+            if (!agentComment) {
+              core.setFailed(`❌ Security Gate Failed: No agentic review report found for PR #${issueNumber}.`);
+              return;
+            }
+
+            // Verify Layer 2 (Allowlist)
+            const commentAuthor = agentComment.user.login;
+            if (!allowedAuthors.includes(commentAuthor)) {
+              core.setFailed(`❌ Security Gate Failed: Comment author '@${commentAuthor}' is not authorized to submit agent reviews.`);
+              return;
+            }
+
+            // Extract embedded payload JSON and Signature
+            const body = agentComment.body;
+            
+            // Check SHA Binding (Layer 3)
+            if (!body.includes(prHeadSha)) {
+              core.setFailed(`❌ Security Gate Failed: The agent report commit SHA does not match the current PR head SHA (${prHeadSha.substring(0, 7)}). Please re-run your local agents for the latest code changes.`);
+              return;
+            }
+
+            // Extract JSON codeblock and Signature
+            try {
+              const jsonMatch = body.match(/```json([\s\S]*?)```/);
+              const sigMatch = body.match(/<!-- AGENT_SIGNATURE: sha256=([a-fA-F0-9]{64}) -->/);
+
+              if (!jsonMatch || !sigMatch) {
+                core.setFailed("❌ Security Gate Failed: Malformed agent report format or missing signature block.");
+                return;
+              }
+
+              const payloadJsonStr = jsonMatch[1].trim();
+              const providedSignature = sigMatch[1];
+
+              // Re-sort and parse to ensure canonical JSON string comparison matches local generation
+              const parsedPayload = JSON.parse(payloadJsonStr);
+              const canonicalJson = JSON.stringify(parsedPayload, Object.keys(parsedPayload).sort());
+
+              // Verify Layer 1 (HMAC Cryptographic Signature Match)
+              const secret = process.env.SIGNING_SECRET;
+              const computedSignature = crypto
+                .createHmac('sha256', secret)
+                .update(canonicalJson)
+                .digest('hex');
+
+              if (!crypto.timingSafeEqual(Buffer.from(computedSignature), Buffer.from(providedSignature))) {
+                core.setFailed("❌ Security Gate Failed: Invalid cryptographic signature! The report was forged or modified.");
+                return;
+              }
+
+              // Check pass/fail status flag inside payload
+              if (parsedPayload.passed === true) {
+                core.info(`✅ Agentic review cryptographic proof verified successfully for commit ${prHeadSha.substring(0, 7)}!`);
+              } else {
+                core.setFailed("❌ Agentic Review Failed: The local agent reported security or code quality failures.");
+              }
+
+            } catch (err) {
+              core.setFailed(`❌ Security Gate Parsing Error: ${err.message}`);
+            }
