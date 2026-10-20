@@ -31,6 +31,8 @@ namespace MysticalWeapons
         protected virtual Vector3 CustomModelRotation => Vector3.zero;
         protected virtual Vector3 CustomModelOffset => Vector3.zero;
         protected virtual float CustomModelScale => 1f;
+        /// <summary>Extra per-axis scale in the model's own axes (e.g. X to widen a helm).</summary>
+        protected virtual Vector3 CustomModelStretch => Vector3.one;
         /// <summary>Where the custom model's light sits, in the model's own space (in front of it, so it lights the outside).</summary>
         protected virtual Vector3 CustomModelLightPosition => Vector3.zero;
 
@@ -216,7 +218,8 @@ namespace MysticalWeapons
                 FitToOriginal = true,
                 Rotation = CustomModelRotation,
                 Offset = CustomModelOffset,
-                Scale = CustomModelScale
+                Scale = CustomModelScale,
+                Stretch = CustomModelStretch
             }, MaterialFrom(CustomModelMaterialSource));
             if (_customLight.Value > 0f)
                 ModelUtil.AddGlow(model, CustomModelLightPosition, Glow, 2.5f, _customLight.Value);

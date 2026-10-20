@@ -14,6 +14,8 @@ namespace MysticalWeapons
         public Vector3 Rotation;
         public Vector3 Offset;
         public float Scale;
+        /// <summary>Extra per-axis scale in the model's own axes, after fitting (zero = none).</summary>
+        public Vector3 Stretch;
     }
 
     internal static class ModelUtil
@@ -221,7 +223,7 @@ namespace MysticalWeapons
             }
             model.transform.localRotation = rotation;
             model.transform.localPosition = position;
-            model.transform.localScale = Vector3.one * scale;
+            model.transform.localScale = Vector3.Scale(Vector3.one * scale, place.Stretch == Vector3.zero ? Vector3.one : place.Stretch);
             return model;
         }
 

@@ -38,8 +38,9 @@ namespace MysticalWeapons.Armor
 
         /// <summary>A plate this far outside the body surface still counts as covering it (metres).</summary>
         private const float Reach = 0.12f;
-        /// <summary>Rays start this far inside the body, so skin already through a plate counts as covered.</summary>
-        private const float Pierce = 0.03f;
+        /// <summary>Rays start this far inside the body, so skin already through a plate counts as covered
+        /// (the plates sit close around the limbs, so body reaches a few cm through them).</summary>
+        private const float Pierce = 0.06f;
         /// <summary>Rays per vertex (along the normal plus a ring tilted this far off it) and hits needed.</summary>
         private const float RayTilt = 25f;
         private const int RayRing = 4;
@@ -163,6 +164,12 @@ namespace MysticalWeapons.Armor
                 toRest[b] = r * bodyBind[b];
             }
 
+            // Only the limbs are hidden (arms, hands, legs, feet): they are what pokes through as they
+            // bend. The torso, shoulders, neck and head always draw, so no holes open there
+            var limb = new bool[bones.Length];
+            for (var b = 0; b < bones.Length; b++)
+                limb[b] = bones[b] && IsLimb(bones[b].name);
+
             var verts = bodyMesh.vertices;
             var normals = bodyMesh.normals;
             var weights = bodyMesh.boneWeights;
@@ -172,6 +179,9 @@ namespace MysticalWeapons.Armor
             for (var v = 0; v < verts.Length && v < weights.Length && v < normals.Length; v++)
             {
                 var bw = weights[v];
+                var onLimbs = (limb[bw.boneIndex0] ? bw.weight0 : 0f) + (limb[bw.boneIndex1] ? bw.weight1 : 0f) +
+                              (limb[bw.boneIndex2] ? bw.weight2 : 0f) + (limb[bw.boneIndex3] ? bw.weight3 : 0f);
+                if (onLimbs < 0.5f) continue;
                 Vector3 p = Vector3.zero, n = Vector3.zero;
                 void Add(int bi, float w)
                 {
@@ -188,6 +198,11 @@ namespace MysticalWeapons.Armor
             Plugin.Log.LogInfo($"Shardplate body mask: {piece.Prefab} covers {count} of {verts.Length} body vertices");
             return result;
         }
+
+        /// <summary>Arm (upper arm, forearm), hand and finger, leg (thigh, shin), foot and toe bones.
+        /// Shoulder, spine, hips, neck and head bones are not limbs.</summary>
+        private static bool IsLimb(string bone) =>
+            bone.Contains("Arm") || bone.Contains("Hand") || bone.Contains("Leg") || bone.Contains("Foot") || bone.Contains("Toe");
 
         private static bool IsCovered(TriangleGrid grid, Vector3 p, Vector3 n)
         {

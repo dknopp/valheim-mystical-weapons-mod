@@ -87,9 +87,12 @@ namespace MysticalWeapons.Armor
         // Custom model (models/ShardplateHelm.obj): it faces -Z, Valheim's head faces +Z.
         // Fitted to the Drake helmet's largest dimension (its long crest), so shrink it to head size;
         // the crest also centres it too far back, so move it forward to keep the visor over the face.
-        protected override Vector3 CustomModelRotation => new Vector3(0f, 180f, 0f);
+        // To line the eye-slit up with the eyes it is tipped chin-down 6° (negative X: the model faces
+        // -Z before the 180° turn) and lowered by 11% of its fitted height (0.362), and 4% wider.
+        protected override Vector3 CustomModelRotation => new Vector3(-6f, 180f, 0f);
         protected override float CustomModelScale => 0.78f;
-        protected override Vector3 CustomModelOffset => new Vector3(0f, 0f, 0.08f);
+        protected override Vector3 CustomModelStretch => new Vector3(1.04f, 1f, 1f);
+        protected override Vector3 CustomModelOffset => new Vector3(0f, -0.040f, 0.08f);
         // In front of the visor (model space, before the 180° turn) so it lights the outside of the helm
         protected override Vector3 CustomModelLightPosition => new Vector3(0f, 0.05f, -0.35f);
         protected override float DefaultCustomLight => 0.8f;

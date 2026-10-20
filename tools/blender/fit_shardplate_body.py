@@ -9,7 +9,7 @@
 #   blender -b --factory-startup --python tools/blender/fit_shardplate_body.py -- <scene.gltf> tools/blender/player_skeleton.json models export
 #
 # player_skeleton.json is the player's rest pose, dumped by the mod (see DevTools.cs).
-import bpy, sys, json, os
+import bpy, sys, json, os, shutil, tempfile
 import numpy as np
 from mathutils import Vector
 
@@ -27,8 +27,20 @@ body = np.array(skel["body"])
 # Vertical (Krajkoa z -> Valheim y). The torso keeps one scale from the faulds to the shoulders
 # (~1.2e-3), which drops the hip plates over the top of the thighs; the legs are stretched to
 # Valheim's longer legs, with the thigh plates reaching up under the faulds so no gap opens.
-TORSO_VK = [(-260, 0.75), (140, 1.24), (430, B["LeftArm"][1]), (477, B["Neck"][1]), (700, 1.95)]
-LEG_VK = [(-698, 0.0), (-600, B["LeftFoot"][1]), (-380, B["LeftLeg"][1]), (-98, 1.19), (0, 1.30)]
+# The waist (Krajkoa z 140: belt, flare of the hip plates, top of the groin plate) drops so the torso
+# from waist to shoulders is this much longer; everything below the waist drops with it
+TORSO_LENGTHEN = 0.25
+WAIST_DROP = (B["LeftArm"][1] - 1.24) * TORSO_LENGTHEN
+TORSO_VK = [(-260, 0.75 - WAIST_DROP), (140, 1.24 - WAIST_DROP), (430, B["LeftArm"][1]), (477, B["Neck"][1]), (700, 1.95)]
+# Krajkoa's knee (z -380) sits this fraction below Valheim's knee joint: on the joint itself the knee
+# plates looked too high
+KNEE_DROP = 0.20
+KNEE_Y = B["LeftLeg"][1] * (1 - KNEE_DROP)
+# The thigh plates above the knee are shortened by this fraction, lowering the top of the greaves
+# (Krajkoa z -98 and 0, which sat at 1.19 and 1.30): there they looked too high on the hips
+THIGH_DROP = 0.26
+LEG_VK = [(-698, 0.0), (-600, B["LeftFoot"][1]), (-380, KNEE_Y),
+          (-98, KNEE_Y + (1.19 - KNEE_Y) * (1 - THIGH_DROP)), (0, KNEE_Y + (1.30 - KNEE_Y) * (1 - THIGH_DROP))]
 
 
 def vmap(z, knots):
@@ -71,9 +83,10 @@ ARM_GIRTH = [1.0e-3, 1.0e-3, 1.25e-3]  # perpendicular scale per segment (upper,
 # Forward (+Z) nudge of the arm plates at shoulder, elbow, wrist and fingertips, blended along the
 # arm. Zero: a forward nudge (up to 4 cm) was tried and made the arms poke out of the back instead.
 ARM_FORWARD = [0.0, 0.0, -0.025, -0.025]
-# Extra girth of the arm plates (not the gauntlets) at the same four knots, blended the same way:
-# Valheim's wrist is thick front to back and pokes out of a vambrace that tapers like Krajkoa's.
-ARM_FLARE = [1.0, 1.05, 1.25, 1.25]
+# Extra girth of the arm plates (not the gauntlets) at the same four knots, blended the same way.
+# Off: it was added to contain Valheim's thick wrist, but the mod now hides the body under the plates
+# (Armor/BodyMask.cs), and the flared vambraces looked out of proportion.
+ARM_FLARE = [1.0, 1.0, 1.0, 1.0]
 
 
 def rot_between(a, b):
@@ -115,15 +128,21 @@ def map_torso(P):
 
 
 # Extra depth behind the thigh (hamstrings, glutes), growing from the knee to the top of the thigh
-LEG_BACK = 1.4
+LEG_BACK = 1.15
+# Girth of the thigh plates at the top of the greaves, tapering smoothly from full girth at the knee:
+# the upper thighs poked through the breastplate's hip plates
+THIGH_TOP_GIRTH = 0.85
 
 
 def map_leg(P, side):
     h = vmap(P[:, 1], LEG_VK); lx, lz = leg_line(side, h)
     dz = (P[:, 2] - LEG["cy"]) * LEG["sz"]
+    dx = (P[:, 0] - LEGK[side]) * LEG["sx"]
     t = np.clip((h - B["LeftLeg"][1] - 0.05) / 0.25, 0, 1); t = t * t * (3 - 2 * t)
     dz = np.where(dz < 0, dz * (1 + (LEG_BACK - 1) * t), dz)
-    return np.stack([lx + (P[:, 0] - LEGK[side]) * LEG["sx"], h, lz + dz], 1)
+    u = np.clip((h - KNEE_Y) / (LEG_VK[-1][1] - KNEE_Y), 0, 1); u = u * u * (3 - 2 * u)
+    taper = 1 + (THIGH_TOP_GIRTH - 1) * u
+    return np.stack([lx + dx * taper, h, lz + dz * taper], 1)
 
 
 # ---------------------------------------------------------------- load + split into plates
@@ -151,10 +170,11 @@ for o in list(bpy.data.objects):
     plates.append((o, mat, "legs" if mat in ("material", "skirt") else "chest"))
 
 # ---------------------------------------------------------------- map every plate
-# Girth multipliers per region (x = width, z = depth). Chosen so the breastplate is in proportion
-# with the greaves and the body stays inside the plates; the torso grows more in depth than width
-# so it doesn't collide with the arms in the A-pose.
-GIRTH = {"torso": (1.38, 1.62), "leg": (1.45, 1.45), "arm": (2.05, 2.05)}
+# Girth multipliers per region (x = width, z = depth), chosen for proportion: the mod hides the body
+# under the plates (Armor/BodyMask.cs), so they no longer have to contain it. The arms were 2.05 and
+# the torso (1.38, 1.62), which looked bulky. The torso keeps a little more depth than width so it
+# doesn't collide with the arms in the A-pose.
+GIRTH = {"torso": (1.34, 1.46), "leg": (1.3, 1.35), "arm": (1.5, 1.5)}
 HAND_GIRTH = 1.65  # gauntlets stay at their earlier, well-fitting size
 for i, (o, mat, kind) in enumerate(plates):
     P = np.array([v.co[:] for v in o.data.vertices])[:, [0, 2, 1]]  # Unity axes, Krajkoa units
@@ -185,8 +205,8 @@ def map_plate(pl):
 
 
 GROIN_TOP_K = 133.0    # top of the codpiece plates, Krajkoa z
-GROIN_TOP = 1.18       # where that top goes on Valheim (under the abdominal bands)
-GROIN_STRETCH = 1.3    # bottom lands around 0.91, Valheim's groin
+GROIN_TOP = 1.18 - WAIST_DROP  # where that top goes on Valheim (under the abdominal bands)
+GROIN_STRETCH = 1.3    # bottom lands around 0.91 before the waist drop
 
 
 def is_groin(pl):
@@ -228,6 +248,143 @@ for pl in plates:
     pl["Q"] = Q
     for v, q in zip(pl["obj"].data.vertices, Q): v.co = (q[0], q[2], q[1])  # Unity -> Blender axes
     pl["obj"].data.update()
+
+
+# Once fitted, the belt has a small see-through window at its centre (x ±3 cm, 0.99-1.06 m), where
+# the codpiece and the hip plates part; with the body hidden under the armour you could see right
+# through. At the front a small curved filler plate covers it, following the depth of the plates
+# around it, set just behind them, textured from the nearest real plate. The back is covered by a
+# hand-modelled patch (see load_patches).
+GAP_X = 0.06                 # half width of the filler (metres)
+GAP_Y = (0.97, 1.08)         # its height range
+GAP_INSET = 0.01             # how far behind the surrounding plate surface it sits
+
+
+def core_uv_lookup():
+    """Positions (Unity axes) and UVs of every torso ("core") vertex, to texture added plates from
+    their nearest neighbour."""
+    core = [pl for pl in plates if pl["mat"] == "core"]
+    uvs = []
+    for pl in core:
+        me = pl["obj"].data; uv = np.zeros((len(me.vertices), 2))
+        if me.uv_layers.active:
+            for loop in me.loops: uv[loop.vertex_index] = me.uv_layers.active.data[loop.index].uv
+        uvs.append(uv)
+    layer = core[0]["obj"].data.uv_layers.active
+    return np.concatenate([pl["Q"] for pl in core]), np.concatenate(uvs), layer.name if layer else "UVMap"
+
+
+def uv_from_nearest(me, V, lookup):
+    """Gives a mesh a UV layer copied from the nearest torso vertex of each of its vertices V (Unity axes)."""
+    P, UV, name = lookup
+    for old in list(me.uv_layers): me.uv_layers.remove(old)
+    layer = me.uv_layers.new(name=name)
+    for loop in me.loops:
+        layer.data[loop.index].uv = UV[np.argmin(np.linalg.norm(P - V[loop.vertex_index], axis=1))]
+
+
+def add_gap_filler(lookup):
+    P = lookup[0]
+    near = P[(np.abs(P[:, 0]) < GAP_X + 0.06) & (P[:, 1] > GAP_Y[0] - 0.04) & (P[:, 1] < GAP_Y[1] + 0.04)]
+    zmid = (near[:, 2].max() + near[:, 2].min()) / 2
+    front = near[near[:, 2] > zmid]
+    xs = np.linspace(-GAP_X, GAP_X, 7); ys = np.linspace(GAP_Y[0], GAP_Y[1], 5)
+    V = []
+    for y in ys:
+        for x in xs:
+            d = np.hypot(front[:, 0] - x, front[:, 1] - y)
+            ring = front[d < 0.05] if (d < 0.05).sum() >= 5 else front[np.argsort(d)[:8]]
+            V.append((x, y, np.percentile(ring[:, 2], 80) - GAP_INSET))
+    V = np.array(V); n = len(xs)
+    # (a, b, c, e) runs +x then up, which faces Blender's -Y (the back), so it is reversed to face front
+    faces = [(j * n + i, (j + 1) * n + i, (j + 1) * n + i + 1, j * n + i + 1)
+             for j in range(len(ys) - 1) for i in range(n - 1)]
+    me = bpy.data.meshes.new("gap_filler_front")
+    me.from_pydata([(q[0], q[2], q[1]) for q in V], [], faces); me.update()
+    uv_from_nearest(me, V, lookup)
+    me.materials.append(bpy.data.materials["core"])
+    ob = bpy.data.objects.new(me.name, me); bpy.context.scene.collection.objects.link(ob)
+    plates.append(dict(obj=ob, mat="core", kind="chest", P=V, Q=V, region="torso", side=None))
+    print(f"GAP FILLER front: z {V[:, 2].min():.3f}..{V[:, 2].max():.3f}")
+
+
+# Hand-modelled extra armour, kept in a "Patches" collection. Every export saves the fitted plates
+# (rest pose, Blender axes, metres) with the current patches to REFERENCE_BLEND (not tracked: large);
+# model in its Patches collection and save it, then export again. The export reads the patches from
+# REFERENCE_BLEND (or, on a fresh checkout, from PATCHES_BLEND), writes them alone to PATCHES_BLEND
+# (small, tracked) and adds each as a plate of the item its material belongs to (torso materials ->
+# breastplate, "material" -> greaves), weighted like its neighbours; a patch without UVs is
+# textured from the nearest torso plate.
+HERE = os.path.dirname(os.path.abspath(__file__))
+REFERENCE_BLEND = os.path.join(HERE, "shardplate_fit.blend")
+PATCHES_BLEND = os.path.join(HERE, "shardplate_patches.blend")
+
+
+def load_patch_collection():
+    src = next((f for f in (REFERENCE_BLEND, PATCHES_BLEND) if os.path.exists(f)), None)
+    col = None
+    if src:
+        # Read from a temporary copy: Blender refuses to overwrite a file it has loaded data from
+        tmp = os.path.join(tempfile.gettempdir(), "shardplate_patches_in.blend"); shutil.copyfile(src, tmp)
+        with bpy.data.libraries.load(tmp, link=False) as (data_from, data_to):
+            data_to.collections = [c for c in data_from.collections if c == "Patches"]
+        col = next((c for c in data_to.collections if c), None)
+    if not col:
+        col = bpy.data.collections.new("Patches")
+    bpy.context.scene.collection.children.link(col)
+    bpy.context.view_layer.update()  # world matrices of the appended objects
+    print(f"PATCHES {len([o for o in col.all_objects if o.type == 'MESH'])} from {src or 'nowhere (none yet)'}")
+    return col
+
+
+def save_patches(col):
+    bpy.ops.wm.save_as_mainfile(filepath=REFERENCE_BLEND, copy=True)
+    objs = [o for o in col.all_objects if o.type == "MESH"]
+    if objs:
+        # Only a material's name matters (it picks the item): write empty stand-ins, not the textures
+        saved, stand_ins = {}, []
+        for o in objs:
+            saved[o.data] = list(o.data.materials)
+            for k, m in enumerate(o.data.materials):
+                if m:
+                    stand_ins.append(bpy.data.materials.new(m.name.split(".")[0]))
+                    o.data.materials[k] = stand_ins[-1]
+        bpy.data.libraries.write(PATCHES_BLEND, {col, *objs, *(o.data for o in objs)}, fake_user=True)
+        for me, mats in saved.items():
+            for k, m in enumerate(mats): me.materials[k] = m
+        for m in stand_ins: bpy.data.materials.remove(m)
+    elif os.path.exists(PATCHES_BLEND):
+        os.remove(PATCHES_BLEND)  # all patches deleted: don't bring them back on a fresh checkout
+    print(f"REFERENCE {REFERENCE_BLEND}; {len(objs)} patches -> {PATCHES_BLEND if objs else '(none)'}")
+
+
+def patches_to_plates(col, lookup):
+    for ob in [o for o in col.all_objects if o.type == "MESH"]:
+        # With its modifiers (e.g. Subdivision Surface) applied, in world space
+        me = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+        me.transform(ob.matrix_world)
+        # Materials may come in as copies ("core.001"): use the scene's own
+        base = [m.name.split(".")[0] if m else "core" for m in me.materials] or ["core"]
+        me.materials.clear()
+        for name in base: me.materials.append(bpy.data.materials.get(name) or bpy.data.materials["core"])
+        mat = base[0] if base[0] in ("core", "helmet", "material") else "core"  # arm materials not supported
+        V = np.array([(v.co[0], v.co[2], v.co[1]) for v in me.vertices])  # Blender -> Unity axes
+        if not me.uv_layers: uv_from_nearest(me, V, lookup)
+        new = bpy.data.objects.new("patch_" + ob.name, me); bpy.context.scene.collection.objects.link(new)
+        legs = mat == "material"
+        plates.append(dict(obj=new, mat=mat, kind="legs" if legs else "chest", P=V, Q=V,
+                           region="leg" if legs else "torso", side=("L" if V[:, 0].mean() < 0 else "R") if legs else None))
+        print(f"PATCH {ob.name}: {len(V)} vertices, material {mat}, centre {np.round(V.mean(0), 3)}")
+
+
+lookup = core_uv_lookup()
+patch_col = load_patch_collection()
+# The generated front filler shows up in the reference as "gap_filler_front"; moved into Patches (to
+# reshape it by hand) it replaces the generated one
+if not any(o.name.startswith("gap_filler_front") for o in patch_col.all_objects):
+    add_gap_filler(lookup)
+if MODE == "export": save_patches(patch_col)
+patches_to_plates(patch_col, lookup)
 print("PLATES", len(plates))
 
 if MODE == "preview":
@@ -497,6 +654,11 @@ def rigid_hand_piece(pl):
     return bone
 
 
+FAULD_FOLLOW = 0.7   # share of the thigh bone at the hip plates' bottom edge (0 at the hip joint)
+FAULD_LOW = 0.75     # height of that bottom edge (metres)
+FAULD_MID = 0.06     # within this of the centre line, plates follow both thighs
+
+
 def assign_weights(pl, power=None, names=None):
     """Smooth inverse-distance weights to the nearest bone segments, top 4, as vertex groups.
     Arm plates use a sharper falloff so each follows its own segment and only blends at the joints."""
@@ -511,10 +673,23 @@ def assign_weights(pl, power=None, names=None):
         D[:, j] = np.linalg.norm(Q - (a + t[:, None] * ab), axis=1)
     W = 1.0 / np.maximum(D, 0.01) ** power
     keep = np.argsort(-W, axis=1)[:, :4]
+    rows = np.arange(len(Q))[:, None]
+    Wn = np.zeros_like(W); Wn[rows, keep] = W[rows, keep]
+    Wn /= Wn.sum(1, keepdims=True)
+    if pl["region"] == "torso":
+        # Hip plates (faulds) below the hip joint swing with the thigh on their side, more towards
+        # their bottom edge, like tassets; near the middle they follow both thighs
+        f = np.clip((B["LeftUpLeg"][1] - Q[:, 1]) / (B["LeftUpLeg"][1] - FAULD_LOW), 0, 1)
+        f = f * f * (3 - 2 * f) * FAULD_FOLLOW
+        left = np.clip(0.5 - Q[:, 0] / (2 * FAULD_MID), 0, 1)  # the character's left is -X
+        Wn *= (1 - f)[:, None]
+        Wn[:, names.index("LeftUpLeg")] += f * left
+        Wn[:, names.index("RightUpLeg")] += f * (1 - left)
+        keep = np.argsort(-Wn, axis=1)[:, :4]
     o = pl["obj"]
     groups = {}
     for i in range(len(Q)):
-        w = W[i, keep[i]]; w = w / w.sum()
+        w = Wn[i, keep[i]]; w = w / w.sum()
         for j, wt in zip(keep[i], w):
             if wt < 0.01: continue
             n = names[j]
