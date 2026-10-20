@@ -241,8 +241,26 @@ namespace MysticalWeapons
 
         // ------------------------------------------------------------- images
 
+        /// <summary>Width of an axis-aligned box seen along a direction perpendicular to <paramref name="dir"/>.</summary>
+        private static float Span(Bounds b, Vector3 dir) =>
+            Mathf.Abs(b.size.x * dir.x) + Mathf.Abs(b.size.y * dir.y) + Mathf.Abs(b.size.z * dir.z);
+
+        /// <summary>Dark lines between the pairs, so each view's two items read as one cell.</summary>
+        private static void DrawGrid(Texture2D image)
+        {
+            var line = new Color(0.12f, 0.12f, 0.13f);
+            for (var i = 1; i < 4; i++)
+            for (var t = -3; t < 3; t++)
+            for (var p = 0; p < image.width; p++)
+            {
+                image.SetPixel(p, i * Panel + t, line);
+                if (i == 2) image.SetPixel(i * Panel + t, p, line);
+            }
+        }
+
         /// <summary>
-        /// One PNG: rows front, side, top; left our item, right the peer, both at the same scale.
+        /// One PNG, a 4x4 grid of pairs (our item | peer, same scale), read left to right:
+        /// front, back / left, right / top, bottom / three-quarter front, three-quarter back.
         /// Views follow the peer's shape: front faces its broad side, top looks down its length.
         /// </summary>
         private static void Render(GameObject oursPrefab, GameObject peerPrefab, string path)
@@ -251,7 +269,7 @@ namespace MysticalWeapons
             var camGo = new GameObject("ItemReportCamera");
             var lightGo = new GameObject("ItemReportLight");
             var rt = new RenderTexture(Panel, Panel, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
-            var image = new Texture2D(Panel * 2, Panel * 3, TextureFormat.RGB24, false);
+            var image = new Texture2D(Panel * 4, Panel * 4, TextureFormat.RGB24, false);
             var ambientMode = RenderSettings.ambientMode;
             var ambient = RenderSettings.ambientLight;
             var previousActive = RenderTexture.active;
@@ -284,13 +302,21 @@ namespace MysticalWeapons
                 axes.Sort((a, b) => size[b].CompareTo(size[a]));
                 Vector3 Axis(int i) { var v = Vector3.zero; v[axes[i]] = 1f; return v; }
 
-                // (look direction, image up): front, side, top
-                var views = new[] { (Axis(2), Axis(0)), (Axis(1), Axis(0)), (-Axis(0), Axis(1)) };
-                for (var row = 0; row < views.Length; row++)
+                Vector3 length = Axis(0), width = Axis(1), depth = Axis(2);
+                var views = new[] // look direction, image up
                 {
-                    var (look, up) = views[row];
+                    (depth, length), (-depth, length),                                  // front, back
+                    (width, length), (-width, length),                                  // left, right
+                    (-length, width), (length, width),                                  // top, bottom
+                    ((depth + width * 0.8f - length * 0.4f).normalized, length),         // three-quarter front
+                    ((-depth - width * 0.8f - length * 0.4f).normalized, length),        // three-quarter back
+                };
+                for (var v = 0; v < views.Length; v++)
+                {
+                    var (look, up) = views[v];
+                    up = (up - Vector3.Dot(up, look) * look).normalized;
                     var right = Vector3.Cross(up, look);
-                    var extent = bounds.Max(b => Mathf.Max(Mathf.Abs(Vector3.Dot(b.size, up)), Mathf.Abs(Vector3.Dot(b.size, right))));
+                    var extent = bounds.Max(b => Mathf.Max(Span(b, up), Span(b, right)));
                     cam.orthographicSize = extent * 0.55f;
                     light.transform.rotation = Quaternion.LookRotation(look - up * 0.6f + right * 0.4f, up);
 
@@ -302,9 +328,10 @@ namespace MysticalWeapons
                             Quaternion.LookRotation(look, up));
                         cam.Render();
                         RenderTexture.active = rt;
-                        image.ReadPixels(new Rect(0, 0, Panel, Panel), col * Panel, (views.Length - 1 - row) * Panel);
+                        image.ReadPixels(new Rect(0, 0, Panel, Panel), (v % 2 * 2 + col) * Panel, (3 - v / 2) * Panel);
                     }
                 }
+                DrawGrid(image);
                 image.Apply();
                 File.WriteAllBytes(path, image.EncodeToPNG());
             }
