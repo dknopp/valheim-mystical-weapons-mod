@@ -110,8 +110,9 @@ namespace MysticalWeapons.Weapons
         }
 
         /// <summary>
-        /// Borrows the sparks that run along Nidhögg the Thundering's blade, placed on a small sphere
-        /// around the orb and scaled down. Only the lightning: its glow and smoke dwarf our small orb.
+        /// Borrows the lightning that runs along Nidhögg the Thundering's blade, copied whole (its sparks
+        /// may be drawn by child systems or trails) onto a small sphere around the orb and scaled down as
+        /// one piece. Its glow and smoke stay behind: they dwarf our small orb.
         /// </summary>
         private void AddOrbCrackle(GameObject model)
         {
@@ -122,47 +123,79 @@ namespace MysticalWeapons.Weapons
                 Plugin.Log.LogWarning($"{PrefabName}: no Nidhögg the Thundering found, orb stays without sparks");
                 return;
             }
-            var orb = new GameObject("crackle");
-            orb.transform.SetParent(model.transform, false);
-            orb.transform.localPosition = new Vector3(0f, OrbY, 0f);
+            LogEffects(attach);
+
+            Transform source = null;
+            foreach (var ps in attach.GetComponentsInChildren<ParticleSystem>(true))
+                if (ps.name == "Lightning") { source = ps.transform; break; }
+            if (!source)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: Nidhögg the Thundering has no 'Lightning' to borrow");
+                return;
+            }
 
             var size = _crackleSize.Value;
-            foreach (var source in attach.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                if (source.name != "Lightning") continue;
-                var r = source.GetComponent<ParticleSystemRenderer>();
-                var go = Object.Instantiate(source.gameObject, orb.transform, false);
-                go.name = source.name;
-                foreach (Transform child in go.transform) Object.Destroy(child.gameObject);
-                go.transform.localPosition = Vector3.zero;
-                go.transform.localRotation = Quaternion.identity;
-                go.transform.localScale = Vector3.one;
-                go.SetActive(true);
+            var go = Object.Instantiate(source.gameObject, model.transform, false);
+            go.name = "crackle";
+            go.transform.localPosition = new Vector3(0f, OrbY, 0f);
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one * size;
+            go.SetActive(true);
 
-                var ps = go.GetComponent<ParticleSystem>();
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                ps.gameObject.SetActive(true);
                 var main = ps.main;
+                // Scale every system, sizes, speeds and shapes, with the copy's transform
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                var r = ps.GetComponent<ParticleSystemRenderer>();
+                var mat = r && r.sharedMaterial ? r.sharedMaterial.name : "";
+                if (mat.StartsWith("wispysmoke") || mat.StartsWith("DraugrFangGlow"))
+                {
+                    var off = ps.emission;
+                    off.enabled = false;
+                    continue;
+                }
+                if (ps.transform != go.transform) continue;
+                // The root emitter: from a sphere around the orb rather than the Thundering's blade
                 main.playOnAwake = true;
-                main.startSizeMultiplier *= size;
-                main.startSpeedMultiplier *= size;
-                main.simulationSpace = ParticleSystemSimulationSpace.Local;
                 var shape = ps.shape;
                 shape.enabled = true;
                 shape.shapeType = ParticleSystemShapeType.Sphere;
                 shape.position = Vector3.zero;
                 shape.rotation = Vector3.zero;
                 shape.scale = Vector3.one;
-                shape.radius = 0.04f;
-                var emission = ps.emission;
-                emission.rateOverTimeMultiplier *= size;
-                Plugin.Log.LogInfo($"{PrefabName}: orb crackle from '{source.name}' " +
-                                   $"(material '{(r && r.sharedMaterial ? r.sharedMaterial.name : "")}')");
+                shape.radius = 0.04f / Mathf.Max(size, 0.01f);
             }
-            if (orb.transform.childCount == 0)
-            {
-                Plugin.Log.LogWarning($"{PrefabName}: Nidhögg the Thundering has no sparks to borrow");
-                Object.Destroy(orb);
-            }
+            Plugin.Log.LogInfo($"{PrefabName}: orb crackle copied from '{source.name}' at size {size:0.00}");
         }
+
+        /// <summary>Logs how the Thundering's blade effects are built, to tune the borrowed crackle.</summary>
+        private void LogEffects(Transform attach)
+        {
+            foreach (var ps in attach.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var r = ps.GetComponent<ParticleSystemRenderer>();
+                var main = ps.main;
+                var trails = ps.trails;
+                var subs = ps.subEmitters;
+                Plugin.Log.LogInfo($"{PrefabName}: Thundering effect '{PathOf(ps.transform, attach)}': active {ps.gameObject.activeSelf}, " +
+                                   $"renderer {(r ? (r.enabled ? r.renderMode.ToString() : "off") : "none")}, " +
+                                   $"material '{(r && r.sharedMaterial ? r.sharedMaterial.name : "")}', " +
+                                   $"trails {(trails.enabled ? (r && r.trailMaterial ? r.trailMaterial.name : "on") : "off")}, " +
+                                   $"sub-emitters {(subs.enabled ? subs.subEmittersCount : 0)}, " +
+                                   $"size {main.startSizeMultiplier:0.###}, speed {main.startSpeedMultiplier:0.###}, " +
+                                   $"life {main.startLifetimeMultiplier:0.###}, rate {ps.emission.rateOverTimeMultiplier:0.#}, " +
+                                   $"shape {(ps.shape.enabled ? ps.shape.shapeType.ToString() : "off")}, " +
+                                   $"space {main.simulationSpace}, scale {ps.transform.lossyScale}");
+            }
+            foreach (var c in attach.GetComponentsInChildren<Component>(true))
+                if (!(c is Transform) && !(c is ParticleSystem) && !(c is ParticleSystemRenderer))
+                    Plugin.Log.LogInfo($"{PrefabName}: Thundering component {c.GetType().Name} on '{PathOf(c.transform, attach)}'");
+        }
+
+        private static string PathOf(Transform t, Transform root) =>
+            t == root || !t.parent ? t.name : PathOf(t.parent, root) + "/" + t.name;
 
         private static Transform FindAttach(Transform t)
         {
