@@ -48,15 +48,17 @@ namespace MysticalWeapons
             {
                 Directory.CreateDirectory(OutputDir);
                 var text = new StringBuilder();
+                var vanilla = VanillaCraftables(db);
                 foreach (var item in Plugin.Items)
                 {
                     if (!item.Enabled.Value || !item.Prefab) continue;
                     var peerName = item.VanillaPeer ?? item.SourceName;
                     var peer = db.GetItemPrefab(peerName);
-                    text.Append(Describe(db, item.Prefab, peer, peerName));
+                    text.Append(Describe(db, item.Prefab, peer, peerName, vanilla));
                     if (peer) Render(item.Prefab, peer, Path.Combine(OutputDir, item.PrefabName + ".png"));
                 }
                 File.WriteAllText(Path.Combine(OutputDir, "report.txt"), text.ToString());
+                File.WriteAllText(Path.Combine(OutputDir, "vanilla-by-slot.txt"), BySlot(db, vanilla));
                 Plugin.Log.LogInfo("Item report (left: mystical item, right: vanilla peer; images in " +
                                    OutputDir + "):\n" + text);
             }
@@ -68,7 +70,7 @@ namespace MysticalWeapons
 
         // ------------------------------------------------------------- text
 
-        private static string Describe(ObjectDB db, GameObject ours, GameObject peer, string peerName)
+        private static string Describe(ObjectDB db, GameObject ours, GameObject peer, string peerName, List<GameObject> vanilla)
         {
             var rows = new List<string[]>
             {
@@ -93,7 +95,51 @@ namespace MysticalWeapons
                 if (r[1] == r[2] && (r[1] == "0" || r[1] == "-" || r[1].StartsWith("0 (+0"))) continue; // nothing to compare
                 sb.AppendLine(r[0].PadRight(w0) + r[1].PadRight(w1) + r[2]);
             }
+            sb.AppendLine("Max in slot".PadRight(w0) + MaxInSlot(ours, vanilla));
             sb.AppendLine();
+            return sb.ToString();
+        }
+
+        /// <summary>Vanilla items with an enabled recipe (player gear, not creature weapons), mystical items left out.</summary>
+        private static List<GameObject> VanillaCraftables(ObjectDB db)
+        {
+            var ours = new HashSet<string>(Plugin.Items.Select(i => i.PrefabName));
+            return db.m_recipes
+                .Where(r => r && r.m_enabled && r.m_item && !ours.Contains(r.m_item.name))
+                .Select(r => r.m_item.gameObject).Distinct().ToList();
+        }
+
+        /// <summary>Same slot and same skill, so a battleaxe is measured against axes, not fist weapons.</summary>
+        private static IEnumerable<GameObject> SameSlot(GameObject prefab, List<GameObject> vanilla) =>
+            vanilla.Where(p => Shared(p).m_itemType == Shared(prefab).m_itemType &&
+                               Shared(p).m_skillType == Shared(prefab).m_skillType);
+
+        /// <summary>The vanilla item with the most triangles in the same slot and skill: a ceiling next to the peer.</summary>
+        private static string MaxInSlot(GameObject ours, List<GameObject> vanilla)
+        {
+            var slot = SameSlot(ours, vanilla).ToList();
+            if (slot.Count == 0) return "-";
+            var top = slot.OrderByDescending(p => Triangles(p, false)).First();
+            var s = $"{top.name}: {Triangles(top, false)}";
+            if (!IsArmor(ours)) return s;
+            var worn = slot.OrderByDescending(p => Triangles(p, true)).First();
+            return s + $" (worn: {worn.name}: {Triangles(worn, true)})";
+        }
+
+        /// <summary>Every vanilla craftable in the slots the mystical items use, to help pick fair peers.</summary>
+        private static string BySlot(ObjectDB db, List<GameObject> vanilla)
+        {
+            var sb = new StringBuilder();
+            var slots = Plugin.Items.Where(i => i.Enabled.Value && i.Prefab)
+                .Select(i => Shared(i.Prefab).m_itemType).Distinct();
+            foreach (var slot in slots)
+            {
+                sb.AppendLine($"== {slot} ==");
+                foreach (var p in vanilla.Where(p => Shared(p).m_itemType == slot)
+                             .OrderBy(p => Station(db, p)).ThenBy(p => p.name))
+                    sb.AppendLine($"{p.name,-28} {Triangles(p, false),6} tris  {Station(db, p),-28} {Recipe(db, p)}");
+                sb.AppendLine();
+            }
             return sb.ToString();
         }
 
