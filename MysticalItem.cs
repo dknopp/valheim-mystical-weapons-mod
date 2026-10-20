@@ -25,11 +25,17 @@ namespace MysticalWeapons
         /// <summary>Turn the freshly cloned prefab into this item (model, icon, stats).</summary>
         protected abstract void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared);
 
+        /// <summary>Looks up a vanilla prefab by name; valid during <see cref="Setup"/>.</summary>
+        protected Func<string, GameObject> FindVanilla { get; private set; }
+
         /// <summary>Item-specific tweaks run after <see cref="Setup"/>: knockback, durability, effects...</summary>
         protected virtual void Customize(ItemDrop.ItemData.SharedData shared) { }
 
         /// <summary>Register status effects etc. with an ObjectDB.</summary>
         public virtual void RegisterExtras(ObjectDB db) { }
+
+        /// <summary>Rebuild a custom model from disk (dev command mw_reload). Most items have none.</summary>
+        public virtual void ReloadCustomModel() { }
 
         // ------------------------------------------------------------- config
 
@@ -84,6 +90,7 @@ namespace MysticalWeapons
             var shared = drop.m_itemData.m_shared;
             shared.m_name = DisplayName;
             shared.m_description = Description;
+            FindVanilla = findVanilla;
             Setup(Prefab, shared);
             Customize(shared);
 

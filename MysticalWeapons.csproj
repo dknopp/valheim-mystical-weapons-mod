@@ -43,7 +43,7 @@
     <ItemGroup>
       <ShippedModel Include="models\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(ShippedModel)" DestinationFolder="$(BepInExDir)\plugins\$(PluginFolder)\models" />
+    <Copy SourceFiles="@(ShippedModel)" DestinationFiles="@(ShippedModel->'$(BepInExDir)\plugins\$(PluginFolder)\models\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Message Importance="high" Text="Deployed to $(BepInExDir)\plugins\$(PluginFolder)" />
   </Target>
 

@@ -13,9 +13,10 @@ namespace MysticalWeapons
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "dankn.valheim.mysticalweapons";
-        public const string Version = "1.6.3";
+        public const string Version = "1.10.0";
 
         internal static ManualLogSource Log;
+        internal static Plugin Instance;
 
         /// <summary>Every item in the mod. Add new ones here.</summary>
         internal static readonly List<MysticalItem> Items = new List<MysticalItem>
@@ -35,6 +36,7 @@ namespace MysticalWeapons
         private void Awake()
         {
             Log = Logger;
+            Instance = this;
             foreach (var item in Items) item.BindConfig(Config);
             new Harmony(Guid).PatchAll();
             Log.LogInfo($"Loaded {Items.Count} mystical items.");
