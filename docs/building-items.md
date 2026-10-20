@@ -8,7 +8,9 @@ README.md ("Adding an item") has the basics; `docs/art-direction.md` has how ite
 For a new item, or to bring an existing one up to date:
 - [ ] Art-direction questions answered ("Before building an item"), answers in the PR description
 - [ ] Shape checked against the reference's proportions and parts
-- [ ] Polygon count and texture size close to the vanilla peer's
+- [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures (README,
+      "Item report"). Aim for 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
+      texture at most one size above the peer's
 - [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
 - [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
 - [ ] Inventory icon reads at a glance
