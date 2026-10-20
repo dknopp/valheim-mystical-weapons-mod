@@ -37,18 +37,6 @@ downloaded it, because Sketchfab requires a login.
 - `SkinBoneNames.cs`: a component that stores the bone names, plus a Harmony postfix on
   `VisEquipment.AttachArmor` that rebinds skinned armor bones **by name**, so it survives a game update
   that reorders the skeleton.
-- `Armor/GhostBody.cs` (experimental): while the breastplate is worn, the body becomes a
-  translucent spirit in the Shardplate's `Glow` colour, so any body showing through the plates reads as
-  Stormlight rather than skin. The real body renderer only stops drawing (`forceRenderingOff`), so
-  Valheim can keep updating it, and a second SkinnedMeshRenderer with the same mesh and bones draws
-  the ghost. The material is a flat, unlit `Sprites/Default` tinted with `Glow`, which the user
-  chose over borrowing Valheim's Ghost creature material or adding skin-texture detail. `Opacity`
-  (0.35) is in code. The material is built once, so colour changes need a restart.
-  - **The animator must be set to `AlwaysAnimate` while the ghost is on.** It culls based on its
-    renderers, and with the real body hidden the skeleton froze (the body was stuck in place and no
-    animations played). The original culling mode is restored on unequip.
-  - Tried and removed: shrinking the forearm and hand vertices of the body mesh toward their bones
-    (`BodyShrink`, 50%). It still clipped in-game.
 - `ModelUtil.cs`: model replacement and fitting (`ReplaceModel`, `ModelPlacement`), renderers
   (`AddRenderer` creates a SkinnedMeshRenderer when the model has weights), icon rendering, texture
   recolouring through a GPU readback (`RecolorTexture`, `RecolorIcon`), the texture cache, and material logging.
@@ -170,6 +158,18 @@ folder first lets you inspect before installing:
   paths to absolute; keep it that way.
 - Writing Python patches with `\\` line continuations inside bash heredocs broke silently twice.
   Prefer the Edit tool for script changes.
+
+- **Changing the body under the armor was tried and removed** (none of it is in the code):
+  - Shrinking the forearm and hand vertices of the body mesh toward their bones (50%) still clipped in-game.
+  - A translucent Stormlight-blue "ghost" body, drawn by a second SkinnedMeshRenderer while the real
+    body was hidden, worked. With a flat `Sprites/Default` tint the user liked the look. It was
+    removed because it switched on with the breastplate alone, so a mixed armor set turned the body
+    under other pieces into ghost too. Lessons if it comes back:
+    - The player's Animator culls based on its renderers. Hiding the body (`forceRenderingOff`) froze
+      the skeleton, so set the Animator to `AlwaysAnimate` meanwhile.
+    - Valheim's `Ghost` prefab material wasn't found or usable.
+    - Gate it on the full set.
+  - Shrinking the ghost mesh toward the skeleton was also tried; the user preferred normal size.
 
 ## Ideas not yet done
 

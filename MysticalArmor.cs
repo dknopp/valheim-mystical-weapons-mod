@@ -54,7 +54,7 @@ namespace MysticalWeapons
         private ConfigEntry<float> _customLight;
 
         protected Color Tint => _tint.Value;
-        internal Color Glow => _glow.Value;
+        protected Color Glow => _glow.Value;
 
         public override void BindConfig(ConfigFile cfg)
         {
