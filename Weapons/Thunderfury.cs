@@ -1,0 +1,224 @@
+using System.IO;
+using BepInEx.Configuration;
+using HarmonyLib;
+using UnityEngine;
+
+namespace MysticalWeapons.Weapons
+{
+    /// <summary>
+    /// Thunderfury, Blessed Blade of the Windseeker (World of Warcraft): a split, spear-like blade with a
+    /// ball of lightning caught at its root. Swings like any one-handed sword; a swing that lands has a
+    /// chance to loose vanilla chain lightning at the creature struck, as the WoW blade does.
+    /// Cloned from plain Nidhögg so no lightning comes along; its peer, Nidhögg the Thundering, is what the
+    /// recipe consumes and lends its sparks to the orb.
+    /// Ships as models/Thunderfury.obj from tools/blender/make_thunderfury_texture.py. The shape below is
+    /// only the fallback: after changing it, re-run that script.
+    /// </summary>
+    internal class Thunderfury : MysticalWeapon
+    {
+        public override string PrefabName => "Thunderfury";
+        public override string[] SourcePrefabs => new[] { "SwordNiedhogg" };
+        public override string VanillaPeer => "SwordNiedhoggLightning";
+        public override string DisplayName => "Thunderfury, Blessed Blade of the Windseeker";
+        public override string Description =>
+            "Forged from the bindings that held Thunderaan, Prince of Air, the blade still hums with " +
+            "his storm. Lightning leaps from it to all who stand against its wielder.";
+
+        protected override bool CleanMaterials => true;
+        protected override string DefaultDamage => "slash:145";
+        protected override string DefaultDamagePerLevel => "slash:6";
+        // The Thunderstones stand in for the two Bindings of the Windseeker
+        protected override string DefaultRecipe => "SwordNiedhoggLightning:1,FlametalNew:20,Iolite:2,Thunderstone:2";
+        protected override string DefaultStation => "blackforge";
+        protected override int DefaultStationLevel => 4;
+
+        private ConfigEntry<float> _grain;
+        private ConfigEntry<bool> _orbCrackle;
+        internal static ConfigEntry<float> LightningChance;
+        internal static ConfigEntry<float> LightningCooldown;
+        internal static ConfigEntry<float> LightningDamage;
+
+        public override void BindConfig(ConfigFile cfg)
+        {
+            base.BindConfig(cfg);
+            _grain = cfg.Bind(PrefabName, "TextureGrain", 0.35f,
+                "How strongly vanilla iron's grain shows on the blade and hilt (0 = off, 1 = full).");
+            LightningChance = cfg.Bind(PrefabName, "LightningChance", 0.25f,
+                "Chance (0 to 1) that a swing which hits a creature looses chain lightning at it. One roll per swing, however many it hits.");
+            LightningCooldown = cfg.Bind(PrefabName, "LightningCooldown", 2f, "Minimum seconds between chain lightnings.");
+            LightningDamage = cfg.Bind(PrefabName, "LightningDamage", 60f,
+                "Lightning damage of each strike of the chain. Lightning hurts wet creatures more.");
+            _orbCrackle = cfg.Bind(PrefabName, "OrbCrackle", true, "Small lightning sparks crackling around the orb.");
+        }
+
+        private const int Steel = 0, Orb = 1;
+        private bool Textured => File.Exists(Path.Combine(ModelUtil.CustomModelDir, PrefabName + ".obj"));
+        private static readonly Color StormColor = new Color(0.65f, 0.85f, 1f);
+
+        public override MaterialSpec[] Materials => new[]
+        {
+            new MaterialSpec(new Color(0.7f, 0.74f, 0.8f), 0.7f)                         // blade, hilt, spikes
+                .WithGrain(VanillaTextures.Iron, 4f, _grain?.Value ?? 0.35f),
+            new MaterialSpec(new Color(0.8f, 0.9f, 1f), 0.8f,
+                Textured ? StormColor : StormColor * 0.6f),                              // the orb
+        };
+
+        /// <summary>Height of the orb's centre above the hand, in the model.</summary>
+        private const float OrbY = 0.40f;
+
+        public override void BuildModel(MeshBuilder b)
+        {
+            // Fallback only: a long tapering blade, a short collar, grip and pommel, and the orb
+            b.Blade(Steel,
+                new MeshBuilder.Station(0.10f, 0.11f, 0.02f),
+                new MeshBuilder.Station(0.30f, 0.07f, 0.016f),
+                new MeshBuilder.Station(0.90f, 0.03f, 0.01f),
+                new MeshBuilder.Station(1.0f, 0f, 0.002f));
+            b.Prism(Steel, 0.02f, 0.10f, 0.03f);
+            b.Prism(Steel, -0.18f, 0.02f, 0.018f);
+            b.Taper(Steel, -0.29f, -0.18f, 0.005f, 0.03f);
+            b.Prism(Orb, OrbY - 0.025f, OrbY + 0.025f, 0.028f);
+        }
+
+        public override void DecorateModel(GameObject model)
+        {
+            ModelUtil.AddGlow(model, new Vector3(0f, OrbY, 0f), StormColor, 1.5f, 1f);
+            SilenceSourceEffects(model);
+            if (_orbCrackle.Value) AddOrbCrackle(model);
+        }
+
+        /// <summary>Turns off any particles or lights the cloned Nidhögg brought along its own blade.</summary>
+        private void SilenceSourceEffects(GameObject model)
+        {
+            var attach = model.transform.parent;
+            if (!attach) return;
+            foreach (var ps in attach.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (ps.transform.IsChildOf(model.transform)) continue;
+                Plugin.Log.LogInfo($"{PrefabName}: turning off Nidhögg's particles '{ps.name}'");
+                ps.gameObject.SetActive(false);
+            }
+            foreach (var light in attach.GetComponentsInChildren<Light>(true))
+            {
+                if (light.transform.IsChildOf(model.transform)) continue;
+                Plugin.Log.LogInfo($"{PrefabName}: turning off Nidhögg's light '{light.name}'");
+                light.enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// Borrows the sparks that run along Nidhögg the Thundering's blade, each placed on a small sphere
+        /// around the orb at half size. Only systems on the sword itself, not its dropped-item sparkle.
+        /// </summary>
+        private void AddOrbCrackle(GameObject model)
+        {
+            var sword = FindVanilla("SwordNiedhoggLightning");
+            var attach = sword ? FindAttach(sword.transform) : null;
+            if (!attach)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: no Nidhögg the Thundering found, orb stays without sparks");
+                return;
+            }
+            var orb = new GameObject("crackle");
+            orb.transform.SetParent(model.transform, false);
+            orb.transform.localPosition = new Vector3(0f, OrbY, 0f);
+
+            foreach (var source in attach.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var r = source.GetComponent<ParticleSystemRenderer>();
+                var go = Object.Instantiate(source.gameObject, orb.transform, false);
+                go.name = source.name;
+                foreach (Transform child in go.transform) Object.Destroy(child.gameObject);
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = Quaternion.identity;
+                go.transform.localScale = Vector3.one;
+                go.SetActive(true);
+
+                var ps = go.GetComponent<ParticleSystem>();
+                var main = ps.main;
+                main.playOnAwake = true;
+                main.startSizeMultiplier *= CrackleSize;
+                main.simulationSpace = ParticleSystemSimulationSpace.Local;
+                var shape = ps.shape;
+                shape.enabled = true;
+                shape.shapeType = ParticleSystemShapeType.Sphere;
+                shape.position = Vector3.zero;
+                shape.rotation = Vector3.zero;
+                shape.scale = Vector3.one;
+                shape.radius = 0.04f;
+                var emission = ps.emission;
+                emission.rateOverTimeMultiplier *= CrackleSize;
+                Plugin.Log.LogInfo($"{PrefabName}: orb crackle from '{source.name}' " +
+                                   $"(material '{(r && r.sharedMaterial ? r.sharedMaterial.name : "")}')");
+            }
+            if (orb.transform.childCount == 0)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: Nidhögg the Thundering has no sparks to borrow");
+                Object.Destroy(orb);
+            }
+        }
+
+        /// <summary>How big and how many of the Thundering's sparks, relative to the sword's.</summary>
+        private const float CrackleSize = 0.5f;
+
+        private static Transform FindAttach(Transform t)
+        {
+            if (t.name == "attach") return t;
+            foreach (Transform child in t)
+            {
+                var found = FindAttach(child);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        private const string ChainLightningPrefab = "ChainLightning";
+        private static float _nextLightning;
+        private static int _rolledFrame = -1;
+
+        /// <summary>
+        /// When a swing of Thunderfury lands on a creature, maybe loose chain lightning at it. Runs on the
+        /// attacker's client. A swing hits everything it touches in the same frame, so one roll per frame.
+        /// </summary>
+        [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
+        private static class ChainLightningPatch
+        {
+            private static void Prefix(Character __instance, HitData hit)
+            {
+                if (LightningChance == null) return;
+                // The lightning's own hits carry no slash and no skill, so they never loose more
+                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None || hit.m_damage.m_slash <= 0f) return;
+                if (!(hit.GetAttacker() is Player attacker) || attacker != Player.m_localPlayer) return;
+                var weapon = attacker.GetCurrentWeapon();
+                if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != "Thunderfury") return;
+
+                if (_rolledFrame == Time.frameCount) return;
+                _rolledFrame = Time.frameCount;
+                if (Time.time < _nextLightning || Random.value >= LightningChance.Value) return;
+                if (Strike(attacker, __instance)) _nextLightning = Time.time + LightningCooldown.Value;
+            }
+        }
+
+        private static bool Strike(Player attacker, Character target)
+        {
+            var prefab = ZNetScene.instance ? ZNetScene.instance.GetPrefab(ChainLightningPrefab) : null;
+            if (!prefab)
+            {
+                Plugin.Log.LogWarning($"Thunderfury: no '{ChainLightningPrefab}' prefab, no lightning");
+                return false;
+            }
+            var go = Object.Instantiate(prefab, target.GetCenterPoint(), Quaternion.identity);
+            var aoe = go.GetComponent<Aoe>();
+            if (!aoe)
+            {
+                Plugin.Log.LogWarning($"Thunderfury: '{ChainLightningPrefab}' has no Aoe, no lightning");
+                Object.Destroy(go);
+                return false;
+            }
+            aoe.Setup(attacker, Vector3.zero, -1f, null, null, null);
+            aoe.m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value };
+            aoe.m_skill = Skills.SkillType.None;
+            return true;
+        }
+    }
+}

@@ -13,6 +13,7 @@ armor is recoloured vanilla plate.
 | Shardblade | `Shardblade` | The Stormlight Archive | Huge two-hander that chops trees and mines rock. Light, no durability |
 | Andúril | `Anduril` | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Recipe consumes an Iron Sword - the shards of Narsil |
 | Sulfuras, Hand of Ragnaros | `Sulfuras` | World of Warcraft | Ragnaros's two-handed hammer (based on the Demolisher, Clubs skill): a three-hit battleaxe combo, with the Demolisher's ground slam on the secondary attack (`ComboStamina`, `SlamStamina`, `SlamDamageMultiplier` settings). Red elementium with flame swirls and glowing runes; spikes white-hot at the tips (custom model, `models/Sulfuras.obj`), with Valheim's flametal grain laid over the body in game (`TextureGrain` setting). A swing that lands may hurl a fireball at the creature struck: fire damage that sets it burning (`FireballChance`, `FireballCooldown`, `FireballDamage` settings), and small flames lick off the head (`HeadFlames` setting). Recipe consumes a Demolisher. |
+| Thunderfury, Blessed Blade of the Windseeker | `Thunderfury` | World of Warcraft | One-handed sword (based on Nidhögg): a split blade with a glowing ball of lightning at its root, small sparks crackling around it (`OrbCrackle` setting); custom model, `models/Thunderfury.obj`, with Valheim's iron grain laid over it in game (`TextureGrain` setting). A swing that lands may loose chain lightning at the creature struck, which leaps to others nearby (`LightningChance`, `LightningCooldown`, `LightningDamage` settings). Recipe consumes Nidhögg the Thundering; two Thunder Stones stand in for the Bindings of the Windseeker. |
 | Shardplate Helm / Breastplate / Greaves | `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves` | The Stormlight Archive | Helm modelled on Krajkoa's Shardplate (see Credits); breastplate and greaves are Flametal recoloured slate with Stormlight-blue seams. Full set: +150 carry weight, faster stamina, resistant to blunt/slash/pierce |
 | The Elder Wand | `ElderWand` | Harry Potter | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability |
 | The Resurrection Stone | `ResurrectionStone` | Harry Potter | Utility slot. Die while wearing it and your skills are not lowered |
@@ -80,6 +81,9 @@ plugin folder. `exports/` is where the exporter writes the code-built weapons; i
 Sulfuras ships a custom model made by `tools/blender/make_sulfuras_texture.py` (procedural textures, no
 hand painting; the script's header has the command). Its shape in `Sulfuras.cs` is then only the fallback,
 so after changing that shape, re-export and re-run the script or the game keeps showing the old one.
+
+Thunderfury ships a custom model built by `tools/blender/make_thunderfury_texture.py` the same way;
+`Thunderfury.cs` keeps only a rough fallback shape.
 
 ## Credits
 
