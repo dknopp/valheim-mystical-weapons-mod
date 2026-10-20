@@ -88,6 +88,14 @@ build is the quickest check: write the code and let the compiler say what doesn'
 - For flames: world simulation space, small start speed and a negative gravity modifier, so they
   rise whichever way the item points and trail behind a swing.
 
+### Custom models
+- Check what's open and what's solid in the 3D viewer, not only the outline: tilt the model and see
+  whether the background shows through and shifts. (Thunderfury: what looked like a painted fuller was
+  an open slot splitting the blade into two prongs.)
+- A downloaded fan model is a good yardstick for depth (thickness, cross-sections), which flat captures
+  hide. For which parts exist and their shapes, trust the source's own viewer: fan models change the
+  design (Thunderfury's dropped the orb and spiky base).
+
 ### Glow
 - A point light on an item hardly shows in daylight; emissive textures carry the glow.
 

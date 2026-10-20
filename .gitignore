@@ -9,3 +9,6 @@ exports/
 
 # Local reference images and notes for new items (look-only, never committed)
 references/
+
+# Python bytecode from importing the Blender model scripts
+__pycache__/
