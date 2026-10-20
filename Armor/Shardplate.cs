@@ -64,8 +64,6 @@ namespace MysticalWeapons.Armor
         public override string PrefabName => "ShardplateHelm";
         // Drakescale helm: its swept-back crest reads more like a Shardhelm than the Flametal helmet
         public override string[] SourcePrefabs => new[] { "HelmetDrake", "HelmetFlametal", "HelmetPadded" };
-        // Silver, black metal and forge 5 make it Plains gear: compare it with the Padded set in the item report
-        public override string VanillaPeer => "HelmetPadded";
         public override string DisplayName => "Shardplate Helm";
         public override string Description =>
             "A seamless helm with a narrow eye-slit. When the visor locks, the world sharpens " +
@@ -88,8 +86,6 @@ namespace MysticalWeapons.Armor
     {
         public override string PrefabName => "ShardplateBreastplate";
         public override string[] SourcePrefabs => new[] { "ArmorFlametalChest", "ArmorPaddedCuirass" };
-        // Silver, black metal and forge 5 make it Plains gear: compare it with the Padded set in the item report
-        public override string VanillaPeer => "ArmorPaddedCuirass";
         public override string DisplayName => "Shardplate Breastplate";
         public override string Description =>
             "Overlapping plates that fit together without a seam. Cracks glow blue as Stormlight " +
@@ -101,8 +97,6 @@ namespace MysticalWeapons.Armor
     {
         public override string PrefabName => "ShardplateGreaves";
         public override string[] SourcePrefabs => new[] { "ArmorFlametalLegs", "ArmorPaddedGreaves" };
-        // Silver, black metal and forge 5 make it Plains gear: compare it with the Padded set in the item report
-        public override string VanillaPeer => "ArmorPaddedGreaves";
         public override string DisplayName => "Shardplate Greaves";
         public override string Description =>
             "Heavy legplates that feel like nothing. A Shardbearer can leap a wall and land running.";

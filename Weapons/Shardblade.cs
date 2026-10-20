@@ -10,8 +10,6 @@ namespace MysticalWeapons.Weapons
     {
         public override string PrefabName => "Shardblade";
         public override string[] SourcePrefabs => new[] { "THSwordKrom", "THSwordSlayer", "SwordBlackmetal" };
-        // Black metal at forge 4 is Plains gear; Krom is Mistlands. Compare with the Plains two-hander
-        public override string VanillaPeer => "BattleaxeBlackmetal";
         public override string DisplayName => "Shardblade";
         public override string Description =>
             "Six feet of silvery metal etched with glyphs, yet light as a branch. It parts trees " +
