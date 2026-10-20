@@ -89,6 +89,9 @@ build is the quickest check: write the code and let the compiler say what doesn'
   name, e.g. `flame`, `gnista` for embers) and place each directly where you want it. The source's
   layout and directions belong to its own shape.
 - Reset each system's emitter shape: vanilla flames often emit from the source's own mesh.
+- A system with no material may still draw: Nidhögg the Thundering's `Lightning` draws its sparks as
+  trails. Copy such a system whole and scale the copy (scaling mode Hierarchy) instead of resizing
+  its settings one by one. Log each system's renderer, material, trails and sub-emitters before choosing.
 - Emit from just outside solid geometry (`BoxShell` slightly bigger than the part); particles born
   inside a thick mesh never show.
 - For flames: world simulation space, small start speed and a negative gravity modifier, so they

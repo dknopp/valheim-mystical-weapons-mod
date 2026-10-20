@@ -110,8 +110,8 @@ namespace MysticalWeapons.Weapons
         }
 
         /// <summary>
-        /// Borrows the lightning that runs along Nidhögg the Thundering's blade, copied whole (its sparks
-        /// may be drawn by child systems or trails) onto a small sphere around the orb and scaled down as
+        /// Borrows the lightning that runs along Nidhögg the Thundering's blade, copied whole (it draws its
+        /// sparks as trails) onto a small sphere around the orb and scaled down as
         /// one piece. Its glow and smoke stay behind: they dwarf our small orb.
         /// </summary>
         private void AddOrbCrackle(GameObject model)
@@ -123,7 +123,6 @@ namespace MysticalWeapons.Weapons
                 Plugin.Log.LogWarning($"{PrefabName}: no Nidhögg the Thundering found, orb stays without sparks");
                 return;
             }
-            LogEffects(attach);
 
             Transform source = null;
             foreach (var ps in attach.GetComponentsInChildren<ParticleSystem>(true))
@@ -169,33 +168,6 @@ namespace MysticalWeapons.Weapons
             }
             Plugin.Log.LogInfo($"{PrefabName}: orb crackle copied from '{source.name}' at size {size:0.00}");
         }
-
-        /// <summary>Logs how the Thundering's blade effects are built, to tune the borrowed crackle.</summary>
-        private void LogEffects(Transform attach)
-        {
-            foreach (var ps in attach.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                var r = ps.GetComponent<ParticleSystemRenderer>();
-                var main = ps.main;
-                var trails = ps.trails;
-                var subs = ps.subEmitters;
-                Plugin.Log.LogInfo($"{PrefabName}: Thundering effect '{PathOf(ps.transform, attach)}': active {ps.gameObject.activeSelf}, " +
-                                   $"renderer {(r ? (r.enabled ? r.renderMode.ToString() : "off") : "none")}, " +
-                                   $"material '{(r && r.sharedMaterial ? r.sharedMaterial.name : "")}', " +
-                                   $"trails {(trails.enabled ? (r && r.trailMaterial ? r.trailMaterial.name : "on") : "off")}, " +
-                                   $"sub-emitters {(subs.enabled ? subs.subEmittersCount : 0)}, " +
-                                   $"size {main.startSizeMultiplier:0.###}, speed {main.startSpeedMultiplier:0.###}, " +
-                                   $"life {main.startLifetimeMultiplier:0.###}, rate {ps.emission.rateOverTimeMultiplier:0.#}, " +
-                                   $"shape {(ps.shape.enabled ? ps.shape.shapeType.ToString() : "off")}, " +
-                                   $"space {main.simulationSpace}, scale {ps.transform.lossyScale}");
-            }
-            foreach (var c in attach.GetComponentsInChildren<Component>(true))
-                if (!(c is Transform) && !(c is ParticleSystem) && !(c is ParticleSystemRenderer))
-                    Plugin.Log.LogInfo($"{PrefabName}: Thundering component {c.GetType().Name} on '{PathOf(c.transform, attach)}'");
-        }
-
-        private static string PathOf(Transform t, Transform root) =>
-            t == root || !t.parent ? t.name : PathOf(t.parent, root) + "/" + t.name;
 
         private static Transform FindAttach(Transform t)
         {
@@ -254,7 +226,6 @@ namespace MysticalWeapons.Weapons
             aoe.Setup(attacker, Vector3.zero, -1f, null, null, null);
             aoe.m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value };
             aoe.m_skill = Skills.SkillType.None;
-            Plugin.Log.LogInfo($"Thunderfury: chain lightning at {target.m_name}");
             return true;
         }
     }
