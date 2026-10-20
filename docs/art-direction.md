@@ -10,7 +10,8 @@ Answer these in order, and note the answers in the PR description:
    supports that finish once tinted? Use it only if it does; a mottled, worn texture on a famously
    flawless blade is wrong, and a flat colour with the right gloss beats the wrong texture.
 3. **Custom work:** only if neither fits, plan a custom model or texture: Blender and an OBJ in
-   `models/` (see "Editing models in Blender" in README.md), with licences checked as below.
+   `models/` (see "Editing models in Blender" in README.md), with licences checked as below,
+   and a vanilla grain laid over the custom texture so it matches Valheim's painterly look (see Look).
 4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below)
    and let the maintainer building it decide before any code: "Based on its lore, here's how I'd
    build its stats, recipe and tier..."
@@ -26,6 +27,14 @@ Answer these in order, and note the answers in the PR description:
   matte materials unless the source item is famously pristine; textures 512px or smaller.
 - Prefer vanilla textures borrowed from the running game and tinted (`.Borrow(...)` on a
   `MaterialSpec`) over flat colours or new textures, when they fit the finish (step 2 above).
+- Custom textures: paint big, bold shapes (swirls, runes, colour bands) rather than fine noise,
+  which turns to mush at 512px. A custom texture on its own looks too clean and digital next to
+  Valheim's hand-painted art, so lay a vanilla grain over it in game (`.WithGrain(...)` on the
+  part's `MaterialSpec`). Pick the grain of what the item is made of, which also ties the look to
+  its tier (flametal for Sulfuras). Start around 50% strength and tune it in game through a config
+  setting (Sulfuras: `TextureGrain`, 55%); too strong and the custom design disappears.
+- Leave glowing parts without grain (Sulfuras's white-hot spike tips): glow reads crisper clean.
+  Glow follows texture brightness, so the brightest details glow most.
 - One signature glow, where the lore puts it (Andúril's runes, Syl's tip), not all over.
 - Shapes in code; fine surface detail (lettering, patterns) as a texture via the Blender route, or
   left out. Geometry only for detail that reads at arm's length: Sting's engraved lines and curl
