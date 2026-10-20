@@ -12,17 +12,20 @@ Answer these in order, and note the answers in the PR description:
 3. **Custom work:** only if neither fits, plan a custom model or texture: Blender and an OBJ in
    `models/` (see "Editing models in Blender" in README.md), with licences checked as below,
    and a vanilla grain laid over the custom texture so it matches Valheim's painterly look (see Look).
-4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below)
-   and let the maintainer building it decide before any code: "Based on its lore, here's how I'd
-   build its stats, recipe and tier..."
+4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below);
+   the maintainer building it decides before any code.
 
 ## Look
 - Start from the source: silhouette, proportions and signature details (Andúril's swept
-  crossguard, the bat'leth's crescent). Check reference images before modelling.
-- Study the reference from several angles (rotate a 3D viewer such as Wowhead's when there is one)
-  and list its parts before mocking: how pieces step, taper and join, thickness as well as
-  outline, how many spikes or studs and where, and their sizes relative to each other. Check the
-  mock against the reference part by part before building.
+  crossguard, the bat'leth's crescent).
+- Gather references, best first: a downloadable 3D model of the item (Sketchfab and similar), a 3D
+  viewer you can rotate (Wowhead's for Sulfuras), or several images from different angles. Get
+  front, side and top views, note a few proportions (grip to blade, head width to shaft), and list
+  the parts: how pieces step, taper and join, thickness as well as outline, how many spikes or
+  studs and where. Check the model against those proportions and parts before building.
+- A detailed downloaded model is a reference to rebuild low-poly, not a mesh to decimate: decimated
+  sculpts look lumpy next to Valheim's clean shapes. Use a downloaded mesh directly only if it is
+  already low-poly and its licence allows it (see Outside assets).
 - Draw it the Valheim way: low-poly, bold shapes that read in the inventory icon; worn, mostly
   matte materials unless the source item is famously pristine; textures 512px or smaller.
 - Prefer vanilla textures borrowed from the running game and tinted (`.Borrow(...)` on a
@@ -34,13 +37,12 @@ Answer these in order, and note the answers in the PR description:
   its tier (flametal for Sulfuras). Start around 50% strength and tune it in game through a config
   setting (Sulfuras: `TextureGrain`, 55%); too strong and the custom design disappears.
 - Leave glowing parts without grain (Sulfuras's white-hot spike tips): glow reads crisper clean.
-  Glow follows texture brightness, so the brightest details glow most.
-- The glow lives in the texture: a light on the item barely shows in daylight and only adds to it
-  at night.
+  Glow follows texture brightness, so the brightest details glow most; a light on the item barely
+  shows in daylight.
 - One signature glow, where the lore puts it (Andúril's runes, Syl's tip), not all over.
 - Shapes in code; fine surface detail (lettering, patterns) as a texture via the Blender route, or
-  left out. Geometry only for detail that reads at arm's length: Sting's engraved lines and curl
-  are shapes, its script would be a texture.
+  left out. Geometry only for detail that reads at arm's length: Andúril's runes are blocky shapes,
+  real Elvish script would be a texture.
 
 ## Name and flavour text
 - Use the name the source uses ("Andúril", "The Elder Wand"), not a description of it.
@@ -76,7 +78,8 @@ Guidance, not rules: a starting suggestion for where an item sits in the journey
 maintainer building it adjusts to taste. By default, items are traditional in-biome weapons: strong
 in their home biome and perhaps the next, then outclassed like vanilla gear, with the tone and power
 fantasy of the source deciding where that is.
-- **Home biome:** pick it from the lore (Sting is an early find; Sulfuras is a Firelord's weapon,
+- **Home biome:** pick it from the lore (Andúril is a king's sword reforged, so
+  mid-game silver; Sulfuras is a Firelord's weapon,
   so Ashlands) and from a **vanilla peer**: the vanilla item it is closest to, ideally the one its
   recipe consumes (Andúril consumes an Iron Sword, Sulfuras a Demolisher). The peer sets the
   tier, the minimum cost and what to compare stats against.
@@ -96,12 +99,15 @@ fantasy of the source deciding where that is.
 - Players on a shared server each have their own config file, so numbers are only as fixed as
   everyone's config.
 
-Example: Sting glows soft blue, brighter when Fulings, Greylings or Greydwarfs are near, and deals extra
-damage to them.
+Example: Andúril's edge is spirit damage and x1.5 against undead, which only matters against the
+enemies its lore names.
 
 ## Outside assets
 - Never copy Valheim's own textures, models or sounds into the repo; take them from the game at
   runtime. They belong to Iron Gate and the repo is public.
 - Only use outside models whose license allows changes and redistribution (e.g. CC BY); credit
   them in `models/CREDITS.md` and the README.
-- Reference images are for looking at, not committing: don't add them to the repo.
+- Skip models ripped from the source's own game: they belong to its publisher whatever licence the
+  uploader gives them.
+- References (images, downloaded models) are for looking at, not committing: any licence is fine
+  for that, but don't add them to the repo.

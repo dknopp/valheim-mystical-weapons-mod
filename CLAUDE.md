@@ -27,9 +27,15 @@ Follow `docs/art-direction.md` for how items look and what their lore effects do
 2. One branch per change.
 3. Open a pull request and get the other person's approval; the author merges after that.
    - Dan reviews Stephen's PRs, including the code.
-   - Stephen reviews Dan's by playtesting and sanity-checking; when reviewing for Stephen, give him
-     a plain-language summary of what changed and flag anything risky. Small PRs can just be approved.
+   - Stephen reviews Dan's by playtesting and sanity-checking. Small PRs can just be approved.
 4. Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
+
+## Keeping the docs useful
+- When guidance in `docs/` turns out wrong, or you find a better way, fix the doc in that item's PR
+  and add a "Docs changes" line to the PR description.
+- Keep them short: checklists over prose, each rule tied to a real item as its example, and a check
+  automated in code beats a rule written down. When adding a rule, merge or cut one if you can.
+  Aim for about one screen here and two per doc.
 
 ## Rules
 - The repo is public: no secrets, tokens, webhook URLs, or personal paths in committed files.

@@ -3,17 +3,32 @@
 How to build an item with as few game launches as possible, and what earlier items taught us.
 README.md ("Adding an item") has the basics; `docs/art-direction.md` has how items look and act.
 
+## Item checklist
+
+For a new item, or to bring an existing one up to date:
+- [ ] Art-direction questions answered ("Before building an item"), answers in the PR description
+- [ ] Shape checked against the reference's proportions and parts
+- [ ] Polygon count and texture size close to the vanilla peer's
+- [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
+- [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
+- [ ] Inventory icon reads at a glance
+- [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod
+- [ ] Effects show for other players on a server (at least before a release)
+- [ ] README items table updated
+- [ ] Changed defaults on an existing item: the PR says players must reset that item's config
+      section (see Config below)
+- Optional: screenshots in the PR (next to its vanilla peer, in hand)
+
 ## Process
 
-1. **Decide before building.** For a new look, attack or effect, list the decisions on one screen
-   (what it looks like, numbers, what triggers it, which vanilla pieces it borrows) and agree on them
-   first. Changing a decision after a test round costs a whole launch.
+1. **Settle decisions before the first test launch:** the look, numbers, triggers and which vanilla
+   pieces it borrows. Changing a decision after a test round costs a whole launch.
 2. **Find the vanilla pieces first.** Search the game's asset list (below) for prefabs to borrow
    (projectiles, effects, particles, attacks) instead of guessing names.
 3. **Log what you borrow.** At setup, log each borrowed piece's name and key settings. One look at
    the log after a launch then shows what actually happened, instead of another round of guessing.
-4. **Claude reads the log itself.** It's at `BepInEx/LogOutput.log` in the Gale test profile; after a
-   test, just describe what you saw and let Claude check the log.
+4. **Read the log, not only the screen.** It's at `BepInEx/LogOutput.log` in the Gale test profile;
+   if you use Claude Code, let it read the log after a test.
 5. **When something doesn't show, probe it at runtime.** A temporary `MonoBehaviour` added to the
    object, which logs its state a couple of seconds after it appears (playing, particle count,
    position, scale), separates "not there" from "there but in the wrong place". Remove it before the PR.
