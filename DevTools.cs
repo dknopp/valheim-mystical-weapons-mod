@@ -43,6 +43,7 @@ namespace MysticalWeapons
         {
             Plugin.Instance?.Config.Reload();
             ModelUtil.ClearTextureCache();
+            Armor.BodyMask.Clear();
             var n = 0;
             foreach (var item in Plugin.Items)
             {

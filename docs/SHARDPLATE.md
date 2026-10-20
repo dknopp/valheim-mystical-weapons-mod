@@ -37,6 +37,22 @@ downloaded it, because Sketchfab requires a login.
 - `SkinBoneNames.cs`: a component that stores the bone names, plus a Harmony postfix on
   `VisEquipment.AttachArmor` that rebinds skinned armor bones **by name**, so it survives a game update
   that reorders the skeleton.
+- `Armor/BodyMask.cs`: hides the body wherever a worn Shardplate piece covers it, so it can't
+  poke through and the plates don't have to be inflated to contain it. The breastplate and greaves
+  each hide only what they cover, so mixed sets keep the body under other armor.
+  - **Coverage test:** done once per body mesh and piece, in the rest pose. Both the armor mesh and,
+    through the armor's bind poses, the body are in Visual space. Each body vertex casts 5 rays
+    outward (its normal plus 4 tilted 25°), each starting `Pierce` (3 cm) inside the skin and
+    reaching `Reach` (12 cm) out, tested against the armor triangles in a 4 cm grid. The vertex is
+    covered if 3 rays hit.
+  - **Hiding:** triangles with 2 or 3 covered corners are dropped from a copy of the body mesh,
+    which a Harmony postfix on `VisEquipment.UpdateVisuals` swaps in while the piece is worn. The
+    original comes back when it's unequipped.
+  - **Log:** `Shardplate body mask: <piece> covers N of M body vertices` and `hid T of U body
+    triangles`.
+  - `mw_reload` clears the cache.
+  - **Limit:** coverage is tested in the rest pose, so a sharply bent joint can open a small hole
+    where hidden body would have shown.
 - `ModelUtil.cs`: model replacement and fitting (`ReplaceModel`, `ModelPlacement`), renderers
   (`AddRenderer` creates a SkinnedMeshRenderer when the model has weights), icon rendering, texture
   recolouring through a GPU readback (`RecolorTexture`, `RecolorIcon`), the texture cache, and material logging.
