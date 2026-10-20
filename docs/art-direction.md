@@ -35,6 +35,8 @@ Answer these in order, and note the answers in the PR description:
   setting (Sulfuras: `TextureGrain`, 55%); too strong and the custom design disappears.
 - Leave glowing parts without grain (Sulfuras's white-hot spike tips): glow reads crisper clean.
   Glow follows texture brightness, so the brightest details glow most.
+- The glow lives in the texture: a light on the item barely shows in daylight and only adds to it
+  at night.
 - One signature glow, where the lore puts it (Andúril's runes, Syl's tip), not all over.
 - Shapes in code; fine surface detail (lettering, patterns) as a texture via the Blender route, or
   left out. Geometry only for detail that reads at arm's length: Sting's engraved lines and curl
@@ -52,6 +54,18 @@ Answer these in order, and note the answers in the PR description:
   a blade that never froze anything). Base damage follows what the item is: a sword slashes and
   pierces; elemental damage only where the lore puts it.
 - Prefer vanilla effects (glows, particles, hit effects) recoloured in code over new ones.
+- Ambient effects come from a vanilla item of the same element (Sulfuras's head flames are
+  Dyrnwyn's): they read as native and need no new art. Keep them small and on the signature part,
+  as part of its one glow rather than a second one.
+- Map lore elements to what they do in Valheim, not only their colour: fire sets targets burning,
+  frost slows, spirit only hurts undead.
+- Procs fire on the lore's trigger ("chance on hit" for Sulfuras's fireball), with a cooldown so
+  they stay a moment rather than spam.
+- Big effects for big moments: blasts, shockwaves and screen shake belong to heavy moves (a slam,
+  a proc); everyday swings stay clean.
+- Pick the moveset from how the source item is wielded, borrowing that vanilla weapon's attacks
+  (Sulfuras is a war hammer: a battleaxe combo and a sledge's slam), not whatever the cloned item
+  came with. Moves sell the fantasy as much as the model.
 - Map lore enemies to Valheim creatures:
   orcs/goblins → Fulings, Greylings, Greydwarfs; undead → skeletons, draugr, ghosts, wraiths;
   dragons → drakes, Moder; trolls → trolls.
