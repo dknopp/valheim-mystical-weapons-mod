@@ -11,9 +11,9 @@ using Object = UnityEngine.Object;
 namespace MysticalWeapons
 {
     /// <summary>
-    /// Developer tool, off by default: compares each mystical item with its vanilla peer
-    /// (<see cref="MysticalItem.VanillaPeer"/>). Logs triangles, textures, stats and recipe, and
-    /// renders both side by side (front, side, top) into BepInEx/MysticalItemReport.
+    /// Developer tool, off by default: compares how each mystical item looks next to its vanilla peer
+    /// (<see cref="MysticalItem.VanillaPeer"/>). Logs triangles and texture sizes, and renders both
+    /// side by side from eight angles into BepInEx/MysticalItemReport.
     /// </summary>
     internal static class ItemReport
     {
@@ -29,7 +29,7 @@ namespace MysticalWeapons
         public static void BindConfig(ConfigFile cfg)
         {
             _enabled = cfg.Bind("Debug", "ItemReport", false,
-                "For mod developers: on startup, compare each item with its vanilla peer (log + images in BepInEx/MysticalItemReport).");
+                "For mod developers: on startup, compare how each item looks next to its vanilla peer (log + images in BepInEx/MysticalItemReport).");
         }
 
         /// <summary>Runs the report once per launch, a frame after the items are registered.</summary>
@@ -54,11 +54,10 @@ namespace MysticalWeapons
                     if (!item.Enabled.Value || !item.Prefab) continue;
                     var peerName = item.VanillaPeer ?? item.SourceName;
                     var peer = db.GetItemPrefab(peerName);
-                    text.Append(Describe(db, item.Prefab, peer, peerName, vanilla));
+                    text.Append(Describe(item.Prefab, peer, peerName, vanilla));
                     if (peer) Render(item.Prefab, peer, Path.Combine(OutputDir, item.PrefabName + ".png"));
                 }
                 File.WriteAllText(Path.Combine(OutputDir, "report.txt"), text.ToString());
-                File.WriteAllText(Path.Combine(OutputDir, "vanilla-by-slot.txt"), BySlot(db, vanilla));
                 Plugin.Log.LogInfo("Item report (left: mystical item, right: vanilla peer; images in " +
                                    OutputDir + "):\n" + text);
             }
@@ -70,20 +69,13 @@ namespace MysticalWeapons
 
         // ------------------------------------------------------------- text
 
-        private static string Describe(ObjectDB db, GameObject ours, GameObject peer, string peerName, List<GameObject> vanilla)
+        private static string Describe(GameObject ours, GameObject peer, string peerName, List<GameObject> vanilla)
         {
             var rows = new List<string[]>
             {
                 Row("Triangles", ours, peer, p => Triangles(p, false).ToString()),
                 Row("Worn triangles", ours, peer, p => Triangles(p, true).ToString()),
                 Row("Textures", ours, peer, Textures),
-                Row("Damage", ours, peer, p => Damage(Shared(p).m_damages)),
-                Row("Damage/level", ours, peer, p => Damage(Shared(p).m_damagesPerLevel)),
-                Row("Durability", ours, peer, p => $"{Shared(p).m_maxDurability:0} (+{Shared(p).m_durabilityPerLevel:0}/level)"),
-                Row("Weight", ours, peer, p => $"{Shared(p).m_weight:0.#}"),
-                Row("Armor", ours, peer, p => IsArmor(p) ? $"{Shared(p).m_armor:0.#} (+{Shared(p).m_armorPerLevel:0.#}/level)" : "-"),
-                Row("Recipe", ours, peer, p => Recipe(db, p)),
-                Row("Station", ours, peer, p => Station(db, p)),
             };
 
             var sb = new StringBuilder();
@@ -92,7 +84,7 @@ namespace MysticalWeapons
             var w1 = rows.Max(r => r[1].Length) + 3;
             foreach (var r in rows)
             {
-                if (r[1] == r[2] && (r[1] == "0" || r[1] == "-" || r[1].StartsWith("0 (+0"))) continue; // nothing to compare
+                if (r[1] == r[2] && (r[1] == "0" || r[1] == "-")) continue; // nothing to compare
                 sb.AppendLine(r[0].PadRight(w0) + r[1].PadRight(w1) + r[2]);
             }
             sb.AppendLine("Max in slot".PadRight(w0) + MaxInSlot(ours, vanilla));
@@ -124,23 +116,6 @@ namespace MysticalWeapons
             if (!IsArmor(ours)) return s;
             var worn = slot.OrderByDescending(p => Triangles(p, true)).First();
             return s + $" (worn: {worn.name}: {Triangles(worn, true)})";
-        }
-
-        /// <summary>Every vanilla craftable in the slots the mystical items use, to help pick fair peers.</summary>
-        private static string BySlot(ObjectDB db, List<GameObject> vanilla)
-        {
-            var sb = new StringBuilder();
-            var slots = Plugin.Items.Where(i => i.Enabled.Value && i.Prefab)
-                .Select(i => Shared(i.Prefab).m_itemType).Distinct();
-            foreach (var slot in slots)
-            {
-                sb.AppendLine($"== {slot} ==");
-                foreach (var p in vanilla.Where(p => Shared(p).m_itemType == slot)
-                             .OrderBy(p => Station(db, p)).ThenBy(p => p.name))
-                    sb.AppendLine($"{p.name,-28} {Triangles(p, false),6} tris  {Station(db, p),-28} {Recipe(db, p)}");
-                sb.AppendLine();
-            }
-            return sb.ToString();
         }
 
         private static string[] Row(string label, GameObject ours, GameObject peer, System.Func<GameObject, string> value) =>
@@ -187,38 +162,6 @@ namespace MysticalWeapons
                 sizes[key] = sizes.TryGetValue(key, out var n) ? n + 1 : 1;
             }
             return sizes.Count == 0 ? "none" : string.Join(", ", sizes.Select(kv => kv.Value > 1 ? $"{kv.Key} x{kv.Value}" : kv.Key));
-        }
-
-        private static string Damage(HitData.DamageTypes damage)
-        {
-            object boxed = damage;
-            var parts = typeof(HitData.DamageTypes).GetFields()
-                .Where(f => f.FieldType == typeof(float) && f.Name.StartsWith("m_") && (float)f.GetValue(boxed) != 0f)
-                .Select(f => $"{f.Name.Substring(2)}:{(float)f.GetValue(boxed):0.#}");
-            var s = string.Join(" ", parts);
-            return s.Length == 0 ? "-" : s;
-        }
-
-        private static Recipe RecipeOf(ObjectDB db, GameObject prefab)
-        {
-            var drop = prefab.GetComponent<ItemDrop>();
-            return db.m_recipes.Find(r => r && r.m_item == drop && r.m_enabled) ??
-                   db.m_recipes.Find(r => r && r.m_item && r.m_item.name == prefab.name);
-        }
-
-        private static string Recipe(ObjectDB db, GameObject prefab)
-        {
-            var recipe = RecipeOf(db, prefab);
-            if (!recipe) return "not craftable";
-            return string.Join(" ", recipe.m_resources.Where(r => r.m_resItem)
-                .Select(r => $"{r.m_resItem.name}:{r.m_amount}(+{r.m_amountPerLevel})"));
-        }
-
-        private static string Station(ObjectDB db, GameObject prefab)
-        {
-            var recipe = RecipeOf(db, prefab);
-            if (!recipe) return "-";
-            return (recipe.m_craftingStation ? recipe.m_craftingStation.name : "by hand") + " level " + recipe.m_minStationLevel;
         }
 
         // ------------------------------------------------------------- meshes

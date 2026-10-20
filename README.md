@@ -90,8 +90,8 @@ Then add it to `Plugin.Items`.
 
 ### Item report
 
-To compare items with vanilla, set `[Debug] ItemReport = true` in the config and launch to the main
-menu. `BepInEx/MysticalItemReport` then holds `report.txt` (triangles, textures, stats and recipe next to
-the item's vanilla peer, plus the most detailed vanilla item of the same kind), a picture of each item
-beside its peer from eight angles, and `vanilla-by-slot.txt` for picking peers. The peer is the cloned
-source unless the item sets `VanillaPeer`. Triangle counts are about twice what Blender shows.
+To see how items look next to vanilla, set `[Debug] ItemReport = true` in the config and launch to
+the main menu. `BepInEx/MysticalItemReport` then holds a picture of each item beside its vanilla peer
+from eight angles, and `report.txt` (triangles and texture sizes next to the peer, plus the most
+detailed vanilla item of the same kind). The peer is the cloned source unless the item sets
+`VanillaPeer`. Triangle counts are about twice what Blender shows.
