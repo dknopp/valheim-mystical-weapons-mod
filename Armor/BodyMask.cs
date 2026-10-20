@@ -23,11 +23,18 @@ namespace MysticalWeapons.Armor
             public string Prefab;
             public int Hash;
             public AccessTools.FieldRef<VisEquipment, int> Slot;
+            /// <summary>Bones (name contains) whose skin this piece always hides, without a ray test.</summary>
+            public string Always;
+            /// <summary>Bones whose skin counts as covered if any one ray hits the plates.</summary>
+            public string Lenient;
         }
 
         private static readonly Piece[] Pieces =
         {
-            new Piece { Prefab = "ShardplateBreastplate", Slot = AccessTools.FieldRefAccess<VisEquipment, int>("m_currentChestItemHash") },
+            // The gauntlets are a full glove: their open palm and finger gaps let rays slip out, and the
+            // hands and wrists bend through them, so the hands always hide and the forearms more readily
+            new Piece { Prefab = "ShardplateBreastplate", Slot = AccessTools.FieldRefAccess<VisEquipment, int>("m_currentChestItemHash"),
+                        Always = "Hand", Lenient = "ForeArm" },
             new Piece { Prefab = "ShardplateGreaves", Slot = AccessTools.FieldRefAccess<VisEquipment, int>("m_currentLegItemHash") },
         };
 
@@ -167,21 +174,29 @@ namespace MysticalWeapons.Armor
             // Only the limbs are hidden (arms, hands, legs, feet): they are what pokes through as they
             // bend. The torso, shoulders, neck and head always draw, so no holes open there
             var limb = new bool[bones.Length];
+            var always = new bool[bones.Length];
+            var lenient = new bool[bones.Length];
             for (var b = 0; b < bones.Length; b++)
-                limb[b] = bones[b] && IsLimb(bones[b].name);
+            {
+                if (!bones[b]) continue;
+                limb[b] = IsLimb(bones[b].name);
+                always[b] = piece.Always != null && bones[b].name.Contains(piece.Always);
+                lenient[b] = piece.Lenient != null && bones[b].name.Contains(piece.Lenient);
+            }
 
             var verts = bodyMesh.vertices;
             var normals = bodyMesh.normals;
             var weights = bodyMesh.boneWeights;
             var grid = new TriangleGrid(am.vertices, am.triangles);
             var result = new bool[verts.Length];
-            var count = 0;
+            int count = 0, byRule = 0;
             for (var v = 0; v < verts.Length && v < weights.Length && v < normals.Length; v++)
             {
                 var bw = weights[v];
-                var onLimbs = (limb[bw.boneIndex0] ? bw.weight0 : 0f) + (limb[bw.boneIndex1] ? bw.weight1 : 0f) +
-                              (limb[bw.boneIndex2] ? bw.weight2 : 0f) + (limb[bw.boneIndex3] ? bw.weight3 : 0f);
-                if (onLimbs < 0.5f) continue;
+                float On(bool[] set) => (set[bw.boneIndex0] ? bw.weight0 : 0f) + (set[bw.boneIndex1] ? bw.weight1 : 0f) +
+                                        (set[bw.boneIndex2] ? bw.weight2 : 0f) + (set[bw.boneIndex3] ? bw.weight3 : 0f);
+                if (On(limb) < 0.5f) continue;
+                if (On(always) >= 0.5f) { result[v] = true; count++; byRule++; continue; }
                 Vector3 p = Vector3.zero, n = Vector3.zero;
                 void Add(int bi, float w)
                 {
@@ -193,9 +208,10 @@ namespace MysticalWeapons.Armor
                 Add(bw.boneIndex2, bw.weight2); Add(bw.boneIndex3, bw.weight3);
                 if (n.sqrMagnitude < 1e-12f) continue;
                 n.Normalize();
-                if (IsCovered(grid, p, n)) { result[v] = true; count++; }
+                if (IsCovered(grid, p, n, On(lenient) >= 0.5f ? 1 : HitsNeeded)) { result[v] = true; count++; }
             }
-            Plugin.Log.LogInfo($"Shardplate body mask: {piece.Prefab} covers {count} of {verts.Length} body vertices");
+            Plugin.Log.LogInfo($"Shardplate body mask: {piece.Prefab} covers {count} of {verts.Length} body vertices" +
+                               (byRule > 0 ? $" ({byRule} {piece.Always} vertices without a ray test)" : ""));
             return result;
         }
 
@@ -204,7 +220,7 @@ namespace MysticalWeapons.Armor
         private static bool IsLimb(string bone) =>
             bone.Contains("Arm") || bone.Contains("Hand") || bone.Contains("Leg") || bone.Contains("Foot") || bone.Contains("Toe");
 
-        private static bool IsCovered(TriangleGrid grid, Vector3 p, Vector3 n)
+        private static bool IsCovered(TriangleGrid grid, Vector3 p, Vector3 n, int needed)
         {
             var side = Vector3.Cross(n, Mathf.Abs(n.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
             var hits = 0;
@@ -213,8 +229,8 @@ namespace MysticalWeapons.Armor
                 var dir = k == 0 ? n
                     : Quaternion.AngleAxis(RayTilt, Quaternion.AngleAxis(360f * k / RayRing, n) * side) * n;
                 if (grid.Raycast(p - dir * Pierce, dir, Reach + Pierce)) hits++;
-                if (hits >= HitsNeeded) return true;
-                if (hits + (RayRing - k) < HitsNeeded) return false;
+                if (hits >= needed) return true;
+                if (hits + (RayRing - k) < needed) return false;
             }
             return false;
         }

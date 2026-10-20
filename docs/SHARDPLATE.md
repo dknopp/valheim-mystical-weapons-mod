@@ -29,6 +29,9 @@ downloaded it, because Sketchfab requires a login.
   recolour textures on load (Tint × CustomModelBrightness, plus a Glow wash). `RecolorBodyPaint`
   recolours the vanilla `_ChestTex`/`_LegsTex` under-armor body paint so gaps between plates read as
   dark blue rather than black. `ReloadCustomModel` is used by the reload command.
+  - **Body paint:** the breastplate and greaves keep Flametal's body paint, recoloured blue.
+    Tried and dropped: Troll Leather's paint in its own colours, and a plain under-suit in the
+    armor's colour (Troll Leather's coverage filled flat). The user preferred the recoloured Flametal.
 - `ObjImport.cs` / `MeshBuilder.cs`: the OBJ loader. Positions and normals are X-mirrored, because OBJ is
   right-handed and Unity left-handed. Two custom line types for skinning:
   `bp <bone> <16 floats>` (a bind pose: Unity space, row-major, in player bone order) and
@@ -49,6 +52,11 @@ downloaded it, because Sketchfab requires a login.
     ForeArm, Hand and fingers, UpLeg, Leg, Foot and ToeBase (`IsLimb`). Those are what poke through
     as they bend. The torso, hips, shoulders, neck and head always draw, which avoids holes there:
     the collar used to hide scattered neck triangles.
+  - **Hands and forearms** (breastplate only, `Piece.Always` / `Piece.Lenient`): hand and finger
+    skin is always hidden, with no ray test, and forearm skin counts as covered if any one ray hits.
+    After the arms were slimmed, rays slipped out through the gauntlets' open palm, the finger gaps
+    and the vambrace–cuff gap, and the wrists and hands showed through as they bent. The log adds
+    "(N Hand vertices without a ray test)".
   - **Hiding:** triangles with 2 or 3 covered corners are dropped from a copy of the body mesh,
     which a Harmony postfix on `VisEquipment.UpdateVisuals` swaps in while the piece is worn. The
     original comes back when it's unequipped.
@@ -229,6 +237,10 @@ body is what threw the proportions off; the body mask handles clipping instead.
     - Valheim's `Ghost` prefab material wasn't found or usable.
     - Gate it on the full set.
   - Shrinking the ghost mesh toward the skeleton was also tried; the user preferred normal size.
+
+- **A generated gorget was tried and removed:** three elliptical lames from the collar up into the
+  helm, weighted to Spine2, Neck and Head. The user dropped it; the neck gap under the helm is still
+  open, pending the user's helm changes.
 
 ## Ideas not yet done
 
