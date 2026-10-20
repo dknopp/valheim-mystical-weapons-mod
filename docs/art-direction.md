@@ -1,0 +1,84 @@
+# Art direction
+
+Every item should look and act like the real thing from its own story, drawn in Valheim's style.
+
+## Before building an item
+Answer these in order, and note the answers in the PR description:
+1. **Lore look:** what does it look like in its source? Silhouette, proportions, signature details,
+   and finish: pristine (polished steel, Elvish make) or worn (battle-scarred, rough-forged)?
+2. **Vanilla texture fit:** is there a vanilla texture (iron, leather, wood, bark, stone) that
+   supports that finish once tinted? Use it only if it does; a mottled, worn texture on a famously
+   flawless blade is wrong, and a flat colour with the right gloss beats the wrong texture.
+3. **Custom work:** only if neither fits, plan a custom model or texture: Blender and an OBJ in
+   `models/` (see "Editing models in Blender" in README.md), with licences checked as below.
+4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below)
+   and let the maintainer building it decide before any code: "Based on its lore, here's how I'd
+   build its stats, recipe and tier..."
+
+## Look
+- Start from the source: silhouette, proportions and signature details (Andúril's swept
+  crossguard, the bat'leth's crescent). Check reference images before modelling.
+- Study the reference from several angles (rotate a 3D viewer such as Wowhead's when there is one)
+  and list its parts before mocking: how pieces step, taper and join, thickness as well as
+  outline, how many spikes or studs and where, and their sizes relative to each other. Check the
+  mock against the reference part by part before building.
+- Draw it the Valheim way: low-poly, bold shapes that read in the inventory icon; worn, mostly
+  matte materials unless the source item is famously pristine; textures 512px or smaller.
+- Prefer vanilla textures borrowed from the running game and tinted (`.Borrow(...)` on a
+  `MaterialSpec`) over flat colours or new textures, when they fit the finish (step 2 above).
+- One signature glow, where the lore puts it (Andúril's runes, Syl's tip), not all over.
+- Shapes in code; fine surface detail (lettering, patterns) as a texture via the Blender route, or
+  left out. Geometry only for detail that reads at arm's length: Sting's engraved lines and curl
+  are shapes, its script would be a texture.
+
+## Name and flavour text
+- Use the name the source uses ("Andúril", "The Elder Wand"), not a description of it.
+- Description: one or two sentences in the voice of the source world. Name what it is and hint at
+  its power ("glows blue when orcs are near"); no numbers, game terms or explanations of the
+  mechanic. Valheim's own descriptions are a good length guide.
+
+## Effects and abilities from lore
+- Each item's best-known power becomes one in-game effect, triggered the way the story triggers it.
+- Stay true to the source: don't add powers or damage types it doesn't have (no frost damage on
+  a blade that never froze anything). Base damage follows what the item is: a sword slashes and
+  pierces; elemental damage only where the lore puts it.
+- Prefer vanilla effects (glows, particles, hit effects) recoloured in code over new ones.
+- Map lore enemies to Valheim creatures:
+  orcs/goblins → Fulings, Greylings, Greydwarfs; undead → skeletons, draugr, ghosts, wraiths;
+  dragons → drakes, Moder; trolls → trolls.
+- Bonuses are configurable, and power comes from the recipe and crafting station, not the look.
+
+## Tier, cost and balance
+Guidance, not rules: a starting suggestion for where an item sits in the journey, which the
+maintainer building it adjusts to taste. By default, items are traditional in-biome weapons: strong
+in their home biome and perhaps the next, then outclassed like vanilla gear, with the tone and power
+fantasy of the source deciding where that is.
+- **Home biome:** pick it from the lore (Sting is an early find; Sulfuras is a Firelord's weapon,
+  so Ashlands) and from a **vanilla peer**: the vanilla item it is closest to, ideally the one its
+  recipe consumes (Andúril consumes an Iron Sword, Sulfuras a Demolisher). The peer sets the
+  tier, the minimum cost and what to compare stats against.
+- **Cost:** the peer plus roughly 1.5 to 2 times its cost again in home-biome materials, plus one
+  signature material from the lore (Surtling cores for the Eye of Sulfuras). Same station as the
+  peer, at its level or one above. It should feel like a project for that biome, not a first craft.
+- **Stats:** base damage within about 10% of the peer, with the same per-level growth. The lore
+  power is the edge, ideally conditional (against undead, on a proc, near goblins) rather than
+  always-on stats. A proc's average gain is chance x damage x how often it can fire; Sulfuras's
+  fireball adds very roughly 5 to 8%.
+- **Hidden power counts:** no durability, stamina instead of eitr, extra carry weight or stealth are
+  real power. Choose them on purpose and weigh them against the rest.
+- **Lasting longer:** if the lore calls for an item that grows with its wielder, two options to
+  suggest rather than default to: upgrade levels gated by later forge levels and materials (damage per
+  level tracking each new biome's peer; materials that change per level need a small patch), or a
+  config option that scales it with bosses defeated.
+- Players on a shared server each have their own config file, so numbers are only as fixed as
+  everyone's config.
+
+Example: Sting glows soft blue, brighter when Fulings, Greylings or Greydwarfs are near, and deals extra
+damage to them.
+
+## Outside assets
+- Never copy Valheim's own textures, models or sounds into the repo; take them from the game at
+  runtime. They belong to Iron Gate and the repo is public.
+- Only use outside models whose license allows changes and redistribution (e.g. CC BY); credit
+  them in `models/CREDITS.md` and the README.
+- Reference images are for looking at, not committing: don't add them to the repo.
