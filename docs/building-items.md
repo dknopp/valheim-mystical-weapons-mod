@@ -1,12 +1,12 @@
 # Building items: process and lessons
 
-How to build an item with as few game launches as possible, and what earlier items taught us.
+Stephen's notes on how to build an item with as few game launches as possible, and what earlier items taught us.
 README.md ("Adding an item") has the basics; `docs/art-direction.md` has how items look and act.
 
-## Item checklist
+## My item checklist
 
-For a new item, or to bring an existing one up to date:
-- [ ] Art-direction questions answered ("Before building an item"), answers in the PR description
+What I check on a new item, or when bringing one of mine up to date:
+- [ ] Art-direction questions answered ("Before building an item")
 - [ ] Shape checked against the reference's proportions and parts
 - [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures (README,
       "Item report"). Aim for 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a

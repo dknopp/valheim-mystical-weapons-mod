@@ -19,25 +19,19 @@ Follow "Adding an item" in README.md, then add a row to the README items table.
 Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides, extra settings via
 `BindConfig`, Harmony patches nested in the item class.
 Never rename an existing `PrefabName` or `Plugin.Guid`: that breaks players' saved items and config.
-Follow `docs/art-direction.md` for how items look and what their lore effects do, and
-`docs/building-items.md` for the build-and-test process and lessons (read both before starting an item).
+`docs/` has Stephen's notes on how he builds items (`art-direction.md` for look, effects and
+balance; `building-items.md` for process and lessons from earlier items). Use what helps; they
+aren't rules for the repo.
 
 ## Workflow
-1. `git pull` on main.
-2. One branch per change.
-3. Open a pull request and get the other person's approval; the author merges after that.
-   - Dan reviews Stephen's PRs, including the code.
-   - Stephen reviews Dan's by playtesting and sanity-checking. Small PRs can just be approved.
-4. Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
-
-## Keeping the docs useful
-- When guidance in `docs/` turns out wrong, or you find a better way, fix the doc in that item's PR
-  and add a "Docs changes" line to the PR description.
-- Keep them short: checklists over prose, each rule tied to a real item as its example, and a check
-  automated in code beats a rule written down. When adding a rule, merge or cut one if you can.
-  Aim for about one screen here and two per doc.
+- One branch per change, merged through a pull request.
+- Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
 
 ## Rules
 - The repo is public: no secrets, tokens, webhook URLs, or personal paths in committed files.
+- Never copy Valheim's own textures, models or sounds into the repo; take them from the game at
+  runtime. Outside models only if their licence allows changes and redistribution (e.g. CC BY),
+  credited in `models/CREDITS.md` and the README. Never commit models ripped from a source's own
+  game (they belong to its publisher) or reference images and models used only for looking at.
 - Don't run the old standalone Dank-Batleth mod alongside this one: this mod includes the bat'leth
   and skips its own if the old one is loaded.

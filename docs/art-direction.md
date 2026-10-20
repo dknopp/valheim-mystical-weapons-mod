@@ -1,16 +1,17 @@
 # Art direction
 
-Every item should look and act like the real thing from its own story, drawn in Valheim's style.
+How Stephen builds items; optional. The aim: every item looks and acts like the real thing from
+its own story, drawn in Valheim's style.
 
 ## Before building an item
-Answer these in order, and note the answers in the PR description:
+Questions I answer before building, in order:
 1. **Lore look:** what does it look like in its source? Silhouette, proportions, signature details,
    and finish: pristine (polished steel, Elvish make) or worn (battle-scarred, rough-forged)?
 2. **Vanilla texture fit:** is there a vanilla texture (iron, leather, wood, bark, stone) that
    supports that finish once tinted? Use it only if it does; a mottled, worn texture on a famously
    flawless blade is wrong, and a flat colour with the right gloss beats the wrong texture.
 3. **Custom work:** only if neither fits, plan a custom model or texture: Blender and an OBJ in
-   `models/` (see "Editing models in Blender" in README.md), with licences checked as below,
+   `models/` (see "Editing models in Blender" in README.md), with licences checked (see Rules in `CLAUDE.md`),
    and a vanilla grain laid over the custom texture so it matches Valheim's painterly look (see Look).
 4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below);
    the maintainer building it decides before any code.
@@ -25,7 +26,7 @@ Answer these in order, and note the answers in the PR description:
   studs and where. Check the model against those proportions and parts before building.
 - A detailed downloaded model is a reference to rebuild low-poly, not a mesh to decimate: decimated
   sculpts look lumpy next to Valheim's clean shapes. Use a downloaded mesh directly only if it is
-  already low-poly and its licence allows it (see Outside assets).
+  already low-poly and its licence allows it (see Rules in `CLAUDE.md`).
 - Draw it the Valheim way: low-poly, bold shapes that read in the inventory icon; worn, mostly
   matte materials unless the source item is famously pristine; textures 512px or smaller.
 - Prefer vanilla textures borrowed from the running game and tinted (`.Borrow(...)` on a
@@ -104,13 +105,3 @@ fantasy of the source deciding where that is.
 
 Example: Andúril's edge is spirit damage and x1.5 against undead, which only matters against the
 enemies its lore names.
-
-## Outside assets
-- Never copy Valheim's own textures, models or sounds into the repo; take them from the game at
-  runtime. They belong to Iron Gate and the repo is public.
-- Only use outside models whose license allows changes and redistribution (e.g. CC BY); credit
-  them in `models/CREDITS.md` and the README.
-- Skip models ripped from the source's own game: they belong to its publisher whatever licence the
-  uploader gives them.
-- References (images, downloaded models) are for looking at, not committing: any licence is fine
-  for that, but don't add them to the repo.
