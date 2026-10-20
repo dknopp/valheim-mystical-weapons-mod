@@ -36,6 +36,17 @@ What I check on a new item, or when bringing one of mine up to date:
    position, scale), separates "not there" from "there but in the wrong place". Remove it before the PR.
 6. **Test one round per batch of changes,** with a short checklist of what to look for.
 
+## Custom models: who does what
+
+When an item gets a custom model (Thunderfury onwards), Claude Code does the hands-on work and I direct:
+- **References:** Claude gathers them, capturing front, edge and 3/4 views from a 3D viewer in the
+  built-in browser into the gitignored `references/` folder, and writes the reference sheet. I only
+  hunt for references if that pass turns up too little.
+- **Modelling:** Claude builds the model in Blender through the Blender MCP, one part at a time,
+  showing a screenshot and triangle count after each. I react and steer; I may tweak by hand, but
+  I'm not expected to.
+- **Texture and export:** Claude scripts the bake and export (as for Sulfuras), so they can be re-run.
+
 ## Finding vanilla prefabs
 
 Prefab names (projectiles, `vfx_`/`sfx_`/`fx_` effects, items) are listed in the game's asset manifest:
