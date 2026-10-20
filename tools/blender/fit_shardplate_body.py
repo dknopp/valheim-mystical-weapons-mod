@@ -70,7 +70,10 @@ def armv(side):
 ARM_GIRTH = [1.0e-3, 1.0e-3, 1.25e-3]  # perpendicular scale per segment (upper, fore, hand)
 # Forward (+Z) nudge of the arm plates at shoulder, elbow, wrist and fingertips, blended along the
 # arm. Zero: a forward nudge (up to 4 cm) was tried and made the arms poke out of the back instead.
-ARM_FORWARD = [0.0, 0.0, 0.0, 0.0]
+ARM_FORWARD = [0.0, 0.0, -0.025, -0.025]
+# Extra girth of the arm plates (not the gauntlets) at the same four knots, blended the same way:
+# Valheim's wrist is thick front to back and pokes out of a vambrace that tapers like Krajkoa's.
+ARM_FLARE = [1.0, 1.05, 1.25, 1.25]
 
 
 def rot_between(a, b):
@@ -81,8 +84,9 @@ def rot_between(a, b):
     return np.eye(3) + vx + vx @ vx * (1 / (1 + c))
 
 
-def map_arm(P, side):
+def map_arm(P, side, flare=True):
     K = ARMK[side]; V = armv(side)
+    F = ARM_FLARE if flare else [1.0] * 4
     out = np.empty_like(P)
     best = np.full(len(P), np.inf); seg = np.zeros(len(P), int); tpar = np.zeros(len(P))
     for i in range(3):
@@ -96,8 +100,10 @@ def map_arm(P, side):
         a, b = K[i], K[i + 1]; va, vb = V[i], V[i + 1]
         R = rot_between(b - a, vb - va)
         t = tpar[m]
-        perp = (P[m] - (a + t[:, None] * (b - a))) @ R.T * ARM_GIRTH[i]
-        fwd = ARM_FORWARD[i] + np.clip(t, 0, 1) * (ARM_FORWARD[i + 1] - ARM_FORWARD[i])
+        tc = np.clip(t, 0, 1)
+        fl = F[i] + tc * (F[i + 1] - F[i])
+        perp = (P[m] - (a + t[:, None] * (b - a))) @ R.T * ARM_GIRTH[i] * fl[:, None]
+        fwd = ARM_FORWARD[i] + tc * (ARM_FORWARD[i + 1] - ARM_FORWARD[i])
         out[m] = va + t[:, None] * (vb - va) + perp + np.stack([0 * fwd, 0 * fwd, fwd], 1)
     return out
 
@@ -163,7 +169,7 @@ def map_plate(pl):
     if pl["region"] == "arm":
         saved = list(ARM_GIRTH)
         for k in range(3): ARM_GIRTH[k] = saved[k] * (gx if k < 2 else HAND_GIRTH)
-        Q = map_arm(pl["P"], pl["side"]); ARM_GIRTH[:] = saved
+        Q = map_arm(pl["P"], pl["side"], flare=pl["mat"] != "MetalGlove"); ARM_GIRTH[:] = saved
     elif pl["region"] == "leg":
         sx, sz = LEG["sx"], LEG["sz"]; LEG["sx"], LEG["sz"] = sx * gx, sz * gz
         Q = map_leg(pl["P"], pl["side"]); LEG["sx"], LEG["sz"] = sx, sz
@@ -405,7 +411,8 @@ def allowed_bones(pl):
     return ["Hips", "Spine", "Spine1", "Spine2", "Neck", "LeftShoulder", "RightShoulder", "LeftUpLeg", "RightUpLeg"]
 
 
-HAND_PIECE_MAX = 0.08   # gauntlet pieces larger than this (palm, back of hand) ride on the hand bone
+HAND_PIECE_MAX = 0.08   # finger pieces up to this size ride rigidly on one finger bone; larger ones bend along the finger
+HAND_PLATE_MIN = 0.12   # gauntlet pieces larger than this (back of hand, knuckles) ride on the hand bone
 FINGER_SNAP = 0.8       # how far a finger piece is pulled onto its finger bone (fraction of the gap)
 FINGER_SNAP_MAX = 0.03  # but never moved more than this (metres)
 
@@ -456,40 +463,47 @@ def align_gauntlets(plates):
 
 
 def rigid_hand_piece(pl):
-    """A gauntlet piece rides on exactly one bone - its finger segment, or the hand for the big
-    palm/back plates - like a real articulated gauntlet, so a closing fist carries each finger's
-    plates with it. Finger pieces are also pulled onto their finger, since Krajkoa's fingers sit
-    a little off Valheim's (and his thumb well forward of it)."""
+    """A gauntlet piece follows its nearest bone - a finger segment, or the hand for the palm and
+    back plates - like a real articulated gauntlet, so a closing fist carries each finger's plates
+    with it. Small finger pieces ride rigidly on one bone and are pulled onto their finger, since
+    Krajkoa's fingers sit a little off Valheim's (and his thumb well forward of it). Finger pieces
+    longer than HAND_PIECE_MAX span a knuckle, so they are weighted along that finger's joints
+    instead (they used to ride on the hand, which left e.g. the middle finger unable to bend)."""
     s = "Left" if pl["side"] == "L" else "Right"
     Q = pl["Q"]; c = Q.mean(0)
-    bone = s + "Hand"
-    if np.max(Q.max(0) - Q.min(0)) <= HAND_PIECE_MAX:
-        best = np.inf
-        for n in [s + "Hand"] + [n for n in BONE_ORDER if n.startswith(s + "Hand") and n != s + "Hand"]:
-            a, b = SEGMENTS[n]; ab = b - a
-            t = np.clip((c - a) @ ab / max(ab @ ab, 1e-9), 0, 1)
-            d = np.linalg.norm(c - (a + t * ab))
-            if d < best: best, bone, foot = d, n, a + t * ab
-        if bone != s + "Hand":
-            shift = (foot - c) * FINGER_SNAP
-            L = np.linalg.norm(shift)
-            if L > FINGER_SNAP_MAX: shift *= FINGER_SNAP_MAX / L
-            Q = Q + shift; pl["Q"] = Q
-            for v, q in zip(pl["obj"].data.vertices, Q): v.co = (q[0], q[2], q[1])
-            pl["obj"].data.update()
+    best = np.inf
+    for n in [s + "Hand"] + [n for n in BONE_ORDER if n.startswith(s + "Hand") and n != s + "Hand"]:
+        a, b = SEGMENTS[n]; ab = b - a
+        t = np.clip((c - a) @ ab / max(ab @ ab, 1e-9), 0, 1)
+        d = np.linalg.norm(c - (a + t * ab))
+        if d < best: best, bone, foot = d, n, a + t * ab
+    size = np.max(Q.max(0) - Q.min(0))
+    if size > HAND_PLATE_MIN:
+        bone = s + "Hand"  # back-of-hand and knuckle plates: tearing them along the fingers looks wrong
+    elif bone != s + "Hand" and size > HAND_PIECE_MAX:
+        finger = bone[:-1]  # e.g. RightHandMiddle
+        assign_weights(pl, power=8.0, names=[s + "Hand"] + [finger + str(k) for k in (1, 2, 3)])
+        return bone
+    if bone != s + "Hand":
+        shift = (foot - c) * FINGER_SNAP
+        L = np.linalg.norm(shift)
+        if L > FINGER_SNAP_MAX: shift *= FINGER_SNAP_MAX / L
+        Q = Q + shift; pl["Q"] = Q
+        for v, q in zip(pl["obj"].data.vertices, Q): v.co = (q[0], q[2], q[1])
+        pl["obj"].data.update()
     o = pl["obj"]
     g = o.vertex_groups.get(bone) or o.vertex_groups.new(name=bone)
     g.add(list(range(len(Q))), 1.0, "REPLACE")
     return bone
 
 
-def assign_weights(pl, power=None):
+def assign_weights(pl, power=None, names=None):
     """Smooth inverse-distance weights to the nearest bone segments, top 4, as vertex groups.
     Arm plates use a sharper falloff so each follows its own segment and only blends at the joints."""
-    if pl["mat"] == "MetalGlove":
+    if pl["mat"] == "MetalGlove" and names is None:
         return rigid_hand_piece(pl)
     if power is None: power = 6.0 if pl["region"] == "arm" else 4.0
-    Q = pl["Q"]; names = allowed_bones(pl)
+    Q = pl["Q"]; names = names or allowed_bones(pl)
     D = np.empty((len(Q), len(names)))
     for j, n in enumerate(names):
         a, b = SEGMENTS[n]; ab = b - a

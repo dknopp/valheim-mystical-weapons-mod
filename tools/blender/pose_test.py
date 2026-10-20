@@ -43,6 +43,17 @@ if len(argv) > 3 and argv[3] == "twohand":
     POSE = {"LeftArm": ((-1, 0, 0.6), 60), "LeftForeArm": ((-1, 0, 0), 70),
             "RightArm": ((-1, 0, -0.6), 60), "RightForeArm": ((-1, 0, 0), 70),
             "LeftUpLeg": ((1, 0, 0), -35), "RightUpLeg": ((1, 0, 0), 25), "LeftLeg": ((1, 0, 0), 30)}
+FIST = len(argv) > 3 and argv[3] == "fist"
+FIST_DEG = float(argv[4]) if len(argv) > 4 else 55.0
+if FIST:
+    # Close both hands: every finger joint (not the thumb) bends 55 degrees about the axis across the
+    # knuckles, so each finger's gauntlet plates must follow their own finger
+    POSE = {}
+    for s in ("Left", "Right"):
+        pos = {n: M[n][:3, 3] for n in M}
+        across = pos[s + "HandIndex1"] - pos[s + "HandPinky1"]
+        for f in ("Index", "Middle", "Ring", "Pinky"):
+            for k in (1, 2, 3): POSE[s + "Hand" + f + str(k)] = (tuple(across * (1 if s == "Right" else -1)), FIST_DEG)
 G = {}
 for n in order:
     p = parent[n]
@@ -73,7 +84,8 @@ for k, path in enumerate(files):
     for i, ws in enumerate(weights):
         for n, w in ws:
             if w > 0: posed[i] += w * (skin[n] @ V[i])
-    for label, P, dx in (("rest", V, -0.75), ("posed", posed, 0.75)):
+    shots = (("posed", posed, 0.0),) if FIST else (("rest", V, -0.75), ("posed", posed, 0.75))
+    for label, P, dx in shots:
         me = bpy.data.meshes.new(f"{label}{k}")
         me.from_pydata([(q[0] + dx, q[2], q[1]) for q in P], [], faces); me.update()
         ob = bpy.data.objects.new(me.name, me); bpy.context.scene.collection.objects.link(ob)
@@ -88,8 +100,14 @@ scene.render.resolution_x = 1000; scene.render.resolution_y = 700
 scene.world = bpy.data.worlds.new("w")
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); scene.collection.objects.link(cam)
 cam.data.type = "ORTHO"; cam.data.ortho_scale = 3.2; cam.data.clip_end = 50; scene.camera = cam
-for label, d in (("front", Vector((0, 1, 0))), ("side", Vector((1, 0.15, 0)).normalized())):
-    cam.location = Vector((0, 0, 1.0)) + d * 10
+centre = Vector((0, 0, 1.0))
+views = (("front", Vector((0, 1, 0))), ("side", Vector((1, 0.15, 0)).normalized()))
+if FIST:  # close-up of the posed right hand
+    h = G["RightHandMiddle1"][:3, 3]; centre = Vector((h[0], h[2], h[1]))
+    cam.data.ortho_scale = 0.4
+    views = (("front", Vector((0, 1, 0))), ("back", Vector((0, -1, 0))), ("side", Vector((1, 0, 0))))
+for label, d in views:
+    cam.location = centre + d * 10
     cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
     scene.render.filepath = out.replace(".png", f"_{label}.png")
     bpy.ops.render.render(write_still=True)

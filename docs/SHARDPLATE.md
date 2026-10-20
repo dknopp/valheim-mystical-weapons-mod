@@ -37,6 +37,18 @@ downloaded it, because Sketchfab requires a login.
 - `SkinBoneNames.cs`: a component that stores the bone names, plus a Harmony postfix on
   `VisEquipment.AttachArmor` that rebinds skinned armor bones **by name**, so it survives a game update
   that reorders the skeleton.
+- `Armor/GhostBody.cs` (experimental): while the breastplate is worn, the body becomes a
+  translucent spirit in the Shardplate's `Glow` colour, so any body showing through the plates reads as
+  Stormlight rather than skin. The real body renderer only stops drawing (`forceRenderingOff`), so
+  Valheim can keep updating it, and a second SkinnedMeshRenderer with the same mesh and bones draws
+  the ghost. The material is a flat, unlit `Sprites/Default` tinted with `Glow`, which the user
+  chose over borrowing Valheim's Ghost creature material or adding skin-texture detail. `Opacity`
+  (0.35) is in code. The material is built once, so colour changes need a restart.
+  - **The animator must be set to `AlwaysAnimate` while the ghost is on.** It culls based on its
+    renderers, and with the real body hidden the skeleton froze (the body was stuck in place and no
+    animations played). The original culling mode is restored on unequip.
+  - Tried and removed: shrinking the forearm and hand vertices of the body mesh toward their bones
+    (`BodyShrink`, 50%). It still clipped in-game.
 - `ModelUtil.cs`: model replacement and fitting (`ReplaceModel`, `ModelPlacement`), renderers
   (`AddRenderer` creates a SkinnedMeshRenderer when the model has weights), icon rendering, texture
   recolouring through a GPU readback (`RecolorTexture`, `RecolorIcon`), the texture cache, and material logging.
@@ -65,8 +77,14 @@ downloaded it, because Sketchfab requires a login.
      onto Valheim's Arm→ForeArm→Hand→fingertip, girth `GIRTH["arm"]` (gauntlets use `HAND_GIRTH`).
    - Groin plate: `is_groin()` picks the codpiece plates; `GROIN_*` stretches them down between the thighs.
 3. **Gauntlets:** `align_gauntlets()` scales each gauntlet to Valheim's hand length and shifts it
-   onto the finger bones (thumb excluded). `rigid_hand_piece()` then puts each gauntlet piece on
-   **one** bone, snapping finger pieces onto their finger (`FINGER_SNAP`, `FINGER_SNAP_MAX`).
+   onto the finger bones (thumb excluded). `rigid_hand_piece()` then gives each gauntlet piece its
+   nearest bone by centroid:
+   - finger pieces up to `HAND_PIECE_MAX` (8 cm) ride rigidly on that finger bone and are snapped
+     onto it (`FINGER_SNAP`, `FINGER_SNAP_MAX`);
+   - finger pieces from 8 to 12 cm span a knuckle, so they are weighted along that finger's chain
+     (Hand + finger 1–3, power 8). Krajkoa's middle-finger segment is 8.5 cm, and under the old
+     8 cm rule it rode the hand, so the middle finger didn't bend when gripping;
+   - pieces over `HAND_PLATE_MIN` (12 cm), the back-of-hand and knuckle plates, ride the hand.
 4. **Weights** (`assign_weights`): inverse distance to bone segments, top 4, limited per region by
    `allowed_bones()`:
    - torso: Hips, Spine, Spine1, Spine2, Neck, both Shoulders and both UpLegs;
@@ -92,6 +110,14 @@ folder first lets you inspect before installing:
   body sample points and skeleton (x-ray). It also prints `GIRTH ... -> N% of body points poke through`.
 - `tools/blender/pose_test.py`: deforms the exported `skin.obj` files exactly as Unity will and
   renders rest beside posed. Pass `twohand` as the last argument for a two-handed weapon pose plus a stride.
+- `tools/blender/arm_poke.py`: checks a `skin.obj` for arm poke-through without Blender (run it with
+  Blender's bundled Python, `.../Blender 5.2/5.2/python/bin/python.exe`). For each arm body sample point
+  it compares the point's distance from its arm bone with the armor's distance in that direction, and
+  prints the points that reach past the plates. In its output, `dir` 0 is behind the arm, ±90 is the
+  sides and 180 is the front. "Out by" includes a 1 cm margin for plate thickness, so a value under
+  0.01 means the point is inside the plates.
+- `pose_test.py ... <out.png> fist [degrees]` curls every finger (not the thumb), 55° per joint by
+  default, and renders close-ups of the right hand: check that each finger's plates follow it.
 - `tools/blender/hand_check.py`: a close-up of the right forearm and gauntlet with Valheim's finger
   bones drawn in colour (thumb red, index yellow, middle green, ring blue, little finger purple).
 
@@ -114,7 +140,8 @@ folder first lets you inspect before installing:
 | `TORSO_VK` | waist 140→1.24, bottom −260→0.75 | the user asked to lengthen the torso; the shoulders stay fixed |
 | `GROIN_TOP / STRETCH` | 1.18 / 1.3 | codpiece bottom about 0.88–0.91 m |
 | `GIRTH["arm"]` | 2.05 | `HAND_GIRTH` 1.65 |
-| `ARM_FORWARD` | all 0 | a forward nudge (up to 4 cm) made the arms poke out the back; reverted |
+| `ARM_FORWARD` | 0, 0, −0.025, −0.025 | shoulder, elbow, wrist, fingertip. Krajkoa's vambrace sat 2–3 cm forward of Valheim's forearm bone, so the forearm and wrist showed through the back. A forward nudge made this worse; the wrist now moves back 2.5 cm. The elbow stays at 0: moving it back exposed the inside of the elbow |
+| `ARM_FLARE` | 1, 1.05, 1.25, 1.25 | extra girth for the arm plates only (not the gauntlets), blended along the arm. Moving the wrist back alone made the front of the wrist poke through, because Valheim's wrist is about 14 cm deep front to back |
 | `GIRTH["leg"]`, `LEG_BACK` | 1.45, 1.4 | `LEG_BACK` deepens the back of the thigh (hamstrings, glutes) |
 | `LEG_VK` thigh top | −98→1.19 | a "tighter and longer thigh" change was rejected; that's not what the user wanted |
 | Helm | scale 0.78, offset z +0.08, rot y 180 | the helm was too big at its fitted size of 1.78× |
@@ -148,7 +175,6 @@ folder first lets you inspect before installing:
 
 - Pauldrons follow the arm when it's raised high; weight them more to the `Shoulder` bone if the
   user wants them to stay on the shoulders.
-- `pose_test.py` doesn't curl the fingers, so a fist test would check the gauntlets better.
 - A dropped breastplate or greaves still shows the recoloured Flametal ground model.
 - The body sample in `player_skeleton.json` is sparse (every 4th vertex, 253 points). Re-dumping
   every vertex would give a better poke-through check (change `i += 4` in `DevTools.DumpPlayerSkeleton`).
@@ -156,7 +182,7 @@ folder first lets you inspect before installing:
 ## Repo and git state at handoff
 
 - Branch `shardplate-full-set` (based on `blender-model-import`, which has a PR waiting to be opened).
-  Everything on it is **uncommitted** unless the user has committed since.
+  The breastplate and greaves are committed (`011a691`); check `git status` for later work.
 - `main` has a rule requiring changes through pull requests; the user's admin account bypasses it.
   Ask before pushing to `main`, and prefer a branch plus a pull request. The `gh` CLI isn't installed,
   so give the user the "compare" URL to open the pull request.
