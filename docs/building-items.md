@@ -9,8 +9,10 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] Art-direction questions answered ("Before building an item")
 - [ ] Shape checked against the reference's proportions and parts
 - [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures (README,
-      "Item report"). Aim for 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
-      texture at most one size above the peer's
+      "Item report"). Start from 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
+      texture at most one size above the peer's. Go past the triangle count when the item's signature
+      shapes need it (see "Look" in `art-direction.md`); Thunderfury was planned at 250-400 and came
+      out at 510
 - [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
 - [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
 - [ ] Inventory icon reads at a glance
@@ -41,10 +43,13 @@ What I check on a new item, or when bringing one of mine up to date:
 When an item gets a custom model (Thunderfury onwards), Claude Code does the hands-on work and I direct:
 - **References:** Claude gathers them, capturing front, edge and 3/4 views from a 3D viewer in the
   built-in browser into the gitignored `references/` folder, and writes the reference sheet. I only
-  hunt for references if that pass turns up too little.
+  hunt for references if that pass turns up too little. If there's a downloadable 3D model, either of
+  us fetches it into `references/<item>/`; Claude loads it into Blender beside the build (see "Look"
+  in `art-direction.md` for which reference decides what).
 - **Modelling:** Claude builds the model in Blender through the Blender MCP, one part at a time,
   showing a screenshot and triangle count after each. I react and steer; I may tweak by hand, but
-  I'm not expected to.
+  I'm not expected to. Before a part, Claude captures close-up angles of it; when my read of the
+  reference differs from Claude's, Claude checks it in the viewer rather than going with either.
 - **Texture and export:** Claude scripts the bake and export (as for Sulfuras), so they can be re-run.
 
 ## Finding vanilla prefabs
@@ -89,12 +94,16 @@ build is the quickest check: write the code and let the compiler say what doesn'
   rise whichever way the item points and trail behind a swing.
 
 ### Custom models
-- Check what's open and what's solid in the 3D viewer, not only the outline: tilt the model and see
-  whether the background shows through and shifts. (Thunderfury: what looked like a painted fuller was
-  an open slot splitting the blade into two prongs.)
-- A downloaded fan model is a good yardstick for depth (thickness, cross-sections), which flat captures
-  hide. For which parts exist and their shapes, trust the source's own viewer: fan models change the
-  design (Thunderfury's dropped the orb and spiky base).
+- Read the reference part by part, not as a whole: Thunderfury's first reference sheet read an open
+  slot as a painted fuller, and that only showed up close in the viewer, tilted.
+- Build the model from a script, one function per part (`tools/blender/thunderfury_model.py`), and
+  bake and export from the same script, so a change to any part is a re-run, not a redo.
+- A downloaded glTF can import upside down or at any scale: check which end is which, then scale it to
+  the item's length before comparing.
+- The mod's loader fan-triangulates, so export with Triangulated Mesh on; concave faces (Thunderfury's
+  U-shaped base plate) otherwise break.
+- Check an export with `ModelExporter.exe --load models/<Prefab>.obj` (triangles per material,
+  textures found, UVs) before the first launch.
 
 ### Glow
 - A point light on an item hardly shows in daylight; emissive textures carry the glow.
