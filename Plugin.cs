@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using MysticalWeapons.Armor;
@@ -16,6 +17,7 @@ namespace MysticalWeapons
         public const string Version = "1.6.3";
 
         internal static ManualLogSource Log;
+        internal static ConfigEntry<bool> TexturedModels;
 
         /// <summary>Every item in the mod. Add new ones here.</summary>
         internal static readonly List<MysticalItem> Items = new List<MysticalItem>
@@ -24,6 +26,7 @@ namespace MysticalWeapons
             new Sylspear(),
             new Shardblade(),
             new Anduril(),
+            new Sulfuras(),
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
@@ -35,6 +38,8 @@ namespace MysticalWeapons
         private void Awake()
         {
             Log = Logger;
+            TexturedModels = Config.Bind("General", "TexturedModels", true,
+                "Texture code-built weapons with tinted textures borrowed from vanilla items. Off = flat colours.");
             foreach (var item in Items) item.BindConfig(Config);
             new Harmony(Guid).PatchAll();
             Log.LogInfo($"Loaded {Items.Count} mystical items.");

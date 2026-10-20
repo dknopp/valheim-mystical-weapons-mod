@@ -13,7 +13,7 @@ namespace MysticalWeapons
         public readonly List<Vector3> Normals = new List<Vector3>();
         public readonly List<Vector2> Uvs = new List<Vector2>();
         public readonly List<int>[] Tris;
-        /// <summary>Optional texture per submesh (imported models only).</summary>
+        /// <summary>Optional texture per submesh (imported models, or textures borrowed from vanilla items).</summary>
         public Texture2D[] Textures;
 
         public MeshBuilder(int submeshes)
@@ -29,8 +29,31 @@ namespace MysticalWeapons
             var n = Vector3.Cross(b - a, c - a);
             if (n.sqrMagnitude < 1e-12f) return;
             n.Normalize();
-            Add(sub, a, b, c, n, n, n, Vector2.zero, Vector2.zero, Vector2.zero);
-            Add(sub, a, c, b, -n, -n, -n, Vector2.zero, Vector2.zero, Vector2.zero);
+            Vector2 ua = Project(a, n), ub = Project(b, n), uc = Project(c, n);
+            Add(sub, a, b, c, n, n, n, ua, ub, uc);
+            Add(sub, a, c, b, -n, -n, -n, ua, uc, ub);
+        }
+
+        /// <summary>
+        /// Box-projected texture coordinates in metres: each flat face takes the texture from the
+        /// side it faces most, so long parts (shafts, grips) get grain running along their length.
+        /// </summary>
+        private static Vector2 Project(Vector3 p, Vector3 n)
+        {
+            var ax = Mathf.Abs(n.x);
+            var ay = Mathf.Abs(n.y);
+            var az = Mathf.Abs(n.z);
+            if (ax >= ay && ax >= az) return new Vector2(p.z, p.y);
+            if (ay >= az) return new Vector2(p.x, p.z);
+            return new Vector2(p.x, p.y);
+        }
+
+        /// <summary>Multiplies one submesh's texture coordinates, e.g. to repeat a texture more often.</summary>
+        public void ScaleUvs(int sub, float scale)
+        {
+            var done = new HashSet<int>();
+            foreach (var i in Tris[sub])
+                if (done.Add(i)) Uvs[i] *= scale;
         }
 
         /// <summary>

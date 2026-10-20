@@ -91,13 +91,19 @@ namespace MysticalWeapons
             tex.Apply(true);
         }
 
-        /// <summary>Textured parts show their texture as-is: their base colour becomes white.</summary>
+        /// <summary>
+        /// Textured parts show their texture as-is: their base colour becomes white (borrowed
+        /// textures already carry the tint) and they use their textured gloss.
+        /// </summary>
         public static MaterialSpec[] WithTextures(MaterialSpec[] specs, MeshBuilder builder)
         {
             var result = (MaterialSpec[])specs.Clone();
             for (var i = 0; i < result.Length; i++)
                 if (builder.Textures != null && i < builder.Textures.Length && builder.Textures[i])
+                {
                     result[i].Color = Color.white;
+                    result[i].Gloss = result[i].TexturedGloss;
+                }
             return result;
         }
 
@@ -200,8 +206,24 @@ namespace MysticalWeapons
         {
             var mat = baseMat ? new Material(baseMat) : new Material(Shader.Find("Standard"));
             mat.name = name;
-            foreach (var prop in new[] { "_MainTex", "_BumpMap", "_MetallicGlossMap", "_EmissionMap" })
-                if (mat.HasProperty(prop)) mat.SetTexture(prop, null);
+            // Clear every texture the cloned item had, not only the main ones: e.g. the ice staff's
+            // detail map would otherwise show its frost through our texture
+            var cleared = new List<string>();
+            foreach (var prop in mat.GetTexturePropertyNames())
+            {
+                if (!mat.GetTexture(prop)) continue;
+                mat.SetTexture(prop, null);
+                cleared.Add(prop);
+            }
+            foreach (var keyword in new[] { "_DETAIL_MULX2", "_PARALLAXMAP", "_NORMALMAP", "_METALLICGLOSSMAP" })
+                mat.DisableKeyword(keyword);
+            if (cleared.Count > 0) Plugin.Log.LogInfo($"{name}: cleared textures {string.Join(", ", cleared)}");
+            // Colour settings carry over too: e.g. black metal's metal colour tints our steel green
+            var colours = new List<string>();
+            foreach (var prop in mat.GetPropertyNames(MaterialPropertyType.Vector))
+                colours.Add($"{prop} {mat.GetVector(prop)}");
+            if (colours.Count > 0) Plugin.Log.LogInfo($"{name}: inherited colours {string.Join(", ", colours)}");
+            if (mat.HasProperty("_MetalColor")) mat.SetColor("_MetalColor", Color.white);
             if (texture && mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
             mat.color = spec.Color;
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", spec.Gloss);
@@ -211,6 +233,14 @@ namespace MysticalWeapons
                 mat.SetColor("_EmissionColor", spec.Emission);
                 // Textured: glow follows the texture, so bright details (glyphs, edges) glow most
                 if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
+            }
+            else if (mat.HasProperty("_EmissionColor"))
+            {
+                // No glow wanted: switch off any glow the cloned item had (the ice staff glows icy blue)
+                var old = mat.GetColor("_EmissionColor");
+                if (old.maxColorComponent > 0f) Plugin.Log.LogInfo($"{name}: removed the original glow {old}");
+                mat.DisableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.black);
             }
             return mat;
         }

@@ -3,18 +3,62 @@ using UnityEngine;
 
 namespace MysticalWeapons
 {
-    /// <summary>Colour (and optional glow) for one part of a weapon model.</summary>
+    /// <summary>
+    /// Colour (and optional glow) for one part of a weapon model, optionally textured with a
+    /// texture borrowed from a vanilla item (see <see cref="Borrow"/>).
+    /// </summary>
     internal struct MaterialSpec
     {
         public Color Color;
         public Color Emission;
         public float Gloss;
+        /// <summary>Vanilla prefab whose texture this part borrows (see <see cref="VanillaTextures"/>), or null.</summary>
+        public string Texture;
+        /// <summary>How many times the borrowed texture repeats per metre.</summary>
+        public float Tiling;
+        /// <summary>Gloss used instead of <see cref="Gloss"/> when textured: textures look best matte.</summary>
+        public float TexturedGloss;
+        /// <summary>Vanilla prefab whose grain is laid over a custom model's own texture, or null.</summary>
+        public string Grain;
+        /// <summary>How many times the grain repeats across the custom texture.</summary>
+        public float GrainRepeats;
+        /// <summary>How strongly the grain shows (0 = not at all, 1 = full).</summary>
+        public float GrainStrength;
 
         public MaterialSpec(Color color, float gloss = 0.6f, Color emission = default)
         {
             Color = color;
             Gloss = gloss;
             Emission = emission;
+            Texture = null;
+            Tiling = 1f;
+            TexturedGloss = gloss;
+            Grain = null;
+            GrainRepeats = 1f;
+            GrainStrength = 0f;
+        }
+
+        /// <summary>Texture this part with a vanilla item's texture, tinted by <see cref="Color"/>.</summary>
+        public MaterialSpec Borrow(string prefab, float tiling, float gloss)
+        {
+            var spec = this;
+            spec.Texture = prefab;
+            spec.Tiling = tiling;
+            spec.TexturedGloss = gloss;
+            return spec;
+        }
+
+        /// <summary>
+        /// When this part's texture comes from a custom model (models/{PrefabName}.png), lay a vanilla
+        /// item's grain over it so it sits closer to Valheim's look. Ignored by code-built models.
+        /// </summary>
+        public MaterialSpec WithGrain(string prefab, float repeats, float strength)
+        {
+            var spec = this;
+            spec.Grain = prefab;
+            spec.GrainRepeats = repeats;
+            spec.GrainStrength = strength;
+            return spec;
         }
     }
 
@@ -69,7 +113,9 @@ namespace MysticalWeapons
             {
                 builder = new MeshBuilder(Materials.Length);
                 BuildModel(builder);
+                if (Plugin.TexturedModels.Value) BorrowTextures(builder);
             }
+            else if (Plugin.TexturedModels.Value) AddGrain(builder);
             var specs = ModelUtil.WithTextures(Materials, builder);
             Icon = ModelUtil.RenderIcon(builder, specs, IconAngle);
 
@@ -88,6 +134,41 @@ namespace MysticalWeapons
                 Scale = ModelScale
             });
             DecorateModel(model);
+        }
+
+        /// <summary>Gives each part that names a vanilla texture a tinted copy of it.</summary>
+        private void BorrowTextures(MeshBuilder builder)
+        {
+            var specs = Materials;
+            builder.Textures = new Texture2D[specs.Length];
+            for (var i = 0; i < specs.Length; i++)
+            {
+                if (string.IsNullOrEmpty(specs[i].Texture)) continue;
+                var tex = VanillaTextures.Get(specs[i].Texture, specs[i].Color, FindVanilla);
+                if (!tex)
+                {
+                    Plugin.Log.LogWarning($"{PrefabName}: no texture from '{specs[i].Texture}', part {i} stays a flat colour");
+                    continue;
+                }
+                builder.Textures[i] = tex;
+                builder.ScaleUvs(i, specs[i].Tiling);
+            }
+        }
+
+        /// <summary>Lays vanilla grain over the custom model's textures where a part asks for it.</summary>
+        private void AddGrain(MeshBuilder builder)
+        {
+            var specs = Materials;
+            for (var i = 0; i < specs.Length; i++)
+            {
+                if (string.IsNullOrEmpty(specs[i].Grain) || specs[i].GrainStrength <= 0f) continue;
+                var tex = builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null;
+                if (!tex) continue;
+                if (VanillaTextures.Overlay(tex, specs[i].Grain, specs[i].GrainRepeats, specs[i].GrainStrength, FindVanilla))
+                    Plugin.Log.LogInfo($"{PrefabName}: laid '{specs[i].Grain}' grain over part {i} at strength {specs[i].GrainStrength:0.00}");
+                else
+                    Plugin.Log.LogWarning($"{PrefabName}: no grain from '{specs[i].Grain}', part {i} keeps its own texture");
+            }
         }
 
         private static HitData.DamageTypes ParseDamage(string spec)

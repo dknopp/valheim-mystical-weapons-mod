@@ -53,6 +53,8 @@ namespace MysticalWeapons
         private static Transform _holder;
         public GameObject Prefab { get; private set; }
         public Sprite Icon { get; protected set; }
+        /// <summary>Looks up a vanilla prefab by name; only set during <see cref="Setup"/>.</summary>
+        protected Func<string, GameObject> FindVanilla { get; private set; }
 
         public GameObject GetOrCreatePrefab(Func<string, GameObject> findVanilla)
         {
@@ -84,7 +86,9 @@ namespace MysticalWeapons
             var shared = drop.m_itemData.m_shared;
             shared.m_name = DisplayName;
             shared.m_description = Description;
+            FindVanilla = findVanilla;
             Setup(Prefab, shared);
+            FindVanilla = null;
             Customize(shared);
 
             Plugin.Log.LogInfo($"Created {PrefabName} from {source.name}");
