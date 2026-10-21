@@ -28,9 +28,11 @@ namespace MysticalWeapons
             new Shardblade(),
             new Anduril(),
             new Sulfuras(),
+
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
+
             new ElderWand(),
             new ResurrectionStone(),
             new InvisibilityCloak(),
