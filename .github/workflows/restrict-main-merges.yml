@@ -6,6 +6,8 @@ on:
       - main
     types: [opened, synchronize, reopened]
 
+permissions: {}
+
 jobs:
   check-source-branch:
     runs-on: ubuntu-latest
