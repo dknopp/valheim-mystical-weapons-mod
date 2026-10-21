@@ -6,3 +6,6 @@ obj/
 
 # Reference exports of the code-built weapons (regenerate with tools/ModelExporter)
 exports/
+
+# Local output of /agent-review (posted to the PR by scripts/sign_and_upload_review.py)
+agent-review-report.json
