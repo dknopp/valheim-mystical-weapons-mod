@@ -24,7 +24,11 @@ balance; `building-items.md` for process and lessons from earlier items). Use wh
 aren't rules for the repo.
 
 ## Workflow
-- One branch per change, merged through a pull request.
+- One branch per change, merged through a pull request into `develop`. `main` only takes PRs
+  from `develop` (enforced by `.github/workflows/restrict-main-merges.yml`).
+- PRs need a signed agentic review: with `AGENT_SIGNING_SECRET` set in your environment, run
+  `/agent-review <pr>` after pushing your latest commit. The gate checks the report is for the
+  PR's head commit, so re-run it after every push.
 - Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
 
 ## Rules

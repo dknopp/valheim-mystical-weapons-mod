@@ -1,0 +1,121 @@
+name: "Agentic Review Security Gate"
+
+# Runs when the PR changes and again when a review report is posted or edited.
+# Both paths publish the result as the commit status "agentic-review/signed-report"
+# on the PR head commit; make that status (not this job) the required check in
+# branch protection, so a newly posted report turns the gate green without a re-run.
+# issue_comment runs use the workflow file from the default branch.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  verify-security-checks:
+    name: "Verify Agent Cryptographic Proof"
+    # Comment runs only for PR comments that contain a report.
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event.issue.pull_request &&
+       contains(github.event.comment.body, '### Secured Agentic Review Report'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Signature, Author, and Commit SHA
+        uses: actions/github-script@v7
+        env:
+          SIGNING_SECRET: ${{ secrets.AGENT_SIGNING_SECRET }}
+          ALLOWED_AUTHORS: ${{ secrets.AGENT_ALLOWED_AUTHORS }}
+        with:
+          script: |
+            const crypto = require('crypto');
+            const { owner, repo } = context.repo;
+            const reportHeader = "### Secured Agentic Review Report";
+            const statusContext = "agentic-review/signed-report";
+
+            // pull_request events carry the PR; issue_comment events only carry the issue.
+            let pr = context.payload.pull_request;
+            if (!pr) {
+              const { data } = await github.rest.pulls.get({ owner, repo, pull_number: context.payload.issue.number });
+              pr = data;
+            }
+            const prHeadSha = pr.head.sha;
+            const prNumber = pr.number;
+
+            async function publishResult(state, message) {
+              if (state === 'success') core.info(message); else core.warning(message);
+              try {
+                await github.rest.repos.createCommitStatus({
+                  owner, repo, sha: prHeadSha, state, context: statusContext,
+                  description: message.substring(0, 140),
+                });
+              } catch (err) {
+                core.setFailed(`Could not publish commit status: ${err.message}`);
+              }
+            }
+
+            const secret = process.env.SIGNING_SECRET || '';
+            // Layer 2: Author Allowlist Configuration
+            // GitHub handles of developers or bot accounts allowed to submit results
+            const allowedAuthors = (process.env.ALLOWED_AUTHORS || '')
+              .split(',').map(author => author.trim().toLowerCase()).filter(author => author);
+            if (!secret || allowedAuthors.length === 0) {
+              await publishResult('error', "AGENT_SIGNING_SECRET or AGENT_ALLOWED_AUTHORS repository secret is not set.");
+              return;
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: prNumber, per_page: 100,
+            });
+
+            // Latest report from an allowlisted author; reports from anyone else are ignored.
+            const agentComment = comments
+              .filter(comment => comment.body && comment.body.includes(reportHeader)
+                && allowedAuthors.includes(comment.user.login.toLowerCase()))
+              .pop();
+            if (!agentComment) {
+              await publishResult('failure', `No agentic review report from an allowed author on PR #${prNumber}.`);
+              return;
+            }
+
+            const jsonMatch = agentComment.body.match(/```json\r?\n([\s\S]*?)\r?\n```/);
+            const sigMatch = agentComment.body.match(/<!-- AGENT_SIGNATURE: sha256=([a-fA-F0-9]{64}) -->/);
+            if (!jsonMatch || !sigMatch) {
+              await publishResult('failure', "Malformed agent report format or missing signature block.");
+              return;
+            }
+
+            // Layer 1: HMAC over the exact JSON text the script posted (line endings normalised),
+            // so nothing depends on both languages serialising JSON the same way.
+            const payloadJsonStr = jsonMatch[1].replace(/\r\n/g, '\n');
+            const computedSignature = crypto.createHmac('sha256', secret).update(payloadJsonStr, 'utf8').digest('hex');
+            if (!crypto.timingSafeEqual(Buffer.from(computedSignature), Buffer.from(sigMatch[1].toLowerCase()))) {
+              await publishResult('failure', "Invalid cryptographic signature. The report was forged or modified.");
+              return;
+            }
+
+            let payload;
+            try {
+              payload = JSON.parse(payloadJsonStr);
+            } catch (err) {
+              await publishResult('failure', `Signed report is not valid JSON: ${err.message}`);
+              return;
+            }
+
+            // Layer 3: the signed commit SHA must be the current PR head.
+            if (payload.commit_sha !== prHeadSha) {
+              await publishResult('failure', `Report is for ${String(payload.commit_sha).substring(0, 7)}, PR head is ${prHeadSha.substring(0, 7)}. Re-run the review on the latest commit.`);
+              return;
+            }
+
+            if (payload.passed === true) {
+              await publishResult('success', `Signed agentic review verified for ${prHeadSha.substring(0, 7)}.`);
+            } else {
+              await publishResult('failure', "The agentic review reported security or code quality failures.");
+            }
