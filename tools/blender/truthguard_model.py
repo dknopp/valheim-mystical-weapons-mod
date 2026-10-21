@@ -51,13 +51,20 @@ def new_object(name, bm, mats):
     col.objects.link(obj)
     return obj
 
+# Detail tags: a face attribute saying which sub-part a face belongs to, so the bake can tell a collar
+# from the bar under it. Claw plates are CLAW + their index (the peak is CLAW + 3), slats SLAT + theirs.
+PLAIN, COLLAR, STUD, BOSS, BAR, BACKING, CLOTH, CLAW, SLAT = 0, 1, 2, 3, 4, 5, 6, 10, 20
+TAG = "tg_detail"
+
 def loft(bm, rings, cap_start=True, cap_end=False, tip=None, mats=None, seg_mats=None, closed=False,
-         start_tip=None):
+         start_tip=None, tag=PLAIN):
     """Join rings of vertex positions (same count each) into quads; optional end caps and tip points
     (start_tip closes the first ring to a point instead of a cap, tip the last).
     closed: also join the last ring back to the first (a ring-shaped sweep, no caps).
     mats: material index per band between rings (default all 0); the cap and tip use the end bands'.
-    seg_mats: material index per segment around the ring instead (segment i runs from point i to i+1)."""
+    seg_mats: material index per segment around the ring instead (segment i runs from point i to i+1).
+    tag: the detail tag for every face made."""
+    before = set(bm.faces)
     vs = [[bm.verts.new(p) for p in r] for r in rings]
     n = len(rings[0])
     mats = mats or [0] * (len(rings) - (0 if closed else 1))
@@ -78,6 +85,9 @@ def loft(bm, rings, cap_start=True, cap_end=False, tip=None, mats=None, seg_mats
         t = bm.verts.new(tip)
         for i in range(n):
             bm.faces.new((vs[-1][i], vs[-1][(i + 1) % n], t)).material_index = mats[-1]
+    layer = bm.faces.layers.int.get(TAG) or bm.faces.layers.int.new(TAG)
+    for f in set(bm.faces) - before:
+        f[layer] = tag
     return vs
 
 # The whole shield bows forward along its length: the middle sits in front, the top and the point
@@ -164,7 +174,7 @@ def collar(bm, inner, outer, side=1, mat=0):
     rings = [[Vector((side * x, c.y + y, c.z + z)) for (x, z), y in
               ((pi, COLLAR_Y_BACK), (pi, COLLAR_Y_IN), (po, COLLAR_Y_OUT), (po, COLLAR_Y_BACK))]
              for pi, po in zip(inner, outer)]
-    loft(bm, rings, cap_end=True, mats=[mat] * (len(rings) - 1))
+    loft(bm, rings, cap_end=True, mats=[mat] * (len(rings) - 1), tag=COLLAR)
 
 # --- Top piece ------------------------------------------------------------------------------------
 # A separate piece behind the disc's upper half, ending at the cross-beam's gap just above the disc's
@@ -201,7 +211,7 @@ def mirrored_loop(half):
     """Full outline from a half that starts and ends on the centre line (x = 0)."""
     return half + [(-x, z) for x, z in reversed(half[1:-1])]
 
-def claw(bm, spine, tip, front, tip_y, side=1, mat=0):
+def claw(bm, spine, tip, front, tip_y, side=1, mat=0, tag=CLAW):
     rings = []
     for k, (x, z, hw) in enumerate(spine):
         nxt = spine[k + 1][:2] if k + 1 < len(spine) else tip
@@ -212,17 +222,17 @@ def claw(bm, spine, tip, front, tip_y, side=1, mat=0):
                       ((x - n.x, front + SLAT_T / 2, z - n.y), (x, front, z),
                        (x + n.x, front + SLAT_T / 2, z + n.y), (x, front + SLAT_T, z))])
     loft(bm, rings, tip=Vector((side * tip[0], tip_y + SLAT_T / 2 + bow(tip[1]), tip[1])),
-         mats=[mat] * (len(rings) - 1) if len(rings) > 1 else [mat])
+         mats=[mat] * (len(rings) - 1) if len(rings) > 1 else [mat], tag=tag)
 
 def build_top():
     outline = mirrored_loop(TOP_OUTLINE)
     bm = bmesh.new()
     loft(bm, [[Vector((x, TOP_Y + t + bow(z), z)) for x, z in outline] for t in (-TOP_T, TOP_T)],
-         cap_end=True)
-    for spine, tip, front, tip_y in CLAWS:
+         cap_end=True, tag=BACKING)
+    for k, (spine, tip, front, tip_y) in enumerate(CLAWS):
         for side in (1, -1):
-            claw(bm, spine, tip, front, tip_y, side, mat=1)
-    claw(bm, *PEAK, mat=1)
+            claw(bm, spine, tip, front, tip_y, side, mat=1, tag=CLAW + k)
+    claw(bm, *PEAK, mat=1, tag=CLAW + len(CLAWS))
     inner, outer = top_collar_half()   # over the disc and out along the cross-beam to both edges
     mirror = lambda pts: [(-x, z) for x, z in reversed(pts[1:])]
     collar(bm, mirror(inner) + inner, mirror(outer) + outer, mat=1)
@@ -288,32 +298,32 @@ def build_half(side, name):
               ((HALF_GAP, BAR_BACK), (HALF_GAP, BAR_FRONT), (w, BAR_EDGE_FRONT), (w, BAR_BACK))]
              for z, w, dy in BAR_ROWS]
     tx, tz = BAR_TIP
-    loft(bm, rings, tip=half_v(side, tx, (BAR_FRONT + BAR_BACK) / 2, tz))
+    loft(bm, rings, tip=half_v(side, tx, (BAR_FRONT + BAR_BACK) / 2, tz), tag=BAR)
     for sz in STUD_ZS:
         base = [half_v(side, STUD_X + STUD_R * math.cos(t), STUD_BASE, sz + STUD_R * math.sin(t))
                 for t in (2 * math.pi / 5 * i for i in range(5))]
-        loft(bm, [base], cap_start=False, tip=half_v(side, STUD_X, STUD_TOP, sz), mats=[3])
+        loft(bm, [base], cap_start=False, tip=half_v(side, STUD_X, STUD_TOP, sz), mats=[3], tag=STUD)
     # slats: a lens section (inner edge, front ridge, outer edge, back), silver front, gold back
-    for (top, rows, bottom, front) in SLATS:
+    for k, (top, rows, bottom, front) in enumerate(SLATS):
         rings = [[half_v(side, x, y + dy, z) for x, y in
                   ((cx - hw, front + SLAT_T / 2), (cx, front), (cx + hw, front + SLAT_T / 2), (cx, front + SLAT_T))]
                  for z, cx, hw, dy in rows]
         mid = front + SLAT_T / 2
         loft(bm, rings, start_tip=half_v(side, top[0], mid + rows[0][3], top[1]),
-             tip=half_v(side, bottom[0], mid, bottom[1]), seg_mats=[1, 1, 0, 0], mats=[1, 1])
+             tip=half_v(side, bottom[0], mid, bottom[1]), seg_mats=[1, 1, 0, 0], mats=[1, 1], tag=SLAT + k)
     # cloth band: a strip swept along its path, all cloth; its width runs across the first leg
     (ax, az, ay), (bx, bz, _) = STRAP[:2]
     d = Vector((bx - ax, bz - az)).normalized()
     n = Vector((-d.y, d.x)) * STRAP_HW
     rings = [[half_v(side, x + s * n.x, yy, z + s * n.y) for s, yy in ((1, y), (-1, y), (-1, y + STRAP_T), (1, y + STRAP_T))]
              for x, z, y in STRAP]
-    loft(bm, rings, cap_end=True, mats=[2] * (len(rings) - 1))
+    loft(bm, rings, cap_end=True, mats=[2] * (len(rings) - 1), tag=CLOTH)
     # bosses: one on the front at the band's start, one on the back at its end (facing back)
     (ex, ez, ey) = STRAP[-1]
     for x, z, y0, facing in ((ax, az, ay + STRAP_T, -1), (ex, ez, ey, 1)):
         rings = [[half_v(side, x + BOSS_R * math.cos(t), y0 + facing * h, z + BOSS_R * math.sin(t))
                   for t in (2 * math.pi / 5 * i for i in range(5))] for h in (0, BOSS_H)]
-        loft(bm, rings, cap_start=False, tip=half_v(side, x, y0 + facing * (BOSS_H + BOSS_DOME), z))
+        loft(bm, rings, cap_start=False, tip=half_v(side, x, y0 + facing * (BOSS_H + BOSS_DOME), z), tag=BOSS)
     collar(bm, *half_collar(), side)   # in along the cross-beam, then round the disc to the slot
     return new_object(name, bm, ["TG_Gold", "TG_Silver", "TG_Inlay", "TG_Copper"])
 
@@ -325,24 +335,42 @@ def build_half_left():
 
 # --- Glow beams ----------------------------------------------------------------------------------
 # The blue-white energy filling the gaps between the pieces: one beam down the centre slot between the
-# halves to the point, one across in the gap between the collar arms. Thin bars on their own glow
-# material, so in game they can take a see-through glow material with a scrolling flow texture. Their
-# hidden ends inside the disc are left open.
+# halves to the point, and one each way along the gap between the collar arms. Thin bars on their own
+# glow material, so in game they can take a see-through glow material with a scrolling flow texture:
+# each is a straight UV strip, U once round the bar (0-1), V the distance along it in metres from its
+# end inside the disc, so a texture scrolled along V flows out of the disc. Those hidden ends are open.
 CENTRE_BEAM = [0.10, -0.20, -0.49]       # z rows, from under the disc to the point (rows follow the bow)
 CENTRE_BEAM_HW, CENTRE_BEAM_Y = 0.008, (-0.030, 0.000)
 CROSS_BEAM_X, CROSS_BEAM_Y = 0.30, (-0.035, -0.010)   # out to just past both edges; depth in the disc's frame
 
+def strip_uvs(bm, vs, along):
+    """UVs for a loft's side faces: U round the ring, V = along[k] for ring k. Caps get the end's V."""
+    uv = bm.loops.layers.uv.get("UVMap") or bm.loops.layers.uv.new("UVMap")
+    where = {v: (k, i) for k, ring in enumerate(vs) for i, v in enumerate(ring)}
+    n = len(vs[0])
+    for f in bm.faces:
+        ks = [where[l.vert] for l in f.loops if l.vert in where]
+        if len(ks) != len(f.loops):
+            continue
+        wraps = {i for _, i in ks} >= {0, n - 1}
+        for l in f.loops:
+            k, i = where[l.vert]
+            l[uv].uv = ((n if wraps and i == 0 else i) / n, along[k])
+
 def build_beams():
     bm = bmesh.new()
     y0, y1 = CENTRE_BEAM_Y
-    loft(bm, [[Vector((x, y + bow(z), z)) for x, y in
-               ((-CENTRE_BEAM_HW, y0), (CENTRE_BEAM_HW, y0), (CENTRE_BEAM_HW, y1), (-CENTRE_BEAM_HW, y1))]
-              for z in CENTRE_BEAM], cap_start=False, cap_end=True)
+    vs = loft(bm, [[Vector((x, y + bow(z), z)) for x, y in
+                    ((-CENTRE_BEAM_HW, y0), (CENTRE_BEAM_HW, y0), (CENTRE_BEAM_HW, y1), (-CENTRE_BEAM_HW, y1))]
+                   for z in CENTRE_BEAM], cap_start=False, cap_end=True)
+    strip_uvs(bm, vs, [CENTRE_BEAM[0] - z for z in CENTRE_BEAM])
     c = disc_centre()
     zc, (y0, y1) = c.z + BEAM_Z, CROSS_BEAM_Y
     hw = BEAM_HW * 0.7
-    loft(bm, [[Vector((x, c.y + y, zc + dz)) for dz, y in ((-hw, y0), (hw, y0), (hw, y1), (-hw, y1))]
-              for x in (-CROSS_BEAM_X, CROSS_BEAM_X)], cap_end=True)
+    for side in (1, -1):
+        vs = loft(bm, [[Vector((side * x, c.y + y, zc + side * dz)) for dz, y in ((-hw, y0), (hw, y0), (hw, y1), (-hw, y1))]
+                       for x in (0.0, CROSS_BEAM_X)], cap_start=False, cap_end=True)
+        strip_uvs(bm, vs, [0.0, CROSS_BEAM_X])
     return new_object("TG_Beams", bm, ["TG_Glow"])
 
 # --- Build ----------------------------------------------------------------------------------------
