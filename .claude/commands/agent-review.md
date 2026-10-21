@@ -69,7 +69,7 @@ When evaluating a diff or code submission, analyze the changes systematically an
 ## Instructions for This Execution
 
 ### Your tasks:
-1. **Analyze the Diff:** Review the current git diff (`git diff origin/main...HEAD`) using your Sentinel expertise.
+1. **Analyze the Diff:** Review the current git diff (`git diff origin/develop...HEAD`) using your Sentinel expertise.
 2. For each finding prompt the user to accept or reject it with a provided reason 
 3. Formulate a structured evaluation with a boolean decision (`passed: true` if no critical or high severity issues exist, otherwise `passed: false`), a short summary text, a list of all accepted findings, and a list of all rejected findings with the reason they were rejected.
 4. **Save the Result:** Write this complete structured evaluation JSON to a local file named `agent-review-report.json`.
