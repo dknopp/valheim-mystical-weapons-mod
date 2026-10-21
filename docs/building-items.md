@@ -12,7 +12,9 @@ What I check on a new item, or when bringing one of mine up to date:
       "Item report"). Start from 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
       texture at most one size above the peer's. Go past the triangle count when the item's signature
       shapes need it (see "Look" in `art-direction.md`); Thunderfury was planned at 250-400 and came
-      out at 510
+      out at 510. That's Blender's count: the mod draws every face from both sides, so double it
+      before comparing with the peer (the item report already does: 1,020 against Nidhögg the
+      Thundering's 420)
 - [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
 - [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
 - [ ] Inventory icon reads at a glance
