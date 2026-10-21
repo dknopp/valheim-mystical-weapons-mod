@@ -1,7 +1,7 @@
 # Renders an item's model from the front, in profile and at three-quarters, side by side in one
 # picture, for the pull request that adds or changes it. Works on any OBJ: a custom model in models/,
 # or a code-built item exported with ModelExporter (exports/<Prefab>.obj).
-#   blender -b --factory-startup --python tools/blender/render_views.py -- models/Thunderfury.obj exports/Thunderfury-views.png [turn]
+#   blender -b --factory-startup --python tools/blender/render_views.py -- models/Thunderfury.obj docs/images/Thunderfury-views.jpg [turn]
 # Arguments: the OBJ, the picture to write, and optionally degrees to turn it so its front faces the
 # camera (weapons need none; the Shardplate helm needs 180). The model stands upright as the mod
 # builds it (length along the OBJ's Y). Shows the shipped shape and texture, not in-game
@@ -72,6 +72,9 @@ sc.world.node_tree.nodes["Background"].inputs[0].default_value = (0.06, 0.065, 0
 
 r.engine = 'BLENDER_EEVEE'
 sc.view_settings.view_transform = 'Standard'
+if out.lower().endswith((".jpg", ".jpeg")):
+    # A JPEG is a tenth of the PNG's size, small enough to commit to docs/images/
+    r.image_settings.file_format, r.image_settings.quality = 'JPEG', 88
 os.makedirs(os.path.dirname(out), exist_ok=True)
 r.filepath = out
 bpy.ops.render.render(write_still=True)

@@ -24,7 +24,8 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] Changed defaults on an existing item: the PR says players must reset that item's config
       section (see Config below)
 - [ ] Views in the PR: front, profile and three-quarter in one picture, from
-      `tools/blender/render_views.py` (how to run it is at its top), dragged into the PR description.
+      `tools/blender/render_views.py` (how to run it is at its top), committed as
+      `docs/images/<Prefab>-views.jpg` and linked in the PR description.
       Code-built items: export them with ModelExporter first. Optional: in-hand shots from the game (F12)
 
 ## Process
