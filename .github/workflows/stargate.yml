@@ -1,0 +1,45 @@
+# Stargate: the STAR review gate (https://github.com/dknopp/star).
+#
+# Runs when the PR changes and again when a review report is posted or edited. Both
+# events run this file as it is on the base branch (comment runs: the default branch),
+# never the PR's copy, so a PR can't rewrite its own gate. That is safe here because
+# the gate never checks out or runs PR code: it only reads comments, signing keys and
+# the PR head SHA through the API.
+#
+# Both paths publish the commit status "stargate/signed-report" on the PR head; branch
+# protection requires that status, with GitHub Actions as its expected source.
+name: "Stargate"
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  verify:
+    name: "Verify signed STAR review"
+    # Comment runs only for PR comments that contain a report and come from someone with
+    # repo access, so outside commenters can't start runs.
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      (github.event.issue.pull_request &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+       contains(github.event.comment.body, '### STAR Signed Review Report'))
+    runs-on: ubuntu-latest
+    steps:
+      # Never add actions/checkout of the PR head here: pull_request_target runs with
+      # write permissions, and running PR code with them is the classic way to get owned.
+      #
+      # Trying STAR out on its edge image, which follows STAR's main branch. Once STAR has a
+      # release, switch to: uses: dknopp/star@v1 (with allowed_authors as a `with:` input).
+      - uses: docker://ghcr.io/dknopp/stargate:edge
+        env:
+          INPUT_ALLOWED_AUTHORS: ${{ vars.STAR_ALLOWED_AUTHORS }}
+          INPUT_GITHUB_TOKEN: ${{ github.token }}
