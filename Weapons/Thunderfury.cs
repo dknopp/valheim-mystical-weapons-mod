@@ -206,17 +206,19 @@ namespace MysticalWeapons.Weapons
                 if (_rolledFrame == Time.frameCount) return;
                 _rolledFrame = Time.frameCount;
                 if (Time.time < _nextLightning || Random.value >= LightningChance.Value) return;
-                if (Strike(attacker, __instance, hit, weapon)) _nextLightning = Time.time + LightningCooldown.Value;
+                if (Strike(attacker, __instance, hit)) _nextLightning = Time.time + LightningCooldown.Value;
             }
         }
 
-        private static readonly string[] StrikeEffects = { "fx_chainlightning_hit", "sfx_weapons_lightning_impact" };
+        private static readonly string[] StrikeEffects = { "fx_chainlightning_hit" };
 
         /// <summary>
         /// Strikes the creature hit with lightning (with the vanilla flash and crack, so it reads on a lone
-        /// target too), then spawns vanilla chain lightning there, set up as a vanilla on-hit spawn, to leap on.
+        /// target too), then spawns vanilla chain lightning there to leap on. The chain copies the damage of the
+        /// hit it is given into every leap, so it gets the bolt, never the sword swing. It only leaps to enemies
+        /// (BaseAI.IsEnemy), so never between training dummies.
         /// </summary>
-        private static bool Strike(Player attacker, Character target, HitData swing, ItemDrop.ItemData weapon)
+        private static bool Strike(Player attacker, Character target, HitData swing)
         {
             var scene = ZNetScene.instance;
             if (!scene) return false;
@@ -248,10 +250,14 @@ namespace MysticalWeapons.Weapons
                 if (go) Object.Destroy(go);
                 return true;
             }
-            aoe.Setup(attacker, Vector3.zero, -1f, swing, weapon, null);
-            aoe.m_damage = new HitData.DamageTypes { m_lightning = LightningDamage.Value };
+            aoe.Setup(attacker, Vector3.zero, -1f, bolt, null, null);
+            aoe.m_damage = bolt.m_damage;
             aoe.m_skill = Skills.SkillType.None;
-            Plugin.Log.LogInfo($"Thunderfury: TEMP struck {target.m_name}, chain lightning spawned");
+            // TEMP: how the vanilla chain is set up
+            Plugin.Log.LogInfo($"Thunderfury: TEMP struck {target.m_name}; chain radius {aoe.m_radius}, hits characters {aoe.m_hitCharacters}, " +
+                               $"enemies {aoe.m_hitEnemy}, uses attack settings {aoe.m_useAttackSettings}, start chance {aoe.m_chainStartChance}, " +
+                               $"per target {aoe.m_chainChancePerTarget}, targets {aoe.m_chainMinTargets}-{aoe.m_chainMaxTargets}, " +
+                               $"falloff {aoe.m_chainStartChanceFalloff}, leap '{(aoe.m_chainObj ? aoe.m_chainObj.name : "")}', ttl {aoe.m_ttl}");
             return true;
         }
     }
