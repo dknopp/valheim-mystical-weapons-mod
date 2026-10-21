@@ -83,6 +83,11 @@ build is the quickest check: write the code and let the compiler say what doesn'
 - A swing hits everything it touches in the same frame: roll once per frame for "chance per swing".
 - Vanilla projectiles: instantiate the prefab, call `Setup(owner, velocity, -1, null, null, null)`,
   then set `m_damage` and `m_skill`. Fire damage sets targets burning on its own.
+- Vanilla chain lightning (`ChainLightning`, an `Aoe`): it only hits and leaps to enemies
+  (`BaseAI.IsEnemy`), so test on real creatures, not training dummies. Each leap is a copy of the one
+  you spawned, carrying its damage, and hits every enemy within 8 m again, so cap it at one hit per
+  creature per proc (Thunderfury) or a group takes it several times over. With no decompiler, a small
+  reflection tool that lists a game method's calls was enough to read how `Aoe` decides what it hits.
 
 ### Borrowed particles
 - Don't copy a vanilla item's whole effect: take only the systems you need (pick them by material

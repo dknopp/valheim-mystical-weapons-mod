@@ -183,6 +183,11 @@ namespace MysticalWeapons.Weapons
         private const string ChainLightningPrefab = "ChainLightning";
         private static float _nextLightning;
         private static int _rolledFrame = -1;
+        // Creatures already struck by the current proc: every leap of the vanilla chain hits all enemies
+        // around it again, so without this a group takes the bolt several times over
+        private static readonly System.Collections.Generic.HashSet<int> Struck = new System.Collections.Generic.HashSet<int>();
+        private static float _strikeEnds;
+        private const float StrikeWindow = 4f; // the chain's ttl is 3 s
 
         /// <summary>
         /// When a swing of Thunderfury lands on a creature, maybe loose chain lightning at it. Runs on the
@@ -191,22 +196,24 @@ namespace MysticalWeapons.Weapons
         [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
         private static class ChainLightningPatch
         {
-            private static void Prefix(Character __instance, HitData hit)
+            private static bool Prefix(Character __instance, HitData hit)
             {
-                if (LightningChance == null) return;
-                if (!(hit.GetAttacker() is Player attacker) || attacker != Player.m_localPlayer) return;
+                if (LightningChance == null) return true;
+                if (!(hit.GetAttacker() is Player attacker) || attacker != Player.m_localPlayer) return true;
                 var weapon = attacker.GetCurrentWeapon();
-                if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != "Thunderfury") return;
-                // TEMP: every lightning hit while holding Thunderfury, to see where the chain lands
-                if (hit.m_damage.m_lightning > 0f && hit.m_damage.m_slash <= 0f)
-                    Plugin.Log.LogInfo($"Thunderfury: lightning hit {__instance.m_name} for {hit.m_damage.m_lightning:0}");
-                // The lightning's own hits carry no slash and no skill, so they never loose more
-                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None || hit.m_damage.m_slash <= 0f) return;
+                if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != "Thunderfury") return true;
 
-                if (_rolledFrame == Time.frameCount) return;
+                // The lightning's own hits carry no slash and no skill: each creature takes it once per proc,
+                // and they never loose more
+                if (hit.m_skill == Skills.SkillType.None && hit.m_damage.m_slash <= 0f && hit.m_damage.m_lightning > 0f)
+                    return Time.time > _strikeEnds || Struck.Add(__instance.GetInstanceID());
+                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None || hit.m_damage.m_slash <= 0f) return true;
+
+                if (_rolledFrame == Time.frameCount) return true;
                 _rolledFrame = Time.frameCount;
-                if (Time.time < _nextLightning || Random.value >= LightningChance.Value) return;
+                if (Time.time < _nextLightning || Random.value >= LightningChance.Value) return true;
                 if (Strike(attacker, __instance, hit)) _nextLightning = Time.time + LightningCooldown.Value;
+                return true;
             }
         }
 
@@ -215,7 +222,8 @@ namespace MysticalWeapons.Weapons
         /// <summary>
         /// Strikes the creature hit with lightning (with the vanilla flash and crack, so it reads on a lone
         /// target too), then spawns vanilla chain lightning there to leap on. The chain copies the damage of the
-        /// hit it is given into every leap, so it gets the bolt, never the sword swing. It only leaps to enemies
+        /// hit it is given into every leap, so it gets the bolt, never the sword swing. Each leap is a copy of
+        /// this one, so it carries the bolt's damage too. It only leaps to enemies
         /// (BaseAI.IsEnemy), so never between training dummies.
         /// </summary>
         private static bool Strike(Player attacker, Character target, HitData swing)
@@ -232,6 +240,8 @@ namespace MysticalWeapons.Weapons
                 m_skill = Skills.SkillType.None
             };
             bolt.SetAttacker(attacker);
+            Struck.Clear();
+            _strikeEnds = Time.time + StrikeWindow;
             target.Damage(bolt);
 
             foreach (var name in StrikeEffects)
@@ -253,11 +263,6 @@ namespace MysticalWeapons.Weapons
             aoe.Setup(attacker, Vector3.zero, -1f, bolt, null, null);
             aoe.m_damage = bolt.m_damage;
             aoe.m_skill = Skills.SkillType.None;
-            // TEMP: how the vanilla chain is set up
-            Plugin.Log.LogInfo($"Thunderfury: TEMP struck {target.m_name}; chain radius {aoe.m_radius}, hits characters {aoe.m_hitCharacters}, " +
-                               $"enemies {aoe.m_hitEnemy}, uses attack settings {aoe.m_useAttackSettings}, start chance {aoe.m_chainStartChance}, " +
-                               $"per target {aoe.m_chainChancePerTarget}, targets {aoe.m_chainMinTargets}-{aoe.m_chainMaxTargets}, " +
-                               $"falloff {aoe.m_chainStartChanceFalloff}, leap '{(aoe.m_chainObj ? aoe.m_chainObj.name : "")}', ttl {aoe.m_ttl}");
             return true;
         }
     }
