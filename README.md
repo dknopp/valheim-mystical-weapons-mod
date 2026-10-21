@@ -112,3 +112,9 @@ the main menu. `BepInEx/MysticalItemReport` then holds a picture of each item be
 from eight angles, and `report.txt` (triangles and texture sizes next to the peer, plus the most
 detailed vanilla item of the same kind). The peer is the cloned source unless the item sets
 `VanillaPeer`. Triangle counts are about twice what Blender shows.
+
+### Picture for the pull request
+
+`tools/blender/render_views.py` renders an item's model from the front, in profile and at three-quarters
+in one picture (the script's header has the command). Commit it as `docs/images/<Prefab>-views.jpg` and
+link it in the pull request. Code-built items need exporting first (see "Editing models in Blender").
