@@ -106,4 +106,9 @@ When evaluating a diff or code submission, analyze the changes systematically an
 7. **Post (only if the user says yes):** Run the local signing and upload script with this exact command via Bash:
    `python3 scripts/sign_and_upload_review.py --pr-number <pr>`
    The script reads the signing secret from the `AGENT_SIGNING_SECRET` environment variable. Never pass the secret as an argument or ask for it in chat.
+8. **Re-run the Gate (after a successful post):** The gate run from the last push finished before the report existed, so re-run it to verify the report. With `<sha>` as the signed commit (`git rev-parse HEAD`):
+   - If an `Agentic Review Security Gate` run for `<sha>` is queued or in progress (the comment trigger may have started one), watch that run instead of re-running.
+   - Otherwise find the latest run: `gh run list --workflow agentic-review.yml --commit <sha> --limit 1 --json databaseId,status --jq '.[0]'`, then `gh run rerun <id>`.
+   - Wait with `gh run watch <id> --exit-status` (in the background if it may take over two minutes), then read the result: `gh api repos/{owner}/{repo}/commits/<sha>/status --jq '.statuses[] | select(.context == "agentic-review/signed-report") | "\(.state) \(.description)"'`.
+   - Report the `agentic-review/signed-report` state and description to the user. If no run exists for `<sha>`, say so and don't create one.
 
