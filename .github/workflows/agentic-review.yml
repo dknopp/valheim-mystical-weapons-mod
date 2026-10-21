@@ -20,10 +20,12 @@ permissions:
 jobs:
   verify-security-checks:
     name: "Verify Agent Cryptographic Proof"
-    # Comment runs only for PR comments that contain a report.
+    # Comment runs only for PR comments that contain a report and come from someone with
+    # repo access, so outside commenters can't start runs.
     if: >-
       github.event_name == 'pull_request' ||
       (github.event.issue.pull_request &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
        contains(github.event.comment.body, '### Secured Agentic Review Report'))
     runs-on: ubuntu-latest
     steps:
