@@ -116,7 +116,13 @@ jobs:
               return;
             }
 
-            if (payload.passed === true) {
+            // Accepted findings block the gate, whatever the passed flag says.
+            const acceptedFindings = Array.isArray(payload.accepted_findings) ? payload.accepted_findings : null;
+            if (acceptedFindings === null) {
+              await publishResult('failure', "Signed report has no accepted_findings list.");
+            } else if (acceptedFindings.length > 0) {
+              await publishResult('failure', `The agentic review has ${acceptedFindings.length} accepted finding(s) blocking the merge.`);
+            } else if (payload.passed === true) {
               await publishResult('success', `Signed agentic review verified for ${prHeadSha.substring(0, 7)}.`);
             } else {
               await publishResult('failure', "The agentic review reported security or code quality failures.");

@@ -64,6 +64,16 @@ def main():
     if not isinstance(payload.get("passed"), bool):
         print('Error: "passed" in the report must be a JSON boolean (true or false), not a string.')
         sys.exit(1)
+    for key in ("accepted_findings", "fixed_findings", "rejected_findings"):
+        if not isinstance(payload.get(key, []), list):
+            print(f'Error: "{key}" in the report must be a list.')
+            sys.exit(1)
+    # Accepted findings block the gate, so the review passes only when there are none
+    accepted_count = len(payload.get("accepted_findings", []))
+    if payload["passed"] != (accepted_count == 0):
+        print(f'Error: "passed" is {str(payload["passed"]).lower()} but the report has {accepted_count} accepted finding(s). '
+              'The review passes only when there are no accepted findings.')
+        sys.exit(1)
 
     # 3. Securely enforce commit SHA binding
     head_sha = get_git_head_sha()

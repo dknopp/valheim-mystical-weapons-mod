@@ -59,16 +59,16 @@ When evaluating a diff or code submission, analyze the changes systematically an
             "category": "Security",
             "location": "src/ModAssetLoader.cs:42",
             "message": "Path string concatenation allows arbitrary file reads via directory traversal ('../../'). Use Path.GetFullPath and validate against allowed directory roots.",
-            "remediation": "string safePath = Path.GetFullPath(Path.Combine(baseDir, userPath)); if (!safePath.StartsWith(baseDir)) throw new SecurityException();",
-            "status": "open"
-        },
+            "remediation": "string safePath = Path.GetFullPath(Path.Combine(baseDir, userPath)); if (!safePath.StartsWith(baseDir)) throw new SecurityException();"
+        }
+    ],
+    "fixed_findings": [
         {
             "severity": "MEDIUM",
             "category": "Stability",
             "location": "src/UI/HUDOverlay.cs:88",
             "message": "Event listener assigned in OnEnable without corresponding unsubscribe in OnDisable, causing memory leaks on scene transitions.",
-            "remediation": "Unregister the event handler in OnDisable() / OnDestroy().",
-            "status": "fixed"
+            "remediation": "Unregister the event handler in OnDisable() / OnDestroy()."
         }
     ],
     "rejected_findings": [
@@ -88,13 +88,18 @@ When evaluating a diff or code submission, analyze the changes systematically an
 
 ### Your tasks:
 1. **Analyze the Diff:** Run `git fetch origin`, then review the diff against the PR's base branch (`git diff origin/<base>...HEAD`; feature PRs target `develop`, release PRs from `develop` target `main`) using your Sentinel expertise.
-2. **Collect Decisions:** For each finding, prompt the user to accept it, reject it with a reason, or fix it now. Ask about up to 4 findings per prompt. Collect every decision before changing any code.
+2. **Collect Decisions:** For each finding, prompt the user to:
+   - **accept** it: the finding blocks the gate until it is fixed;
+   - **reject** it with a reason: it does not block (rejecting a CRITICAL or HIGH finding needs a concrete reason, not just "accepted risk");
+   - **fix it now**.
+   Ask about up to 4 findings per prompt. Collect every decision before changing any code.
 3. **Apply Fixes:** Make all the "fix now" changes together, since fixes often touch the same files. Then review the fix diff with the same Sentinel rules; raise anything new as a finding and go back to step 2 for it.
 4. **Commit Before Signing:** The signature is bound to `HEAD`, and the PR gate only accepts a report for the PR's current head commit. If any fixes were made, offer to commit and push them; if the user declines, stop before step 7 and tell them to re-run after pushing. Before step 7, check the working tree has no uncommitted changes to reviewed files and that `HEAD` matches the pushed PR branch.
 5. **Formulate the Evaluation:** Build the structured evaluation:
-   - `passed`: a JSON boolean, not a string. `true` only if no CRITICAL or HIGH finding is still open in the commit being signed (a fix counts only once it is committed in that commit); otherwise `false`.
+   - `passed`: a JSON boolean, not a string. `true` only if `accepted_findings` is empty; any accepted finding fails the review, whatever its severity. The script and the PR gate both enforce this.
    - `summary`: short summary text.
-   - `accepted_findings`: each with a `status` of `fixed` or `open`.
+   - `accepted_findings`: findings the user accepted; they block the gate.
+   - `fixed_findings`: findings fixed in this run. A fix counts only once it is committed in the commit being signed; until then the finding stays in `accepted_findings`.
    - `rejected_findings`: each with its `rejection_reason`.
    Write it to a local file named `agent-review-report.json`.
 6. **Present the Summary:** Show the review summary to the user clearly in the terminal, then ask whether to post the review to the PR.
