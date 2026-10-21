@@ -37,9 +37,9 @@ jobs:
       # Never add actions/checkout of the PR head here: pull_request_target runs with
       # write permissions, and running PR code with them is the classic way to get owned.
       #
-      # Trying STAR out on its edge image, which follows STAR's main branch. Once STAR has a
-      # release, switch to: uses: dknopp/star@v1 (with allowed_authors as a `with:` input).
-      - uses: docker://ghcr.io/dknopp/stargate:edge
-        env:
-          INPUT_ALLOWED_AUTHORS: ${{ vars.STAR_ALLOWED_AUTHORS }}
-          INPUT_GITHUB_TOKEN: ${{ github.token }}
+      # STAR v1: moves to each STAR v1.x.y release. For a fixed image instead, use
+      # docker://ghcr.io/dknopp/stargate@sha256:<digest> (v1.0.0 is sha256:1fcbe470...),
+      # check it with `gh attestation verify`, and bump it through a reviewed PR.
+      - uses: dknopp/star@v1
+        with:
+          allowed_authors: ${{ vars.STAR_ALLOWED_AUTHORS }}
