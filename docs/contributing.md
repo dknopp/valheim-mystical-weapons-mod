@@ -44,7 +44,7 @@ The **Build** check on each pull request compiles the mod against Valheim's dedi
    before a release.
 
 Changing a default in code doesn't change an existing config file: BepInEx keeps the saved value.
-Edit or delete the line in the profile's `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
+Edit or delete the line in the profile's `BepInEx/config/omm.valheim.mysticalweapons.cfg`.
 
 ## Workflow
 

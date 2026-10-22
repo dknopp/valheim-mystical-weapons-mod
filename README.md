@@ -58,7 +58,7 @@ Don't install the old standalone Bat'leth mod as well: this mod already includes
 
 ## Configuration
 
-Settings live in `BepInEx/config/dankn.valheim.mysticalweapons.cfg`, created on first launch. Each
+Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on first launch. Each
 item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
 `Sulfuras`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
 `ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the

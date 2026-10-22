@@ -83,7 +83,7 @@ Patches on shared game methods always check first that our item is involved.
 ### Configuration
 
 All settings go through BepInEx's `ConfigFile` into
-`BepInEx/config/dankn.valheim.mysticalweapons.cfg`. Each item binds a section named after its
+`BepInEx/config/omm.valheim.mysticalweapons.cfg`. Each item binds a section named after its
 `PrefabName` with the common keys (`Enabled`, `Recipe`, `CraftingStation`, `StationLevel`, plus
 `Damage` for weapons or `Armor`, `Tint` and `Glow` for armor) and its own keys in `BindConfig`.
 Section and key names are part of players' saved setup and must not be renamed.
@@ -106,7 +106,7 @@ lets the .NET SDK build for .NET Framework without Visual Studio.
 
 **Deploy.** After every build, the `DeployToProfile` target copies the DLL to
 `<BepInExDir>/plugins/<PluginFolder>/` and the repo's `models/` folder next to it. `PluginFolder`
-is `Dank-MysticalWeapons` when building into Gale's `Default` profile (Gale's naming) and
+is `OldManMods-MysticalWeapons` when building into Gale's `Default` profile (Gale's naming) and
 `MysticalWeapons` otherwise. Launching the game from that profile loads the new build.
 
 **ModelExporter.** `tools/ModelExporter` references the mod project and copies the game's
@@ -139,7 +139,7 @@ CI can't launch the game, so in-game testing stays manual (see contributing.md).
 
 `thunderstore.toml` defines the Thunderstore package for [tcli](https://github.com/thunderstore-io/thunderstore-cli),
 Thunderstore's official build and upload tool. `tcli build --package-version <Version>` writes
-`build/Dank-MysticalWeapons-<Version>.zip`:
+`build/OldManMods-MysticalWeapons-<Version>.zip`:
 
 ```
 manifest.json          generated from thunderstore.toml (name, version, BepInExPack dependency)
@@ -149,7 +149,7 @@ plugins/MysticalWeapons.dll
 plugins/models/...     the shipped custom models and CREDITS.md
 ```
 
-Mod managers install `plugins/` into `BepInEx/plugins/Dank-MysticalWeapons/`, so the models land
+Mod managers install `plugins/` into `BepInEx/plugins/OldManMods-MysticalWeapons/`, so the models land
 next to the DLL where `ModelUtil` looks for them. To build the zip locally, install tcli
 (`dotnet tool install -g tcli`), build the mod, then run the same command.
 
@@ -160,8 +160,8 @@ pre-release versions:
 
 | Channel | Package | Published when | Version |
 |---|---|---|---|
-| Beta | `Dank-MysticalWeapons_BETA` | Every push to `develop` that changes the mod (each merged PR) | `<major>.<minor>` from `Version`, then the workflow's run number, e.g. `1.6.57` |
-| Stable | `Dank-MysticalWeapons` | A `v<Version>` tag on `main` | `Version` in `Plugin.cs` |
+| Beta | `OldManMods-MysticalWeapons_BETA` | Every push to `develop` that changes the mod (each merged PR) | `<major>.<minor>` from `Version`, then the workflow's run number, e.g. `1.6.57` |
+| Stable | `OldManMods-MysticalWeapons` | A `v<Version>` tag on `main` | `Version` in `Plugin.cs` |
 
 The run number only goes up, so mod managers always see the newest beta as an update. Docs-only
 pushes (`docs/`, `tools/`, `CLAUDE.md`) skip the beta. The beta's Thunderstore page puts a beta
@@ -189,7 +189,7 @@ has to be on the server and on every player's game.
    git push origin v1.7.0
    ```
 4. `publish.yml` checks that the tag is on `main` and matches `Version`, then builds, uploads
-   `Dank-MysticalWeapons` to Thunderstore and creates the GitHub release with generated notes.
+   `OldManMods-MysticalWeapons` to Thunderstore and creates the GitHub release with generated notes.
 
 Thunderstore rejects a version it already has. If an upload fails, fix the cause and re-run; a
 re-run of a run that did upload fails harmlessly. A stable release that uploaded needs a new
@@ -197,7 +197,7 @@ re-run of a run that did upload fails harmlessly. A stable release that uploaded
 
 ### One-time setup
 
-- A Thunderstore team named `Dank` (or change `namespace` in `thunderstore.toml`), with a service
+- A Thunderstore team named `OldManMods` (or change `namespace` in `thunderstore.toml`), with a service
   account. Its API token goes in a GitHub environment named `thunderstore` as the secret
   `THUNDERSTORE_TOKEN`. In the environment's settings, limit deployments to the `develop` branch
   and `v*` tags so no other ref can use the token. Required reviewers on that environment would

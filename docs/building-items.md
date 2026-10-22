@@ -83,4 +83,4 @@ build is the quickest check: write the code and let the compiler say what doesn'
 ### Config
 - Changing a default in code doesn't change an existing config file: BepInEx keeps the value already
   there. After changing a default, edit or delete that line in the test profile's
-  `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
+  `BepInEx/config/omm.valheim.mysticalweapons.cfg`.

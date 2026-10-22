@@ -1,7 +1,7 @@
 # Publishes the mod to Thunderstore on two channels (see docs/architecture.md, "Releases"):
-# - Beta: every push to develop that changes the mod publishes Dank-MysticalWeapons_BETA, versioned
+# - Beta: every push to develop that changes the mod publishes OldManMods-MysticalWeapons_BETA, versioned
 #   <major>.<minor>.<run number> from Plugin.cs so each build is newer than the last.
-# - Stable: a v1.2.3 tag on main publishes Dank-MysticalWeapons at Version from Plugin.cs and
+# - Stable: a v1.2.3 tag on main publishes OldManMods-MysticalWeapons at Version from Plugin.cs and
 #   creates a GitHub release.
 #
 # Needs a "thunderstore" environment holding the THUNDERSTORE_TOKEN secret (a Thunderstore
@@ -85,7 +85,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           {
-            echo "> **Beta build** of [MysticalWeapons](https://thunderstore.io/c/valheim/p/Dank/MysticalWeapons/)"
+            echo "> **Beta build** of [MysticalWeapons](https://thunderstore.io/c/valheim/p/OldManMods/MysticalWeapons/)"
             echo "> from the \`develop\` branch (commit ${SHA:0:7}), for play testing. Expect bugs."
             echo "> Don't install it alongside the stable version: they are the same mod and only one loads."
             echo

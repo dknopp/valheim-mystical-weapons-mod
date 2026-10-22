@@ -43,7 +43,7 @@ items tables current when items change. Developer docs are in `docs/`.
   the `MysticalWeapons_BETA` Thunderstore package for play testing; a `v<Version>` tag on `main`
   publishes the stable `MysticalWeapons` package and a GitHub release.
 - Changing a default in code doesn't change an existing config: BepInEx keeps the saved value. Edit
-  or delete the line in `BepInEx/config/dankn.valheim.mysticalweapons.cfg` to see the new default.
+  or delete the line in `BepInEx/config/omm.valheim.mysticalweapons.cfg` to see the new default.
 
 ## Adding an item
 Follow "Adding an item" in `docs/contributing.md`, add it to `Plugin.Items`, then add a row to the

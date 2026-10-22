@@ -4,7 +4,7 @@
 schemaVersion = "0.0.1"
 
 [package]
-namespace = "Dank"
+namespace = "OldManMods"
 name = "MysticalWeapons"
 # Placeholder: CI passes Version from Plugin.cs
 versionNumber = "0.0.0"
@@ -20,7 +20,7 @@ icon = "./icon.png"
 readme = "./README.md"
 outdir = "./build"
 
-# Mod managers install plugins/ into BepInEx/plugins/Dank-MysticalWeapons/
+# Mod managers install plugins/ into BepInEx/plugins/OldManMods-MysticalWeapons/
 [[build.copy]]
 source = "./bin/Release/MysticalWeapons.dll"
 target = "plugins/"
