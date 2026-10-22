@@ -1,17 +1,32 @@
-# Publishes a release to Thunderstore and GitHub Releases when a version tag (v1.2.3) is pushed.
-# The tag must point at a commit on main and match Version in Plugin.cs.
+# Publishes the mod to Thunderstore on two channels (see docs/architecture.md, "Releases"):
+# - Beta: every push to develop that changes the mod publishes Dank-MysticalWeapons_BETA, versioned
+#   <major>.<minor>.<run number> from Plugin.cs so each build is newer than the last.
+# - Stable: a v1.2.3 tag on main publishes Dank-MysticalWeapons at Version from Plugin.cs and
+#   creates a GitHub release.
 #
 # Needs a "thunderstore" environment holding the THUNDERSTORE_TOKEN secret (a Thunderstore
-# service account token for the team in thunderstore.toml). Add required reviewers to that
-# environment to approve each release before it uploads.
+# service account token for the team in thunderstore.toml). Limit that environment's deployment
+# branches and tags to develop and v*, so no other ref can use the token.
 name: "Publish"
 
 on:
   push:
+    branches: [ "develop" ]
     tags: [ "v*" ]
+    # Changes that don't touch the package skip the beta (path filters never apply to tags)
+    paths-ignore:
+      - "docs/**"
+      - "tools/**"
+      - "CLAUDE.md"
+      - ".github/pull_request_template.md"
 
 permissions:
   contents: read
+
+# One publish per ref at a time; a newer develop push waits for the current upload to finish
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -24,22 +39,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check tag, branch and version
+      - name: Work out channel and version
         id: version
         env:
+          REF_TYPE: ${{ github.ref_type }}
           TAG: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          version="${TAG#v}"
           plugin=$(grep -oP 'Version = "\K[^"]+' Plugin.cs)
-          if [ "$version" != "$plugin" ]; then
-            echo "::error::Tag $TAG doesn't match Version \"$plugin\" in Plugin.cs"; exit 1
-          fi
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Tag $TAG isn't on main; releases go through the develop -> main PR"; exit 1
+          if [ "$REF_TYPE" = tag ]; then
+            if [ "${TAG#v}" != "$plugin" ]; then
+              echo "::error::Tag $TAG doesn't match Version \"$plugin\" in Plugin.cs"; exit 1
+            fi
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::Tag $TAG isn't on main; releases go through the develop -> main PR"; exit 1
+            fi
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "name=MysticalWeapons" >> "$GITHUB_OUTPUT"
+            echo "version=$plugin" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "name=MysticalWeapons_BETA" >> "$GITHUB_OUTPUT"
+            echo "version=${plugin%.*}.$RUN_NUMBER" >> "$GITHUB_OUTPUT"
           fi
           test -f icon.png || { echo "::error::icon.png (256x256) is missing"; exit 1; }
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -55,10 +79,25 @@ jobs:
           "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
           "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
 
+      - name: Mark the README as a beta
+        if: steps.version.outputs.channel == 'beta'
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo "> **Beta build** of [MysticalWeapons](https://thunderstore.io/c/valheim/p/Dank/MysticalWeapons/)"
+            echo "> from the \`develop\` branch (commit ${SHA:0:7}), for play testing. Expect bugs."
+            echo "> Don't install it alongside the stable version: they are the same mod and only one loads."
+            echo
+            cat README.md
+          } > README.beta.md
+          mv README.beta.md README.md
+
       - name: Package
         run: |
           dotnet tool install -g tcli --version 0.2.4
-          tcli build --package-version "${{ steps.version.outputs.version }}"
+          tcli build --package-name "${{ steps.version.outputs.name }}" \
+            --package-version "${{ steps.version.outputs.version }}"
 
       - name: Publish to Thunderstore
         env:
@@ -66,6 +105,7 @@ jobs:
         run: tcli publish --file build/*.zip
 
       - name: Create GitHub release
+        if: steps.version.outputs.channel == 'stable'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}

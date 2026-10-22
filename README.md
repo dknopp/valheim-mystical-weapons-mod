@@ -51,6 +51,9 @@ BepInEx comes with it.
 
 Install it on the server **and** on every player's game.
 
+**Beta builds** of the next version are published as *MysticalWeapons_BETA* for play testing.
+Install the beta or the stable version, never both.
+
 Don't install the old standalone Bat'leth mod as well: this mod already includes the bat'leth.
 
 ## Configuration

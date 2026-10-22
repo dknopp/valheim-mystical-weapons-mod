@@ -26,8 +26,8 @@ items tables current when items change. Developer docs are in `docs/`.
 - `tools/ModelExporter`: console app that exports the code-built models to OBJ without the game.
   `tools/blender/`: headless Blender scripts that produce the shipped models (see each header).
 - `docs/`: `contributing.md` (setup, workflow, adding items, editing models in Blender) and
-  `architecture.md` (how the mod, build, CI, packaging and releases work). Stephen's notes on how he builds
-  items: `art-direction.md` (look, effects and balance) and `building-items.md` (process and
+  `architecture.md` (how the mod, build, CI, packaging and releases work). Stephen's notes on how
+  he builds items: `art-direction.md` (look, effects and balance) and `building-items.md` (process and
   lessons). Use what helps; they aren't rules for the repo.
 
 ## Build and test
@@ -39,8 +39,9 @@ items tables current when items change. Developer docs are in `docs/`.
   downloaded on each run, so a PR that doesn't compile fails there. Test behaviour by launching
   Valheim from the Gale test profile, then check `BepInEx/LogOutput.log` there for
   `Loaded N mystical items.` and for errors or warnings from this mod.
-- Releases: pushing a `v<Version>` tag on `main` publishes to Thunderstore and GitHub Releases
-  (`publish.yml`, packaged from `thunderstore.toml`).
+- Publishing (`publish.yml`, packaged from `thunderstore.toml`): every push to `develop` publishes
+  the `MysticalWeapons_BETA` Thunderstore package for play testing; a `v<Version>` tag on `main`
+  publishes the stable `MysticalWeapons` package and a GitHub release.
 - Changing a default in code doesn't change an existing config: BepInEx keeps the saved value. Edit
   or delete the line in `BepInEx/config/dankn.valheim.mysticalweapons.cfg` to see the new default.
 

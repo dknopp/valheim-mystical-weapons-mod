@@ -54,8 +54,10 @@ Edit or delete the line in the profile's `BepInEx/config/dankn.valheim.mysticalw
    [CLAUDE.md](../CLAUDE.md) ("Reviewing changes").
 4. The other maintainer reviews and merges.
 
-`main` only takes pull requests from `develop`, when cutting a release (see
-[architecture.md](architecture.md#releases); tagging a release publishes it to Thunderstore). Don't bump `Version` in `Plugin.cs` in a feature PR.
+Every merge into `develop` publishes a beta to Thunderstore (`MysticalWeapons_BETA`) for play
+testing on our server. `main` only takes pull requests from `develop`, when cutting a stable
+release; tagging it publishes `MysticalWeapons` (see [architecture.md](architecture.md#releases)).
+Don't bump `Version` in `Plugin.cs` in a feature PR.
 
 ## Rules
 

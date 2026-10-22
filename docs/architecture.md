@@ -129,7 +129,7 @@ them with `-p:ManagedDir=...` and `-p:BepInExDir=...`; nothing in the `.csproj` 
 | Workflow | Runs on | What it does |
 |---|---|---|
 | `build.yml` | Every PR, and pushes to `develop`/`main` | Builds the mod and ModelExporter. Once `icon.png` exists, also builds the Thunderstore zip and attaches it to the run, ready to install for testing |
-| `publish.yml` | Pushing a `v*` tag | Checks the tag, builds, publishes to Thunderstore, creates a GitHub release with the zip |
+| `publish.yml` | Pushes to `develop`, and `v*` tags | Develop: publishes the beta package. Tag: checks it, publishes the stable package and creates a GitHub release (see Releases) |
 | `codeql.yml`, `semgrep.yml`, `trivy.yml` | PRs (Trivy: into `main` only) | Source scanning; CodeQL covers C# and the Python Blender scripts without building |
 | `restrict-main-merges.yml` | PRs into `main` | Fails unless the PR comes from `develop` |
 
@@ -155,24 +155,53 @@ next to the DLL where `ModelUtil` looks for them. To build the zip locally, inst
 
 ## Releases
 
-1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`.
+There are two channels, published as separate Thunderstore packages because Thunderstore has no
+pre-release versions:
+
+| Channel | Package | Published when | Version |
+|---|---|---|---|
+| Beta | `Dank-MysticalWeapons_BETA` | Every push to `develop` that changes the mod (each merged PR) | `<major>.<minor>` from `Version`, then the workflow's run number, e.g. `1.6.57` |
+| Stable | `Dank-MysticalWeapons` | A `v<Version>` tag on `main` | `Version` in `Plugin.cs` |
+
+The run number only goes up, so mod managers always see the newest beta as an update. Docs-only
+pushes (`docs/`, `tools/`, `CLAUDE.md`) skip the beta. The beta's Thunderstore page puts a beta
+notice above the README.
+
+Both packages are the same mod with the same `Plugin.Guid` and prefab names, so a profile must have
+**one or the other**, never both: BepInEx would load only one of them. Like the stable mod, the beta
+has to be on the server and on every player's game.
+
+### Play testing a beta
+
+1. Merge PRs into `develop`; each one publishes a new beta within a few minutes.
+2. The play-test server's profile and each tester's profile install `MysticalWeapons_BETA`
+   (not `MysticalWeapons`) and update it from the mod manager.
+3. Fix what testing finds with more PRs into `develop`.
+
+### Cutting a stable release
+
+1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`. (That
+   publishes one more beta, now numbered from the new version.)
 2. Open a pull request from `develop` into `main` and merge it once reviewed.
 3. Tag the merge commit on `main` and push the tag:
    ```bash
    git tag v1.7.0 origin/main
    git push origin v1.7.0
    ```
-4. `publish.yml` checks that the tag is on `main` and matches `Version`, then builds, uploads to
-   Thunderstore and creates the GitHub release with generated notes. If the `thunderstore`
-   environment has required reviewers, the run waits for one of you to approve it first.
+4. `publish.yml` checks that the tag is on `main` and matches `Version`, then builds, uploads
+   `Dank-MysticalWeapons` to Thunderstore and creates the GitHub release with generated notes.
 
-If the upload fails, fix the cause and re-run the workflow; Thunderstore rejects a version number
-it already has, so a release that did upload needs a new version.
+Thunderstore rejects a version it already has. If an upload fails, fix the cause and re-run; a
+re-run of a run that did upload fails harmlessly. A stable release that uploaded needs a new
+`Version` to change.
 
-One-time setup:
+### One-time setup
+
 - A Thunderstore team named `Dank` (or change `namespace` in `thunderstore.toml`), with a service
   account. Its API token goes in a GitHub environment named `thunderstore` as the secret
-  `THUNDERSTORE_TOKEN`.
+  `THUNDERSTORE_TOKEN`. In the environment's settings, limit deployments to the `develop` branch
+  and `v*` tags so no other ref can use the token. Required reviewers on that environment would
+  hold every beta too, so leave them off.
 - A 256x256 `icon.png` in the repo root.
 
 Never change `Plugin.Guid` or an existing `PrefabName` in a release: players' items and config are
