@@ -143,7 +143,7 @@ Thunderstore's official build and upload tool. `tcli build --package-version <Ve
 
 ```
 manifest.json          generated from thunderstore.toml (name, version, BepInExPack dependency)
-icon.png               256x256, from the repo root
+icon.png               256x256, from the repo root (source: icon.svg)
 README.md              the repo README, shown on the Thunderstore page
 plugins/MysticalWeapons.dll
 plugins/models/...     the shipped custom models and CREDITS.md
@@ -202,7 +202,7 @@ re-run of a run that did upload fails harmlessly. A stable release that uploaded
   `THUNDERSTORE_TOKEN`. In the environment's settings, limit deployments to the `develop` branch
   and `v*` tags so no other ref can use the token. Required reviewers on that environment would
   hold every beta too, so leave them off.
-- A 256x256 `icon.png` in the repo root.
+- A 256x256 `icon.png` in the repo root (done; drawn from `icon.svg`).
 
 Never change `Plugin.Guid` or an existing `PrefabName` in a release: players' items and config are
 keyed on them.
