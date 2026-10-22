@@ -39,11 +39,17 @@ resistant to poison, immune to spirit damage.
 
 ## Installing
 
-1. Install [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)
-   (a mod manager such as Gale or r2modman does this for you).
-2. Copy `MysticalWeapons.dll` **and** the `models` folder into `BepInEx/plugins/MysticalWeapons/`.
+**With a mod manager** (Gale, r2modman): find *MysticalWeapons* on Thunderstore and install it.
+BepInEx comes with it.
+
+**By hand:**
+1. Install [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/).
+2. Download the zip from the latest [GitHub release](https://github.com/dknopp/valheim-mystical-weapons-mod/releases)
+   and copy `MysticalWeapons.dll` **and** the `models` folder from its `plugins` folder into
+   `BepInEx/plugins/MysticalWeapons/`.
    Without `models`, the Shardplate Helm and Sulfuras fall back to simpler built-in looks.
-3. Install it on the server **and** on every player's game.
+
+Install it on the server **and** on every player's game.
 
 Don't install the old standalone Bat'leth mod as well: this mod already includes the bat'leth.
 

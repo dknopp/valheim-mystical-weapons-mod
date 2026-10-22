@@ -1,0 +1,53 @@
+# Builds the mod on every PR and push, against Valheim's dedicated server assemblies (see
+# .github/actions/setup-valheim). Once icon.png exists it also packages the Thunderstore zip, so
+# packaging problems show up before a release; the zip is attached to the run for testing.
+name: "Build"
+
+on:
+  pull_request:
+  push:
+    branches: [ "main", "develop" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up Valheim references
+        id: valheim
+        uses: ./.github/actions/setup-valheim
+
+      - name: Build mod
+        run: >-
+          dotnet build MysticalWeapons.csproj -c Release
+          "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
+          "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
+
+      - name: Build ModelExporter
+        run: >-
+          dotnet build tools/ModelExporter/ModelExporter.csproj -c Release
+          "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
+          "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
+
+      - name: Package for Thunderstore
+        if: hashFiles('icon.png') != ''
+        run: |
+          dotnet tool install -g tcli --version 0.2.4
+          version=$(grep -oP 'Version = "\K[^"]+' Plugin.cs)
+          tcli build --package-version "$version"
+
+      - name: Upload package
+        if: hashFiles('icon.png') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: MysticalWeapons
+          path: build/*.zip
+          if-no-files-found: error

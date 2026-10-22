@@ -1,6 +1,7 @@
 # Architecture
 
-How the mod works inside the game, how it's built and deployed, and how a release is cut. For the
+How the mod works inside the game, how it's built, tested in CI and deployed, and how a release is
+published. For the
 day-to-day steps, see [contributing.md](contributing.md).
 
 ## Repository layout
@@ -15,7 +16,8 @@ day-to-day steps, see [contributing.md](contributing.md).
 | `tools/ModelExporter/` | Console app that exports the code-built models to OBJ, without starting the game |
 | `tools/blender/` | Headless Blender scripts that produce the models in `models/` |
 | `docs/` | This documentation and Stephen's item-building notes |
-| `.github/` | CI workflows and the pull request template |
+| `.github/` | CI workflows, the shared `setup-valheim` action and the pull request template |
+| `thunderstore.toml` | Thunderstore package definition (see Packaging) |
 
 Everything in `Core/` and the item folders shares the `MysticalWeapons` namespace (item folders add
 `.Weapons`, `.Armor`, `.Hallows`).
@@ -111,20 +113,67 @@ is `Dank-MysticalWeapons` when building into Gale's `Default` profile (Gale's na
 assemblies next to its exe, so it can run the item classes' `BuildModel` code outside the game.
 `Properties/AssemblyInfo.cs` makes the mod's internals visible to it.
 
-**CI.** GitHub can't build the mod (the game's assemblies aren't available there), so CI only
-scans the source: CodeQL (C# and the Python Blender scripts, without building), Semgrep, and
-Trivy on PRs into `main`. `restrict-main-merges.yml` fails any PR into `main` that doesn't come
-from `develop`.
+## CI
+
+The game's assemblies can't be committed or redistributed, so CI fetches them on each run instead.
+`.github/actions/setup-valheim` downloads:
+- **Valheim's dedicated server** (Steam app `896660`) with SteamCMD's anonymous login. It's free
+  and has the same `assembly_valheim.dll`, `assembly_utils.dll` and Unity assemblies the client
+  uses, under `valheim_server_Data/Managed`.
+- **BepInExPack_Valheim** from Thunderstore, for `BepInEx.dll` and `0Harmony.dll`. Its version is the
+  action's `bepinex-version` input; keep it in step with the dependency in `thunderstore.toml`.
+
+Both land in the runner's temp folder and are discarded after the run. The build is pointed at
+them with `-p:ManagedDir=...` and `-p:BepInExDir=...`; nothing in the `.csproj` is CI-specific.
+
+| Workflow | Runs on | What it does |
+|---|---|---|
+| `build.yml` | Every PR, and pushes to `develop`/`main` | Builds the mod and ModelExporter. Once `icon.png` exists, also builds the Thunderstore zip and attaches it to the run, ready to install for testing |
+| `publish.yml` | Pushing a `v*` tag | Checks the tag, builds, publishes to Thunderstore, creates a GitHub release with the zip |
+| `codeql.yml`, `semgrep.yml`, `trivy.yml` | PRs (Trivy: into `main` only) | Source scanning; CodeQL covers C# and the Python Blender scripts without building |
+| `restrict-main-merges.yml` | PRs into `main` | Fails unless the PR comes from `develop` |
+
+CI can't launch the game, so in-game testing stays manual (see contributing.md).
+
+## Packaging
+
+`thunderstore.toml` defines the Thunderstore package for [tcli](https://github.com/thunderstore-io/thunderstore-cli),
+Thunderstore's official build and upload tool. `tcli build --package-version <Version>` writes
+`build/Dank-MysticalWeapons-<Version>.zip`:
+
+```
+manifest.json          generated from thunderstore.toml (name, version, BepInExPack dependency)
+icon.png               256x256, from the repo root
+README.md              the repo README, shown on the Thunderstore page
+plugins/MysticalWeapons.dll
+plugins/models/...     the shipped custom models and CREDITS.md
+```
+
+Mod managers install `plugins/` into `BepInEx/plugins/Dank-MysticalWeapons/`, so the models land
+next to the DLL where `ModelUtil` looks for them. To build the zip locally, install tcli
+(`dotnet tool install -g tcli`), build the mod, then run the same command.
 
 ## Releases
 
-There is no automated packaging, and no release has been tagged yet. The intended process:
-
 1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`.
 2. Open a pull request from `develop` into `main` and merge it once reviewed.
-3. Build from `main` with `dotnet build -c Release`. The release is `bin/Release/MysticalWeapons.dll`
-   plus the `models/` folder, installed together into `BepInEx/plugins/MysticalWeapons/`.
-4. Tag the merge commit (`v<Version>`) and attach a zip of the DLL and `models/` to a GitHub release.
+3. Tag the merge commit on `main` and push the tag:
+   ```bash
+   git tag v1.7.0 origin/main
+   git push origin v1.7.0
+   ```
+4. `publish.yml` checks that the tag is on `main` and matches `Version`, then builds, uploads to
+   Thunderstore and creates the GitHub release with generated notes. If the `thunderstore`
+   environment has required reviewers, the run waits for one of you to approve it first.
+
+If the upload fails, fix the cause and re-run the workflow; Thunderstore rejects a version number
+it already has, so a release that did upload needs a new version.
+
+One-time setup:
+- A Thunderstore team named `Dank` (or change `namespace` in `thunderstore.toml`), with a service
+  account. Its API token goes in a GitHub environment named `thunderstore` as the secret
+  `THUNDERSTORE_TOKEN`.
+- A 256x256 `icon.png` in the repo root.
 
 Never change `Plugin.Guid` or an existing `PrefabName` in a release: players' items and config are
 keyed on them.

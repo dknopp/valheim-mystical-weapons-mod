@@ -33,8 +33,8 @@ This compiles `MysticalWeapons.dll` and copies it, with the `models/` folder, in
 `BepInEx/plugins/<mod folder>/` of your profile ([architecture.md](architecture.md#build-and-deploy)
 has the details).
 
-There are no automated tests, and GitHub can't build the mod because Valheim's assemblies can't be
-redistributed. Test in the game:
+The **Build** check on each pull request compiles the mod against Valheim's dedicated server (see
+[architecture.md](architecture.md#ci)). There are no automated tests, so test behaviour in the game:
 
 1. Launch Valheim from your test profile.
 2. Check `BepInEx/LogOutput.log` in the profile: it should say `Loaded N mystical items.` with no
@@ -55,7 +55,7 @@ Edit or delete the line in the profile's `BepInEx/config/dankn.valheim.mysticalw
 4. The other maintainer reviews and merges.
 
 `main` only takes pull requests from `develop`, when cutting a release (see
-[architecture.md](architecture.md#releases)). Don't bump `Version` in `Plugin.cs` in a feature PR.
+[architecture.md](architecture.md#releases); tagging a release publishes it to Thunderstore). Don't bump `Version` in `Plugin.cs` in a feature PR.
 
 ## Rules
 

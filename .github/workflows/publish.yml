@@ -1,0 +1,72 @@
+# Publishes a release to Thunderstore and GitHub Releases when a version tag (v1.2.3) is pushed.
+# The tag must point at a commit on main and match Version in Plugin.cs.
+#
+# Needs a "thunderstore" environment holding the THUNDERSTORE_TOKEN secret (a Thunderstore
+# service account token for the team in thunderstore.toml). Add required reviewers to that
+# environment to approve each release before it uploads.
+name: "Publish"
+
+on:
+  push:
+    tags: [ "v*" ]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: thunderstore
+    permissions:
+      contents: write # create the GitHub release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check tag, branch and version
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          plugin=$(grep -oP 'Version = "\K[^"]+' Plugin.cs)
+          if [ "$version" != "$plugin" ]; then
+            echo "::error::Tag $TAG doesn't match Version \"$plugin\" in Plugin.cs"; exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $TAG isn't on main; releases go through the develop -> main PR"; exit 1
+          fi
+          test -f icon.png || { echo "::error::icon.png (256x256) is missing"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up Valheim references
+        id: valheim
+        uses: ./.github/actions/setup-valheim
+
+      - name: Build mod
+        run: >-
+          dotnet build MysticalWeapons.csproj -c Release
+          "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
+          "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
+
+      - name: Package
+        run: |
+          dotnet tool install -g tcli --version 0.2.4
+          tcli build --package-version "${{ steps.version.outputs.version }}"
+
+      - name: Publish to Thunderstore
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.THUNDERSTORE_TOKEN }}
+        run: tcli publish --file build/*.zip
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" build/*.zip --title "$TAG" --generate-notes --verify-tag
