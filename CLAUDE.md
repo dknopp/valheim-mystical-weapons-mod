@@ -3,28 +3,32 @@
 Valheim BepInEx mod (C#, .NET Framework 4.8) adding weapons, armor and the Deathly Hallows from
 other worlds. No Jotunn, no asset bundles: models are built in code (`MeshBuilder`) or loaded from
 an OBJ in `models/`; armor is recoloured vanilla. Public repo, two maintainers: Dan (dknopp, repo
-owner) and Stephen (smpecoraro). README.md is the user-facing doc and the source of truth for items,
-building and adding items; keep it current when items change.
+owner) and Stephen (smpecoraro). README.md is the user-facing doc (items, install, config); keep its
+items tables current when items change. Developer docs are in `docs/`.
 
 ## Layout
 - `Plugin.cs`: BepInEx entry point. `Plugin.Items` lists every item; Harmony postfixes on
   `ObjectDB.Awake`/`CopyOtherDB` and `ZNetScene.Awake` register prefabs and recipes. Each item's
   registration runs inside `Guard` so one broken item can't break the game's startup.
-- `MysticalItem.cs`: base class. Clones a vanilla prefab (`SourcePrefabs`), renames it to
+- `Core/MysticalItem.cs`: base class. Clones a vanilla prefab (`SourcePrefabs`), renames it to
   `PrefabName`, calls `Setup`/`Customize`, binds the common config (enabled, recipe, station).
-- `MysticalWeapon.cs`: items with a code-built model (`BuildModel`, `Materials`) and damage config.
+- `Core/MysticalWeapon.cs`: items with a code-built model (`BuildModel`, `Materials`) and damage config.
   A `models/<PrefabName>.obj` next to the DLL replaces the code-built model at load.
-- `MysticalArmor.cs`: recoloured vanilla armor; rigid pieces (helmets) can take a custom OBJ.
+- `Core/MysticalArmor.cs`: recoloured vanilla armor; rigid pieces (helmets) can take a custom OBJ.
 - `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
-- `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap, materials, icon
-  rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from vanilla items at
-  runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to vanilla peers).
+- Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
+  materials, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
+  vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
+  vanilla peers).
+- `Properties/AssemblyInfo.cs`: exposes internals to `tools/ModelExporter`.
 - `models/`: shipped custom models (OBJ + MTL + PNG) and `CREDITS.md`. The build copies it next to
   the DLL.
 - `tools/ModelExporter`: console app that exports the code-built models to OBJ without the game.
   `tools/blender/`: headless Blender scripts that produce the shipped models (see each header).
-- `docs/`: Stephen's notes on how he builds items (`art-direction.md` for look, effects and balance;
-  `building-items.md` for process and lessons). Use what helps; they aren't rules for the repo.
+- `docs/`: `contributing.md` (setup, workflow, adding items, editing models in Blender) and
+  `architecture.md` (how the mod, build, deploy and releases work). Stephen's notes on how he builds
+  items: `art-direction.md` (look, effects and balance) and `building-items.md` (process and
+  lessons). Use what helps; they aren't rules for the repo.
 
 ## Build and test
 - `dotnet build -c Release` builds and copies the DLL and `models/` into a mod manager profile.
@@ -38,9 +42,9 @@ building and adding items; keep it current when items change.
   or delete the line in `BepInEx/config/dankn.valheim.mysticalweapons.cfg` to see the new default.
 
 ## Adding an item
-Follow "Adding an item" in README.md, add it to `Plugin.Items`, then add a row to the README items
-table. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides, extra settings
-via `BindConfig`, Harmony patches nested in the item class.
+Follow "Adding an item" in `docs/contributing.md`, add it to `Plugin.Items`, then add a row to the
+README items tables. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
+extra settings via `BindConfig`, Harmony patches nested in the item class.
 
 ## Conventions
 - Match the surrounding code: terse `///` summaries on classes and non-obvious members, short
@@ -95,7 +99,7 @@ and line, most severe first; say plainly when a PR looks good. Don't pad with st
   the plugin's own folder and config.
 
 **Should fix**:
-- New or changed item not in the README items table, `Plugin.Items`, or (for outside models)
+- New or changed item not in the README items tables, `Plugin.Items`, or (for outside models)
   `models/CREDITS.md` and the README credits.
 - Balance clearly out of line: stats or recipe far above vanilla items of the same tier and
   station level, or an effect that trivialises a boss or biome. Compare with the vanilla source
