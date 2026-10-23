@@ -76,7 +76,8 @@ Don't bump `Version` in `Plugin.cs` in a feature PR.
    Pick vanilla `SourcePrefabs` to clone (for animations, sounds and attacks), set stats and recipe
    as `Default*` overrides, and build the model in `BuildModel` with `MeshBuilder` (blades, prisms,
    slabs, ribbons). Hand at the origin, grip along +Y. Extra settings go in `BindConfig`; Harmony
-   patches are nested in the item's class.
+   patches are nested in the item's class. If it is stronger than its vanilla tier, give it a
+   boss trophy in `BossTrophies` (`Core/MysticalItem.cs`): the boss that opens its home biome.
    Texture a part with `.Borrow(VanillaTextures.Iron, tiling, gloss)` on its `MaterialSpec`: the
    texture is taken from that vanilla item while the game runs and tinted with the part's colour.
    The clone's material keeps the source item's settings; if the model still looks tinted, check the

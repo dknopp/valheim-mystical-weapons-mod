@@ -45,6 +45,24 @@ namespace MysticalWeapons
         private ConfigEntry<string> _recipe;
         private ConfigEntry<string> _station;
         private ConfigEntry<int> _stationLevel;
+        private ConfigEntry<string> _bossTrophy;
+
+        /// <summary>
+        /// Boss trophy needed to craft the items that are stronger than their vanilla tier (above-tier stats or a big
+        /// hidden power): the boss that opens the item's home biome, so the player beats it again first. Items in
+        /// line with their vanilla peers need none. Kept in one table so the whole progression reads at a glance.
+        /// </summary>
+        private static readonly Dictionary<string, string> BossTrophies = new Dictionary<string, string>
+        {
+            { "ResurrectionStone", "TrophyBonemass" },        // no skill loss on death
+            { "ShardplateHelm", "TrophyDragonQueen" },        // Moder: armour above its tier, and the set bonus
+            { "ShardplateBreastplate", "TrophyDragonQueen" },
+            { "ShardplateGreaves", "TrophyDragonQueen" },
+            { "Anduril", "TrophyGoblinKing" },                // Yagluth: spirits that fight for you
+            { "Sylspear", "TrophyGoblinKing" },               // fells trees and breaks rock, never wears out
+            { "Shardblade", "TrophyGoblinKing" },
+            { "ElderWand", "TrophyFader" },                   // completes Master of Death
+        };
 
         public virtual void BindConfig(ConfigFile cfg)
         {
@@ -54,6 +72,9 @@ namespace MysticalWeapons
             _station = cfg.Bind(s, "CraftingStation", DefaultStation,
                 "Prefab name of the crafting station (forge, piece_workbench, blackforge...). Empty = craft by hand.");
             _stationLevel = cfg.Bind(s, "StationLevel", DefaultStationLevel, "Minimum crafting station level.");
+            _bossTrophy = cfg.Bind(s, "BossTrophy", BossTrophies.TryGetValue(s, out var trophy) ? trophy : "",
+                "Boss trophy also needed to craft it, once (upgrades don't take another). The recipe stays hidden until " +
+                "you have picked one up, so beat that boss first. Empty = no trophy.");
         }
 
         // ------------------------------------------------------------- prefab
@@ -130,8 +151,34 @@ namespace MysticalWeapons
             recipe.m_craftingStation = station;
             recipe.m_repairStation = station;
             recipe.m_minStationLevel = _stationLevel.Value;
-            recipe.m_resources = ParseRequirements(db, _recipe.Value);
+            recipe.m_resources = WithBossTrophy(db, ParseRequirements(db, _recipe.Value));
             db.m_recipes.Add(recipe);
+        }
+
+        /// <summary>
+        /// Adds the boss trophy to the recipe, needed once: none per upgrade level. The game lists a recipe only
+        /// once the player has picked up every ingredient, so this also hides it until the boss is beaten.
+        /// </summary>
+        private Piece.Requirement[] WithBossTrophy(ObjectDB db, Piece.Requirement[] resources)
+        {
+            var name = _bossTrophy.Value.Trim();
+            if (name.Length == 0) return resources;
+            var trophy = db.GetItemPrefab(name);
+            if (!trophy)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: boss trophy '{name}' not found; the recipe doesn't need one");
+                return resources;
+            }
+            var list = new List<Piece.Requirement>(resources);
+            list.RemoveAll(r => r.m_resItem && r.m_resItem.name == name); // already in the recipe: the trophy setting wins
+            list.Add(new Piece.Requirement
+            {
+                m_resItem = trophy.GetComponent<ItemDrop>(),
+                m_amount = 1,
+                m_amountPerLevel = 0,
+                m_recover = true
+            });
+            return list.ToArray();
         }
 
         private Piece.Requirement[] ParseRequirements(ObjectDB db, string spec)

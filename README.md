@@ -39,6 +39,19 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
 resistant to poison, immune to spirit damage.
 
+### Boss trophies
+
+The items that are stronger than their tier also need one trophy from the boss that opens their
+home biome, so you beat that boss (again) before you can make them. The recipe stays hidden until
+you have picked that trophy up. Upgrades don't take another.
+
+| Boss | Trophy needed for |
+|---|---|
+| Bonemass | The Resurrection Stone |
+| Moder | Each Shardplate piece |
+| Yagluth | Andúril, Sylspear, Shardblade |
+| Fader | The Elder Wand |
+
 ## Installing
 
 **With a mod manager** (Gale, r2modman): find *MysticalWeapons* on Thunderstore and install it.
@@ -64,8 +77,8 @@ Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on fi
 item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
 `Sulfuras`, `Thunderfury`, `WarglaivesOfAzzinoth`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
 `ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
-item off or change its recipe, crafting station, stats and effects (fireball chance, undead damage,
-glow colours and more).
+item off or change its recipe, crafting station, boss trophy (`BossTrophy`, empty for none), stats
+and effects (fireball chance, undead damage, glow colours and more).
 
 - `[General] TexturedModels = false` turns off the textures borrowed from vanilla items (such as
   Sulfuras's flametal grain) for flat colours. Restart to apply.
