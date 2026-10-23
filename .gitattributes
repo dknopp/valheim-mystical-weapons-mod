@@ -1,0 +1,15 @@
+# Store text with LF line endings; check out with the platform's own
+* text=auto
+
+*.cs text diff=csharp
+*.csproj text
+*.md text
+*.py text
+*.yml text
+*.obj text
+*.mtl text
+
+*.png binary
+*.jpg binary
+*.blend binary
+*.dll binary
