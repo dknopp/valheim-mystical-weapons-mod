@@ -7,7 +7,7 @@ namespace MysticalWeapons.Hallows
 {
     /// <summary>
     /// The Elder Wand, the Deathstick. Built on the Staff of Embers: its attack is the staff's fireball, slow to
-    /// gather but far stronger, and its secondary attack is Dundr's charged spray of lightning, also stronger.
+    /// gather but far stronger, and its secondary attack is Dundr's spray of lightning, also stronger.
     /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
     /// stamina instead of eitr so anyone can wield it.
     /// </summary>
@@ -48,7 +48,7 @@ namespace MysticalWeapons.Hallows
             _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 20f, "Stamina used per spell.");
             _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.25f, "Seconds the wand needs to gather power between fireballs.");
             _lightningDamage = cfg.Bind(PrefabName, "LightningDamage", "lightning:35",
-                "Secondary attack (Dundr's charged spray of 12 bolts): damage of each bolt. Dundr's is 20. Restart to apply.");
+                "Secondary attack (Dundr's spray of 12 bolts): damage of each bolt. Dundr's is 20. Restart to apply.");
             _lightningDamagePerLevel = cfg.Bind(PrefabName, "LightningDamagePerLevel", "lightning:4",
                 "Secondary attack: extra damage per bolt per upgrade level. Restart to apply.");
             _blockShield = cfg.Bind(PrefabName, "ShieldOnBlock", true,
@@ -75,7 +75,6 @@ namespace MysticalWeapons.Hallows
                 attack.m_attackStamina = _staminaCost.Value;
                 attack.m_attackHealth = 0f;
                 attack.m_attackHealthPercentage = 0f;
-                if (_eitrCost.Value <= 0f) attack.m_drawEitrDrain = 0f; // runs on stamina: charging Dundr's spray takes no eitr either
             }
             // The fireball is cast at once, never drawn or reloaded: no loading bar
             if (shared.m_attack != null)
@@ -98,7 +97,7 @@ namespace MysticalWeapons.Hallows
         private const string LightningSource = "StaffLightning"; // Dundr
         private static HitData.DamageTypes _fireballDamage, _fireballPerLevel, _boltDamage, _boltPerLevel;
 
-        /// <summary>The secondary attack is a copy of Dundr's, with its charge bar; it gets its own lightning damage.</summary>
+        /// <summary>The secondary attack is a copy of Dundr's, cast at once; it gets its own lightning damage.</summary>
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
@@ -114,9 +113,14 @@ namespace MysticalWeapons.Hallows
                 Plugin.Log.LogWarning($"{PrefabName}: no '{LightningSource}' to borrow the lightning from; no secondary attack");
                 return;
             }
-            shared.m_secondaryAttack = source.Clone();
+            var lightning = source.Clone();
+            // The game only charges a weapon's primary attack: a charged secondary never charges, and its bolts
+            // fly at the speed of a 0% charge (none). Cast it at once at its full speed instead.
+            lightning.m_bowDraw = false;
+            shared.m_secondaryAttack = lightning;
             Plugin.Log.LogInfo($"{PrefabName}: attack is the fireball of '{SourceName}', secondary the lightning of '{LightningSource}' " +
-                               $"(projectile '{source.m_attackProjectile.name}', {source.m_projectiles} per cast)");
+                               $"(projectile '{source.m_attackProjectile.name}', {source.m_projectiles} per cast, animation '{source.m_attackAnimation}', " +
+                               $"draw state '{source.m_drawAnimationState}')");
         }
 
         private static float _nextCast;
@@ -165,14 +169,34 @@ namespace MysticalWeapons.Hallows
         private static bool _shieldLookedUp;
         private static float _nextShield;
 
-        /// <summary>The Staff of Protection's shield effect, found once in the ObjectDB.</summary>
+        private const string ShieldSource = "StaffShield"; // the Staff of Protection
+
+        /// <summary>
+        /// The Staff of Protection's shield effect, found once: the status effect its cast gives (other shields, such
+        /// as the Fuling shamans', are in the ObjectDB too), else any shield whose name says staff.
+        /// </summary>
         private static SE_Shield Shield()
         {
             if (_shieldLookedUp) return _shield;
             _shieldLookedUp = true;
-            _shield = ObjectDB.instance ? ObjectDB.instance.m_StatusEffects.OfType<SE_Shield>().FirstOrDefault() : null;
-            if (_shield) Plugin.Log.LogInfo($"{Name}: block shield is '{_shield.name}'");
-            else Plugin.Log.LogWarning($"{Name}: no shield status effect found; blocking puts up no shield");
+            var db = ObjectDB.instance;
+            if (!db) return null;
+
+            var staff = db.GetItemPrefab(ShieldSource);
+            var attack = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
+            foreach (var cast in new[] { attack?.m_attackProjectile, attack?.m_spawnOnTrigger })
+            {
+                if (!cast || _shield) continue;
+                foreach (var name in cast.GetComponentsInChildren<Aoe>(true).Select(a => a.m_statusEffect)
+                             .Concat(cast.GetComponentsInChildren<Projectile>(true).Select(p => p.m_statusEffect)))
+                    if (!string.IsNullOrEmpty(name) && (_shield = db.GetStatusEffect(name.GetStableHashCode()) as SE_Shield)) break;
+            }
+            if (!_shield)
+                _shield = db.m_StatusEffects.OfType<SE_Shield>()
+                    .FirstOrDefault(se => se.name.IndexOf("staff", System.StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (_shield) Plugin.Log.LogInfo($"{Name}: block shield is '{_shield.name}' from '{ShieldSource}'");
+            else Plugin.Log.LogWarning($"{Name}: no '{ShieldSource}' shield found; blocking puts up no shield");
             return _shield;
         }
 
