@@ -57,6 +57,8 @@ namespace MysticalWeapons
                     text.Append(Describe(item.Prefab, peer, peerName, vanilla));
                     if (peer) Render(item.Prefab, peer, Path.Combine(OutputDir, item.PrefabName + ".png"));
                 }
+                if (Plugin.Items.Any(i => i.Enabled.Value && i.Prefab && Shared(i.Prefab).m_itemType == ShieldType))
+                    text.Append(ShieldPlacement(vanilla));
                 File.WriteAllText(Path.Combine(OutputDir, "report.txt"), text.ToString());
                 Plugin.Log.LogInfo("Item report (left: mystical item, right: vanilla peer; images in " +
                                    OutputDir + "):\n" + text);
@@ -88,6 +90,58 @@ namespace MysticalWeapons
                 sb.AppendLine(r[0].PadRight(w0) + r[1].PadRight(w1) + r[2]);
             }
             sb.AppendLine("Max in slot".PadRight(w0) + MaxInSlot(ours, vanilla));
+            sb.AppendLine();
+            return sb.ToString();
+        }
+
+        private const ItemDrop.ItemData.ItemType ShieldType = ItemDrop.ItemData.ItemType.Shield;
+
+        /// <summary>
+        /// Where each shield's visible model sits relative to its "attach" (the grip on the forearm):
+        /// per renderer, its bounds and the spread of its vertices along each axis (min, 10%, median,
+        /// 90%, max), so a plate can be told apart from straps or a boss. Used to place custom shields.
+        /// </summary>
+        private static string ShieldPlacement(List<GameObject> vanilla)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("== Shield placement (attach space, metres) ==");
+            var shields = vanilla.Where(p => Shared(p).m_itemType == ShieldType)
+                .Concat(Plugin.Items.Where(i => i.Enabled.Value && i.Prefab && Shared(i.Prefab).m_itemType == ShieldType)
+                    .Select(i => i.Prefab));
+            foreach (var prefab in shields)
+            {
+                var attach = prefab.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "attach");
+                if (!attach) { sb.AppendLine($"{prefab.name}: no attach"); continue; }
+                sb.AppendLine($"{prefab.name} ({(Shared(prefab).m_timedBlockBonus > 0f ? "parries" : "")}, " +
+                              $"attach at {attach.localPosition} rot {attach.localEulerAngles})");
+                foreach (var r in attach.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (!r.enabled || !(r is MeshRenderer || r is SkinnedMeshRenderer)) continue;
+                    var mf = r.GetComponent<MeshFilter>();
+                    var mesh = mf ? mf.sharedMesh : (r as SkinnedMeshRenderer)?.sharedMesh;
+                    if (!mesh) continue;
+                    sb.Append($"  {r.name}: ");
+                    if (!mesh.isReadable)
+                    {
+                        // Its bounding box's corners in attach space: a loose box, but it shows which way it lies
+                        var b = mesh.bounds;
+                        var corners = Enumerable.Range(0, 8).Select(i => attach.InverseTransformPoint(r.transform.TransformPoint(
+                            b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))))).ToList();
+                        sb.AppendLine("not readable; bounding box in attach space " + string.Join(", ", new[] { 0, 1, 2 }.Select(a =>
+                            $"{"XYZ"[a]} {corners.Min(p => p[a]):0.000}..{corners.Max(p => p[a]):0.000}")));
+                        continue;
+                    }
+                    var pts = mesh.vertices.Select(v => attach.InverseTransformPoint(r.transform.TransformPoint(v))).ToList();
+                    sb.AppendLine($"{pts.Count} verts");
+                    foreach (var axis in new[] { 0, 1, 2 })
+                    {
+                        var vals = pts.Select(p => p[axis]).OrderBy(v => v).ToList();
+                        float At(float q) => vals[Mathf.Clamp((int)(q * (vals.Count - 1)), 0, vals.Count - 1)];
+                        sb.AppendLine($"    {"XYZ"[axis]}: {At(0f):0.000} | {At(0.1f):0.000} | {At(0.5f):0.000} | " +
+                                      $"{At(0.9f):0.000} | {At(1f):0.000}");
+                    }
+                }
+            }
             sb.AppendLine();
             return sb.ToString();
         }

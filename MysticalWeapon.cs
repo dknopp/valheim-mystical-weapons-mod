@@ -78,6 +78,8 @@ namespace MysticalWeapons
         protected virtual bool AutoAlign => true;
         protected virtual Vector3 ModelRotation => Vector3.zero;
         protected virtual Vector3 ModelOffset => Vector3.zero;
+        /// <summary>Scale the model to the original's largest dimension and centre it on the original (shields).</summary>
+        protected virtual bool FitToOriginal => false;
         /// <summary>False for non-weapons with a code-built model (e.g. trinkets): no damage config.</summary>
         protected virtual bool HasDamage => true;
         /// <summary>
@@ -86,6 +88,11 @@ namespace MysticalWeapons
         /// are cleared, as for every item made before this option.
         /// </summary>
         protected virtual bool CleanMaterials => false;
+        /// <summary>
+        /// Vanilla item whose material ours start from, when the cloned item's can't show our texture
+        /// (shields: their paint styles draw over it). Null = the cloned item's own.
+        /// </summary>
+        protected virtual string MaterialFrom => null;
 
         /// <summary>Materials, indexed by the submesh numbers used in <see cref="BuildModel"/>.</summary>
         public abstract MaterialSpec[] Materials { get; }
@@ -139,12 +146,30 @@ namespace MysticalWeapons
             var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, new ModelPlacement
             {
                 AutoAlign = AutoAlign,
+                FitToOriginal = FitToOriginal,
                 Rotation = ModelRotation,
                 Offset = ModelOffset,
                 Scale = ModelScale,
-                CleanMaterials = CleanMaterials
+                CleanMaterials = CleanMaterials,
+                BaseMaterial = MaterialOf(MaterialFrom)
             });
             DecorateModel(model);
+        }
+
+        /// <summary>The first model material of vanilla <paramref name="prefab"/>, or null.</summary>
+        private Material MaterialOf(string prefab)
+        {
+            if (string.IsNullOrEmpty(prefab)) return null;
+            var go = FindVanilla(prefab);
+            if (go)
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    if ((r is MeshRenderer || r is SkinnedMeshRenderer) && r.sharedMaterial)
+                    {
+                        Plugin.Log.LogInfo($"{PrefabName}: materials start from {prefab}'s '{r.sharedMaterial.name}'");
+                        return r.sharedMaterial;
+                    }
+            Plugin.Log.LogWarning($"{PrefabName}: no material from '{prefab}', using the cloned item's");
+            return null;
         }
 
         /// <summary>Gives each part that names a vanilla texture a tinted copy of it.</summary>
@@ -167,9 +192,8 @@ namespace MysticalWeapons
         }
 
         /// <summary>Lays vanilla grain over the custom model's textures where a part asks for it.</summary>
-        private void AddGrain(MeshBuilder builder)
+        protected void AddGrain(MeshBuilder builder, MaterialSpec[] specs)
         {
-            var specs = Materials;
             for (var i = 0; i < specs.Length; i++)
             {
                 if (string.IsNullOrEmpty(specs[i].Grain) || specs[i].GrainStrength <= 0f) continue;
@@ -181,6 +205,8 @@ namespace MysticalWeapons
                     Plugin.Log.LogWarning($"{PrefabName}: no grain from '{specs[i].Grain}', part {i} keeps its own texture");
             }
         }
+
+        private void AddGrain(MeshBuilder builder) => AddGrain(builder, Materials);
 
         private static HitData.DamageTypes ParseDamage(string spec)
         {

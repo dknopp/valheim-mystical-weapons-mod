@@ -16,6 +16,8 @@ namespace MysticalWeapons
         public float Scale;
         /// <summary>Clear everything the cloned item's material had (see <see cref="MysticalWeapon.CleanMaterials"/>).</summary>
         public bool CleanMaterials;
+        /// <summary>Start our materials from this one instead of the cloned item's (see <see cref="MysticalWeapon.MaterialFrom"/>).</summary>
+        public Material BaseMaterial;
     }
 
     internal static class ModelUtil
@@ -139,6 +141,7 @@ namespace MysticalWeapons
                 }
             }
             Plugin.Log.LogInfo($"{name}: original model bounds center {bounds.center}, size {bounds.size}");
+            if (place.BaseMaterial) baseMat = place.BaseMaterial;
 
             var mesh = builder.ToMesh(name);
             var materials = new Material[specs.Length];
@@ -176,6 +179,28 @@ namespace MysticalWeapons
             model.transform.localPosition = position;
             model.transform.localScale = Vector3.one * scale;
             return model;
+        }
+
+        /// <summary>
+        /// Adds a second custom model (e.g. a part that turns on its own) as a child of a placed model, at
+        /// <paramref name="localPos"/> in model space. Its materials start from the model's first material.
+        /// </summary>
+        public static GameObject AddChildModel(GameObject model, string name, MeshBuilder builder,
+            MaterialSpec[] specs, Vector3 localPos, bool cleanMaterials)
+        {
+            var baseMat = model.GetComponent<MeshRenderer>()?.sharedMaterial;
+            var materials = new Material[specs.Length];
+            for (var i = 0; i < materials.Length; i++)
+                materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null, cleanMaterials);
+
+            var child = new GameObject(name);
+            child.layer = model.layer;
+            child.transform.SetParent(model.transform, false);
+            child.transform.localPosition = localPos;
+            child.AddComponent<MeshFilter>().sharedMesh = builder.ToMesh(name);
+            child.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            return child;
         }
 
         private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
@@ -235,8 +260,7 @@ namespace MysticalWeapons
                 cleared.Add(prop);
             }
             foreach (var keyword in new[] { "_DETAIL_MULX2", "_PARALLAXMAP", "_NORMALMAP", "_METALLICGLOSSMAP" })
-                mat.DisableKeyword(keyword);
-            if (cleared.Count > 0) Plugin.Log.LogInfo($"{name}: cleared textures {string.Join(", ", cleared)}");
+                mat.DisableKeyword(keyword);            if (cleared.Count > 0) Plugin.Log.LogInfo($"{name}: cleared textures {string.Join(", ", cleared)}");
             // Colour settings carry over too: e.g. black metal's metal colour tints our steel green
             var colours = new List<string>();
             foreach (var prop in mat.GetPropertyNames(MaterialPropertyType.Vector))

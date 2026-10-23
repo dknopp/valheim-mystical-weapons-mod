@@ -12,3 +12,7 @@ references/
 
 # Python bytecode from importing the Blender model scripts
 __pycache__/
+
+# Local Blender working files (.blend): large and may pack reference images, never committed.
+# Models ship as OBJ/PNG rebuilt by the scripts in tools/blender.
+blender/

@@ -200,6 +200,33 @@ namespace MysticalWeapons
             Quad(sub, last[0], last[1], last[2], last[3]);
         }
 
+        /// <summary>
+        /// A new builder holding this one's submeshes followed by each of <paramref name="parts"/>' (moved by
+        /// its offset), textures included. Used to draw an icon of a model made of several pieces.
+        /// </summary>
+        public MeshBuilder Combine(params (MeshBuilder part, Vector3 offset)[] parts)
+        {
+            var all = new List<(MeshBuilder part, Vector3 offset)> { (this, Vector3.zero) };
+            all.AddRange(parts);
+            var count = 0;
+            foreach (var (part, _) in all) count += part.Tris.Length;
+            var result = new MeshBuilder(count) { Textures = new Texture2D[count] };
+            var sub = 0;
+            foreach (var (part, offset) in all)
+            {
+                var first = result.Verts.Count;
+                foreach (var v in part.Verts) result.Verts.Add(v + offset);
+                result.Normals.AddRange(part.Normals);
+                result.Uvs.AddRange(part.Uvs);
+                for (var i = 0; i < part.Tris.Length; i++, sub++)
+                {
+                    foreach (var t in part.Tris[i]) result.Tris[sub].Add(first + t);
+                    if (part.Textures != null && i < part.Textures.Length) result.Textures[sub] = part.Textures[i];
+                }
+            }
+            return result;
+        }
+
         public Mesh ToMesh(string name)
         {
             var mesh = new Mesh { name = name + "_mesh" };
