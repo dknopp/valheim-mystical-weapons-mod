@@ -24,7 +24,14 @@ balance; `building-items.md` for process and lessons from earlier items). Use wh
 aren't rules for the repo.
 
 ## Workflow
-- One branch per change, merged through a pull request.
+- One branch per change, merged through a pull request into `develop`. `main` only takes PRs
+  from `develop` (enforced by `.github/workflows/restrict-main-merges.yml`).
+- PRs need a signed STAR review (https://github.com/dknopp/star): after pushing your latest
+  commit, run `/star-command:review <pr>`. It needs the Star Command plugin, the GitHub CLI, and
+  your SSH key registered on GitHub as a *signing* key. The Stargate check only accepts a report
+  for the PR's head commit, so re-run the review after every push.
+- The reviewers are the personas in `.claude/review-personas/` (shared context in `_context.md`).
+  Reviews use the personas on the PR's base branch, so persona changes apply from the next PR.
 - Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
 
 ## Rules
