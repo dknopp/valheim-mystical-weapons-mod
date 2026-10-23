@@ -25,7 +25,7 @@ namespace MysticalWeapons.Weapons
             "the air beside you as a ribbon of light. Life before death.";
 
         // Mistlands, beside the Carapace spear (115 pierce)
-        protected override string DefaultDamage => "pierce:110,lightning:30";
+        protected override string DefaultDamage => "pierce:110,lightning:30,chop:100,pickaxe:80";
         protected override string DefaultDamagePerLevel => "pierce:6,lightning:3";
         protected override string DefaultRecipe => "Silver:10,Eitr:10,Crystal:8,Wisp:3"; // wisps, the nearest thing to spren
         protected override string DefaultStation => "blackforge";
@@ -64,6 +64,8 @@ namespace MysticalWeapons.Weapons
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
             shared.m_useDurability = false; // a spren does not wear out
+            shared.m_weight = 0f;           // summoned from Syl, not carried
+            shared.m_toolTier = 4;          // like a Shardblade: fells any tree and breaks any rock
             shared.m_attackForce = 40f;
 
             _windrunner = ScriptableObject.CreateInstance<SE_Stats>();
