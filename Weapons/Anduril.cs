@@ -48,7 +48,7 @@ namespace MysticalWeapons.Weapons
             _summonEitr = cfg.Bind(PrefabName, "SummonEitr", 0f,
                 "Eitr used per summon (the Dead Raiser uses 100, and 40% of your health). Restart to apply.");
             _spiritColor = cfg.Bind(PrefabName, "SpiritColor", new Color(0.45f, 0.85f, 0.6f, 0.6f),
-                "Colour of the summoned spirits (alpha = how solid, if the ghost material uses it). Restart to apply.");
+                "Colour of the summoned spirits (alpha = how solid: 0 unseen, 1 solid). Restart to apply.");
         }
 
         private const int Steel = 0, Hilt = 1, Grip = 2, Runes = 3;
@@ -73,7 +73,6 @@ namespace MysticalWeapons.Weapons
         private const string SpiritName = "AndurilSpirit";
         private GameObject _summonObject;
         private GameObject _spirit;
-        private bool _ghosted;
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
@@ -118,6 +117,7 @@ namespace MysticalWeapons.Weapons
             }
 
             _spirit = CloneVanilla(creature, SpiritName);
+            ModelUtil.MakeSpectral(_spirit, _spiritColor.Value, SpiritName, new System.Collections.Generic.Dictionary<Material, Material>());
             ability.m_spawnPrefab = new[] { _spirit };
             ability.m_setMaxInstancesFromWeaponLevel = false;
             ability.m_maxSpawned = Mathf.Max(1, _maxSpirits.Value);
@@ -148,11 +148,6 @@ namespace MysticalWeapons.Weapons
             if (_summonObject.GetComponent<ZNetView>()) RegisterNetPrefab(scene, _summonObject);
             if (!RegisterNetPrefab(scene, _spirit))
                 Plugin.Log.LogWarning($"{PrefabName}: another mod already adds a prefab named '{SpiritName}'");
-            if (_ghosted) return;
-            _ghosted = true;
-            // The ghost creature is only in the ZNetScene, so the spirits turn see-through here
-            var mat = ModelUtil.GhostMaterial(scene, _spiritColor.Value, SpiritName);
-            if (mat) ModelUtil.SetAllMaterials(_spirit, mat);
         }
 
         public override void BuildModel(MeshBuilder b)
