@@ -6,8 +6,9 @@ using UnityEngine;
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
-    /// The Elder Wand, the Deathstick. Held in one hand and jabbed like the butcher knife, its attack looses the Staff
-    /// of Embers' fireball, slow to gather but far stronger; its secondary attack is Dundr's spray of lightning, also stronger.
+    /// The Elder Wand, the Deathstick. Held in one hand and jabbed like the butcher knife, its attack looses Dundr's
+    /// spray of lightning, stronger than Dundr's but slow to gather; its secondary attack summons the Staff of the
+    /// Wild's roots.
     /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
     /// stamina instead of eitr so anyone can wield it.
     /// </summary>
@@ -26,9 +27,9 @@ namespace MysticalWeapons.Hallows
             "Wand of Destiny - unbeatable, they say, in the hand of its true master. It knows one " +
             "curse, and it does not miss twice.";
 
-        // The fireball: twice the Staff of Embers (120 blunt + 120 fire, Mistlands), one every SpellCooldown, Deep North tier
-        protected override string DefaultDamage => "blunt:240,fire:240";
-        protected override string DefaultDamagePerLevel => "blunt:10,fire:10";
+        // Each of the lightning spray's 12 bolts: Dundr's do 20 (Ashlands); one spray every SpellCooldown, Deep North tier
+        protected override string DefaultDamage => "lightning:35";
+        protected override string DefaultDamagePerLevel => "lightning:4";
         // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
         protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
         protected override string DefaultStation => "piece_magetable";
@@ -37,8 +38,6 @@ namespace MysticalWeapons.Hallows
         private ConfigEntry<float> _eitrCost;
         private ConfigEntry<float> _staminaCost;
         private static ConfigEntry<float> _cooldown;
-        private ConfigEntry<string> _lightningDamage;
-        private ConfigEntry<string> _lightningDamagePerLevel;
         private static ConfigEntry<bool> _blockShield;
         private static ConfigEntry<float> _shieldCooldown;
 
@@ -47,11 +46,8 @@ namespace MysticalWeapons.Hallows
             base.BindConfig(cfg);
             _eitrCost = cfg.Bind(PrefabName, "EitrCost", 0f, "Eitr used per spell (vanilla staffs use eitr).");
             _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 20f, "Stamina used per spell.");
-            _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.25f, "Seconds the wand needs to gather power between fireballs.");
-            _lightningDamage = cfg.Bind(PrefabName, "LightningDamage", "lightning:35",
-                "Secondary attack (Dundr's spray of 12 bolts): damage of each bolt. Dundr's is 20. Restart to apply.");
-            _lightningDamagePerLevel = cfg.Bind(PrefabName, "LightningDamagePerLevel", "lightning:4",
-                "Secondary attack: extra damage per bolt per upgrade level. Restart to apply.");
+            _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.25f,
+                "Seconds the wand needs to gather power between lightning sprays (Damage above is per bolt, 12 a spray).");
             _blockShield = cfg.Bind(PrefabName, "ShieldOnBlock", true,
                 "Raising the wand to block puts up the Staff of Protection's shield around you (it grows with Elemental magic).");
             _shieldCooldown = cfg.Bind(PrefabName, "ShieldCooldown", 20f, "Seconds before blocking can put up another shield.");
@@ -77,7 +73,7 @@ namespace MysticalWeapons.Hallows
                 attack.m_attackHealth = 0f;
                 attack.m_attackHealthPercentage = 0f;
             }
-            // The fireball is cast at once, never drawn or reloaded: no loading bar
+            // The jab casts at once, never drawn or reloaded: no loading bar
             if (shared.m_attack != null)
             {
                 shared.m_attack.m_bowDraw = false;
@@ -96,94 +92,97 @@ namespace MysticalWeapons.Hallows
 
         // ------------------------------------------------------------- spells
 
-        private const string FireballSource = "StaffFireball"; // the Staff of Embers
         private const string LightningSource = "StaffLightning"; // Dundr
-        private static HitData.DamageTypes _fireballDamage, _fireballPerLevel, _boltDamage, _boltPerLevel;
+        private const string RootsSource = "StaffGreenRoots";    // the Staff of the Wild
+        private static HitData.DamageTypes _boltDamage, _boltPerLevel, _rootsDamage, _rootsPerLevel;
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
-            _fireballDamage = shared.m_damages;
-            _fireballPerLevel = shared.m_damagesPerLevel;
-            _boltDamage = ParseDamage(_lightningDamage.Value);
-            _boltPerLevel = ParseDamage(_lightningDamagePerLevel.Value);
-            LoadFireball(shared);
+            _boltDamage = shared.m_damages;
+            _boltPerLevel = shared.m_damagesPerLevel;
             LoadLightning(shared);
+            LoadRoots(shared);
         }
 
-        /// <summary>A copy of a vanilla staff's primary attack, or null (logged) if it has none that fires.</summary>
-        private Attack Borrow(string staffName, string use)
+        /// <summary>
+        /// A copy of a vanilla staff's primary attack and that staff's damage, or null (logged) if it has no attack
+        /// that casts something (a projectile, or an object it spawns).
+        /// </summary>
+        private Attack Borrow(string staffName, string use, out ItemDrop.ItemData.SharedData staffData)
         {
             var staff = FindVanilla(staffName);
-            var attack = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
-            if (attack != null && attack.m_attackProjectile) return attack.Clone();
+            staffData = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared : null;
+            var attack = staffData?.m_attack;
+            if (attack != null && (attack.m_attackProjectile || attack.m_spawnOnTrigger)) return attack.Clone();
             Plugin.Log.LogWarning($"{PrefabName}: no '{staffName}' to borrow {use} from");
             return null;
         }
 
         /// <summary>
-        /// The attack keeps the source item's animation and hold (the butcher knife's jab), with the Staff of Embers'
-        /// fireball loaded in: a projectile attack, launched from where the staff launches it, flying and sounding like
-        /// it. <see cref="FireballCooldownPatch"/> lets a fireball fly once per cooldown, however fast the jabs come.
+        /// The attack keeps the source item's animation and hold (the butcher knife's jab), with Dundr's lightning
+        /// loaded in: a projectile attack, launched from where the staff launches it, flying and sounding like it.
+        /// <see cref="SprayCooldownPatch"/> lets a spray fly once per cooldown, however fast the jabs come.
         /// </summary>
-        private void LoadFireball(ItemDrop.ItemData.SharedData shared)
-        {
-            var fireball = Borrow(FireballSource, "the fireball");
-            if (fireball == null || shared.m_attack == null || SourceName == FireballSource) return;
-            var cast = shared.m_attack.Clone();
-            cast.m_attackType = fireball.m_attackType;
-            cast.m_attackOriginJoint = fireball.m_attackOriginJoint;
-            cast.m_attackHeight = fireball.m_attackHeight;
-            cast.m_attackRange = fireball.m_attackRange;
-            cast.m_attackOffset = fireball.m_attackOffset;
-            cast.m_useCharacterFacing = fireball.m_useCharacterFacing;
-            cast.m_useCharacterFacingYAim = fireball.m_useCharacterFacingYAim;
-            cast.m_damageMultiplier = fireball.m_damageMultiplier;
-            cast.m_lastChainDamageMultiplier = 1f; // every jab of the knife's combo looses the same fireball
-            cast.m_raiseSkillAmount = fireball.m_raiseSkillAmount;
-            cast.m_attackProjectile = fireball.m_attackProjectile;
-            cast.m_projectiles = fireball.m_projectiles;
-            cast.m_projectileBursts = fireball.m_projectileBursts;
-            cast.m_burstInterval = fireball.m_burstInterval;
-            cast.m_projectileVel = fireball.m_projectileVel;
-            cast.m_projectileVelMin = fireball.m_projectileVelMin;
-            cast.m_randomVelocity = fireball.m_randomVelocity;
-            cast.m_projectileAccuracy = fireball.m_projectileAccuracy;
-            cast.m_projectileAccuracyMin = fireball.m_projectileAccuracyMin;
-            cast.m_launchAngle = fireball.m_launchAngle;
-            cast.m_startEffect = fireball.m_startEffect;
-            cast.m_triggerEffect = fireball.m_triggerEffect;
-            cast.m_burstEffect = fireball.m_burstEffect;
-            shared.m_attack = cast;
-            _fireballProjectile = cast.m_attackProjectile;
-            Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' animation ('{cast.m_attackAnimation}', looping {cast.m_loopingAttack}) " +
-                               $"with the fireball of '{FireballSource}' ('{fireball.m_attackProjectile.name}')");
-        }
-
-        /// <summary>The secondary attack is a copy of Dundr's, cast at once; it gets its own lightning damage.</summary>
         private void LoadLightning(ItemDrop.ItemData.SharedData shared)
         {
-            var lightning = Borrow(LightningSource, "the lightning");
-            if (lightning == null) return;
+            var spray = Borrow(LightningSource, "the lightning", out _);
+            if (spray == null || shared.m_attack == null || SourceName == LightningSource) return;
+            var cast = shared.m_attack.Clone();
+            cast.m_attackType = spray.m_attackType;
+            cast.m_attackOriginJoint = spray.m_attackOriginJoint;
+            cast.m_attackHeight = spray.m_attackHeight;
+            cast.m_attackRange = spray.m_attackRange;
+            cast.m_attackOffset = spray.m_attackOffset;
+            cast.m_useCharacterFacing = spray.m_useCharacterFacing;
+            cast.m_useCharacterFacingYAim = spray.m_useCharacterFacingYAim;
+            cast.m_damageMultiplier = spray.m_damageMultiplier;
+            cast.m_lastChainDamageMultiplier = 1f; // every jab of the knife's combo looses the same spray
+            cast.m_raiseSkillAmount = spray.m_raiseSkillAmount;
+            cast.m_attackProjectile = spray.m_attackProjectile;
+            cast.m_projectiles = spray.m_projectiles;
+            cast.m_projectileBursts = spray.m_projectileBursts;
+            cast.m_burstInterval = spray.m_burstInterval;
+            cast.m_projectileVel = spray.m_projectileVel;
+            cast.m_projectileVelMin = spray.m_projectileVelMin;
+            cast.m_randomVelocity = spray.m_randomVelocity;
+            cast.m_projectileAccuracy = spray.m_projectileAccuracy;
+            cast.m_projectileAccuracyMin = spray.m_projectileAccuracyMin;
+            cast.m_launchAngle = spray.m_launchAngle;
+            cast.m_startEffect = spray.m_startEffect;
+            cast.m_triggerEffect = spray.m_triggerEffect;
+            cast.m_burstEffect = spray.m_burstEffect;
+            shared.m_attack = cast;
+            _sprayProjectile = cast.m_attackProjectile;
+            Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' animation ('{cast.m_attackAnimation}', looping {cast.m_loopingAttack}) " +
+                               $"with the lightning of '{LightningSource}' ('{spray.m_attackProjectile.name}', {spray.m_projectiles} per cast)");
+        }
+
+        /// <summary>The secondary attack is a copy of the Staff of the Wild's, with that staff's own damage, cast at once.</summary>
+        private void LoadRoots(ItemDrop.ItemData.SharedData shared)
+        {
+            var roots = Borrow(RootsSource, "the roots", out var staffData);
+            if (roots == null) return;
             // The game only charges and reloads a weapon's primary attack: a secondary that must be charged never
-            // charges (its bolts fly at a 0% charge's speed, none), and one that must be reloaded never loads, so it
-            // never starts. Cast it at once instead.
-            lightning.m_bowDraw = false;
-            lightning.m_requiresReload = false;
-            shared.m_secondaryAttack = lightning;
-            Plugin.Log.LogInfo($"{PrefabName}: secondary is the lightning of '{LightningSource}' ('{lightning.m_attackProjectile.name}', " +
-                               $"{lightning.m_projectiles} per cast, animation '{lightning.m_attackAnimation}')");
+            // charges, and one that must be reloaded never loads, so it never starts. Cast it at once instead.
+            roots.m_bowDraw = false;
+            roots.m_requiresReload = false;
+            shared.m_secondaryAttack = roots;
+            _rootsDamage = staffData.m_damages;
+            _rootsPerLevel = staffData.m_damagesPerLevel;
+            var cast = roots.m_attackProjectile ? roots.m_attackProjectile : roots.m_spawnOnTrigger;
+            Plugin.Log.LogInfo($"{PrefabName}: secondary is the roots of '{RootsSource}' ('{cast.name}', animation '{roots.m_attackAnimation}')");
         }
 
         private static float _nextCast;
-        private static GameObject _fireballProjectile;
+        private static GameObject _sprayProjectile;
         private static readonly AccessTools.FieldRef<Attack, Humanoid> AttackCharacter =
             AccessTools.FieldRefAccess<Attack, Humanoid>("m_character");
 
         /// <summary>
         /// The game reads a weapon's damage when its spell flies, and the wand has one damage for both attacks, so
-        /// swap in the fireball's or the lightning's as an attack starts. Only the caster's client starts attacks;
-        /// the projectiles sync to everyone.
+        /// swap in the lightning's or the roots' as an attack starts. Only the caster's client starts attacks; what
+        /// they cast syncs to everyone.
         /// </summary>
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
         private static class CastPatch
@@ -193,22 +192,22 @@ namespace MysticalWeapons.Hallows
                 if (__instance != Player.m_localPlayer || __instance.InAttack()) return;
                 var wand = __instance.GetCurrentWeapon();
                 if (!DeathlyHallows.IsItem(wand, Name)) return;
-                wand.m_shared.m_damages = secondaryAttack ? _boltDamage : _fireballDamage;
-                wand.m_shared.m_damagesPerLevel = secondaryAttack ? _boltPerLevel : _fireballPerLevel;
+                wand.m_shared.m_damages = secondaryAttack ? _rootsDamage : _boltDamage;
+                wand.m_shared.m_damagesPerLevel = secondaryAttack ? _rootsPerLevel : _boltPerLevel;
             }
         }
 
         /// <summary>
-        /// Skips a fireball while the wand gathers power: staffs have no cooldown of their own to lengthen. The frost
-        /// cast keeps flicking while held, so held down it looses one fireball every SpellCooldown seconds. A skipped
-        /// burst costs nothing. Runs on the caster's client, where attacks run.
+        /// Skips a lightning spray while the wand gathers power: staffs have no cooldown of their own to lengthen, so
+        /// however fast the jabs come, one spray flies every SpellCooldown seconds. A skipped burst costs nothing.
+        /// Runs on the caster's client, where attacks run.
         /// </summary>
         [HarmonyPatch(typeof(Attack), "FireProjectileBurst")]
-        private static class FireballCooldownPatch
+        private static class SprayCooldownPatch
         {
             private static bool Prefix(Attack __instance)
             {
-                if (_cooldown == null || !_fireballProjectile || __instance.m_attackProjectile != _fireballProjectile) return true;
+                if (_cooldown == null || !_sprayProjectile || __instance.m_attackProjectile != _sprayProjectile) return true;
                 if (AttackCharacter(__instance) != Player.m_localPlayer) return true;
                 if (Time.time < _nextCast) return false;
                 _nextCast = Time.time + _cooldown.Value;
