@@ -6,8 +6,8 @@ namespace MysticalWeapons.Weapons
 {
     /// <summary>
     /// Klingon bat'leth (Star Trek). A crescent blade held by a grip on its back. Battle excites its
-    /// wielder: it carries its own adrenaline bar (like a trinket), filled by hits and kills, and when
-    /// full the Klingon fights on with "A good day to die".
+    /// wielder: it carries its own adrenaline bar (like a trinket), filled by hits, kills, blocks, parries and
+    /// dodges, and when full the Klingon fights on with "A good day to die".
     /// </summary>
     internal class Batleth : MysticalWeapon
     {
@@ -39,6 +39,9 @@ namespace MysticalWeapons.Weapons
         private ConfigEntry<float> _hitAdrenaline;
         private static ConfigEntry<float> _killAdrenaline;
         private ConfigEntry<float> _furyDuration;
+        private ConfigEntry<float> _blockAdrenaline;
+        private ConfigEntry<float> _parryAdrenaline;
+        private static ConfigEntry<float> _dodgeAdrenaline;
         private ConfigEntry<float> _furyStamina;
         private ConfigEntry<float> _furyDamage;
 
@@ -46,12 +49,17 @@ namespace MysticalWeapons.Weapons
         {
             base.BindConfig(cfg);
             _fury = cfg.Bind(PrefabName, "GoodDayToDie", true,
-                "Holding the bat'leth gives you an adrenaline bar, filled by its hits and kills; when full you get " +
+                "Holding the bat'leth gives you an adrenaline bar, filled by its hits and kills and by blocking, parrying and dodging; when full you get " +
                 "\"A good day to die\". It shares the bar with a worn trinket. Restart to apply.");
-            _maxAdrenaline = cfg.Bind(PrefabName, "MaxAdrenaline", 30f, "Adrenaline needed for \"A good day to die\". Restart to apply.");
-            _hitAdrenaline = cfg.Bind(PrefabName, "HitAdrenaline", 2f, "Adrenaline per hit with the bat'leth. Restart to apply.");
-            _killAdrenaline = cfg.Bind(PrefabName, "KillAdrenaline", 8f, "Extra adrenaline when the bat'leth's blow kills a creature.");
-            _furyDuration = cfg.Bind(PrefabName, "GoodDayToDieDuration", 15f, "Seconds \"A good day to die\" lasts. Restart to apply.");
+            _maxAdrenaline = cfg.Bind(PrefabName, "MaxAdrenaline", 20f, "Adrenaline needed for \"A good day to die\". Restart to apply.");
+            _hitAdrenaline = cfg.Bind(PrefabName, "HitAdrenaline", 3f, "Adrenaline per hit with the bat'leth. Restart to apply.");
+            _killAdrenaline = cfg.Bind(PrefabName, "KillAdrenaline", 10f, "Extra adrenaline when the bat'leth's blow kills a creature.");
+            _furyDuration = cfg.Bind(PrefabName, "GoodDayToDieDuration", 30f, "Seconds \"A good day to die\" lasts. Restart to apply.");
+            _blockAdrenaline = cfg.Bind(PrefabName, "BlockAdrenaline", 8f, "Adrenaline when you block a blow with the bat'leth. Restart to apply.");
+            _parryAdrenaline = cfg.Bind(PrefabName, "ParryAdrenaline", 12f,
+                "Adrenaline when you parry a blow with the bat'leth (a block just as it lands). Restart to apply.");
+            _dodgeAdrenaline = cfg.Bind(PrefabName, "DodgeAdrenaline", 7f,
+                "Extra adrenaline when you dodge through a blow with the bat'leth in hand (a plain roll gives none, as in vanilla).");
             _furyStamina = cfg.Bind(PrefabName, "GoodDayToDieStamina", 50f,
                 "Stamina restored at once when \"A good day to die\" starts. Restart to apply.");
             _furyDamage = cfg.Bind(PrefabName, "GoodDayToDieDamage", 0.2f,
@@ -84,6 +92,9 @@ namespace MysticalWeapons.Weapons
             // item's "full adrenaline" effect when the bar fills
             shared.m_maxAdrenaline = _maxAdrenaline.Value;
             shared.m_fullAdrenalineSE = _goodDay;
+            // The game reads these from the item that blocks, which for a two-hander is the weapon itself
+            shared.m_blockAdrenaline = _blockAdrenaline.Value;
+            shared.m_perfectBlockAdrenaline = _parryAdrenaline.Value;
             foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
                 if (attack != null) attack.m_attackAdrenaline = _hitAdrenaline.Value;
         }
@@ -103,6 +114,22 @@ namespace MysticalWeapons.Weapons
         /// creature dies (its owner's client), so the weapon comes from the attacker's synced equipment and the
         /// adrenaline goes over the same RPC the game uses for staggering an enemy.
         /// </summary>
+        /// <summary>
+        /// Dodging through a blow ("hit while dodging", vanilla's perfect dodge) with the bat'leth in hand adds its
+        /// own adrenaline on top of the game's. The game sends this RPC to the dodging player's client.
+        /// </summary>
+        [HarmonyPatch(typeof(Player), "RPC_HitWhileDodging")]
+        private static class DodgePatch
+        {
+            private static void Postfix(Player __instance)
+            {
+                if (_dodgeAdrenaline == null || _dodgeAdrenaline.Value <= 0f || __instance != Player.m_localPlayer) return;
+                var weapon = __instance.GetCurrentWeapon();
+                if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != Name) return;
+                __instance.AddAdrenaline(_dodgeAdrenaline.Value);
+            }
+        }
+
         [HarmonyPatch(typeof(Character), "OnDeath")]
         private static class KillPatch
         {
