@@ -23,7 +23,7 @@ namespace MysticalWeapons.Weapons
 
         protected override string DefaultDamage => "slash:80,pierce:20";
         protected override string DefaultDamagePerLevel => "slash:6";
-        protected override string DefaultRecipe => "Iron:20,FineWood:6,LeatherScraps:6";
+        protected override string DefaultRecipe => "Iron:50,FineWood:10,LeatherScraps:8"; // the Battleaxe is Iron 35, Ancient bark 30
         protected override int DefaultStationLevel => 2;
         protected override float ModelScale => 0.9f;
         public override float IconAngle => 90f; // cutting edge up
