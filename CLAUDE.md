@@ -11,13 +11,15 @@ items tables current when items change. Developer docs are in `docs/`.
   `ObjectDB.Awake`/`CopyOtherDB` and `ZNetScene.Awake` register prefabs and recipes. Each item's
   registration runs inside `Guard` so one broken item can't break the game's startup.
 - `Core/MysticalItem.cs`: base class. Clones a vanilla prefab (`SourcePrefabs`), renames it to
-  `PrefabName`, calls `Setup`/`Customize`, binds the common config (enabled, recipe, station).
+  `PrefabName`, calls `Setup`/`Customize`, binds the common config (enabled, recipe, station, boss
+  trophy: the `BossTrophies` table gates the items stronger than their tier). `CloneVanilla` and
+  `RegisterNetExtras` copy and register prefabs an item spawns (creatures, projectiles).
 - `Core/MysticalWeapon.cs`: items with a code-built model (`BuildModel`, `Materials`) and damage config.
   A `models/<PrefabName>.obj` next to the DLL replaces the code-built model at load.
 - `Core/MysticalArmor.cs`: recoloured vanilla armor; rigid pieces (helmets) can take a custom OBJ.
 - `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
 - Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
-  dual-wield hands and back holster, materials, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
+  dual-wield hands and back holster, materials, see-through `SpectralMaterial`, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
   vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
   vanilla peers).
 - `Properties/AssemblyInfo.cs`: exposes internals to `tools/ModelExporter`.
@@ -49,7 +51,8 @@ items tables current when items change. Developer docs are in `docs/`.
 ## Adding an item
 Follow "Adding an item" in `docs/contributing.md`, add it to `Plugin.Items`, then add a row to the
 README items tables. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
-extra settings via `BindConfig`, Harmony patches nested in the item class.
+extra settings via `BindConfig`, Harmony patches nested in the item class. Lessons from earlier items
+(borrowed attacks, status effects, multiplayer) are under "Lessons" in `docs/building-items.md`.
 
 ## Conventions
 - Match the surrounding code: terse `///` summaries on classes and non-obvious members, short
