@@ -8,7 +8,7 @@ namespace = "OldManMods"
 name = "MysticalWeapons"
 # Placeholder: CI passes Version from Plugin.cs
 versionNumber = "0.0.0"
-description = "Provides ;egendary weapons and armor from other worlds. Check out the project's README to see the full list."
+description = "Provides legendary weapons and armor from other worlds. Check out the project's README to see the full list."
 websiteUrl = "https://github.com/dknopp/valheim-mystical-weapons-mod"
 containsNsfwContent = false
 
