@@ -34,7 +34,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 |---|---|---|
 | **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
 | **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
-| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
+| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you), and you fade to a dark, see-through blue shade that every player can see. | Workbench 4 |
 
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
 resistant to poison, immune to spirit damage.
@@ -88,8 +88,6 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
  - Rebalance existing weapons to make sure they're well aligned with natural game progression
  - Experiment with Shardplate - can the full set cause the character size to increase by 25%?. Can we add a storm
    and/or electricity animation when attacking?
- - Invisibility cloak currently gives a player infinite stealth while crouched but doesn't have an visual effects
-   indicating invisibility - can we swap the player model for a dark ethereal and translucent blue while crouched?
  - It might be more interesting if the elder wand cycled through various spells as you attacked. The spell casting
    could also be slow but powerful to match the "power" of the elder wand without being unfair.
  - Sylspear could be more powerful and later in the game. It also might be cool if when sheathed with 'r' instead
