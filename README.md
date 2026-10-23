@@ -14,7 +14,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | From | What it does | Crafted at |
 |---|---|---|---|
-| **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
+| **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). Battle excites a Klingon: held, it gives you an adrenaline bar that its hits and kills fill, and when full **A good day to die** restores 50 stamina and, for 15 s, makes axe attacks cost half the stamina and deal 20% more damage. | Forge 2 |
 | **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
 | **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
 | **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
