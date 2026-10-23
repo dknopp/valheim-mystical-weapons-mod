@@ -1,11 +1,15 @@
+using System.Collections.Generic;
 using BepInEx.Configuration;
+using HarmonyLib;
 using UnityEngine;
 
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
     /// The Elder Wand, the Deathstick. Built on a Mistlands staff so it casts spell bolts,
-    /// but by default it runs on stamina instead of eitr so anyone can wield it.
+    /// but by default it runs on stamina instead of eitr so anyone can wield it. Each cast moves on
+    /// to the next spell (bolts, a fireball, a burst of lightning, borrowed from the vanilla staffs),
+    /// and spells are slow to gather but hit harder.
     /// </summary>
     internal class ElderWand : MysticalWeapon
     {
@@ -24,12 +28,27 @@ namespace MysticalWeapons.Hallows
 
         private ConfigEntry<float> _eitrCost;
         private ConfigEntry<float> _staminaCost;
+        private ConfigEntry<bool> _cycle;
+        private ConfigEntry<string> _confringoDamage;
+        private ConfigEntry<string> _expulsoDamage;
+        private static ConfigEntry<float> _spellPower;
+        private static ConfigEntry<float> _cooldown;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
             _eitrCost = cfg.Bind(PrefabName, "EitrCost", 0f, "Eitr used per spell (vanilla staffs use eitr).");
             _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 4f, "Stamina used per spell.");
+            _cycle = cfg.Bind(PrefabName, "CycleSpells", true,
+                "Each cast moves on to the next spell: Stupefy (bolts, the Damage above), Confringo (a fireball) and " +
+                "Expulso (a burst of lightning). Off = Stupefy only. Restart to apply.");
+            _confringoDamage = cfg.Bind(PrefabName, "ConfringoDamage", "blunt:20,fire:25",
+                "Damage of Confringo, the fireball (it bursts on impact, like the Staff of Embers'). Restart to apply.");
+            _expulsoDamage = cfg.Bind(PrefabName, "ExpulsoDamage", "lightning:5",
+                "Damage of each of Expulso's bolts (a short-range spray, like Dundr's). Restart to apply.");
+            _spellPower = cfg.Bind(PrefabName, "SpellPower", 2f,
+                "Every spell's damage is multiplied by this, to make up for the time between spells.");
+            _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.5f, "Seconds the wand needs to gather power between spells.");
         }
 
         private const int Wood = 0, Knot = 1;
@@ -42,7 +61,7 @@ namespace MysticalWeapons.Hallows
 
         private SE_Stats _wandEffect;
 
-        protected override void Customize(ItemDrop.ItemData.SharedData shared)
+        private void CustomizeWand(ItemDrop.ItemData.SharedData shared)
         {
             foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
             {
@@ -59,6 +78,92 @@ namespace MysticalWeapons.Hallows
         }
 
         public override void RegisterExtras(ObjectDB db) => DeathlyHallows.Register(db, _wandEffect);
+
+        // ------------------------------------------------------------- spells
+
+        private class Spell
+        {
+            public string Name;
+            public Attack Attack;
+            public HitData.DamageTypes Damage;
+        }
+
+        private static readonly List<Spell> Spells = new List<Spell>();
+        private static int _nextSpell;
+        private static float _nextCast;
+
+        protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            base.Setup(prefab, shared);
+            Spells.Clear();
+            Spells.Add(new Spell { Name = "Stupefy", Attack = shared.m_attack, Damage = shared.m_damages });
+            if (!_cycle.Value) return;
+            AddSpell("Confringo", "StaffFireball", _confringoDamage.Value);
+            AddSpell("Expulso", "StaffLightning", _expulsoDamage.Value); // Dundr
+        }
+
+        /// <summary>A spell that casts like a vanilla staff's primary attack, with our damage and costs.</summary>
+        private void AddSpell(string name, string staffName, string damage)
+        {
+            var staff = FindVanilla(staffName);
+            var source = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
+            if (source == null || !source.m_attackProjectile)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: no '{staffName}' to borrow {name} from; the wand skips it");
+                return;
+            }
+            Spells.Add(new Spell { Name = name, Attack = source.Clone(), Damage = ParseDamage(damage) });
+            Plugin.Log.LogInfo($"{PrefabName}: {name} cast like '{staffName}' (projectile '{source.m_attackProjectile.name}', " +
+                               $"animation '{source.m_attackAnimation}', {source.m_projectiles} per cast)");
+        }
+
+        protected override void Customize(ItemDrop.ItemData.SharedData shared)
+        {
+            foreach (var spell in Spells)
+            {
+                spell.Attack.m_attackEitr = _eitrCost.Value;
+                spell.Attack.m_attackStamina = _staminaCost.Value;
+                spell.Attack.m_attackHealth = 0f;
+                spell.Attack.m_attackHealthPercentage = 0f;
+            }
+            CustomizeWand(shared);
+        }
+
+        /// <summary>
+        /// Before the local player casts with the wand, swap in the next spell's attack and damage (the game
+        /// copies the attack when it starts, and reads the damage when the spell flies). Only the caster's client
+        /// starts attacks; the projectiles sync to everyone.
+        /// </summary>
+        [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
+        private static class CastPatch
+        {
+            private static bool Prefix(Humanoid __instance, bool secondaryAttack, ref bool __result, out Spell __state)
+            {
+                __state = null;
+                if (secondaryAttack || Spells.Count == 0 || __instance != Player.m_localPlayer) return true;
+                var wand = __instance.GetCurrentWeapon();
+                if (wand?.m_dropPrefab == null || wand.m_dropPrefab.name != "ElderWand" || __instance.InAttack()) return true;
+                // Skips the cast while the wand gathers power: staffs have no cooldown of their own to lengthen
+                if (Time.time < _nextCast)
+                {
+                    __result = false;
+                    return false;
+                }
+                __state = Spells[_nextSpell % Spells.Count];
+                wand.m_shared.m_attack = __state.Attack;
+                wand.m_shared.m_damages = __state.Damage;
+                __state.Attack.m_damageMultiplier = _spellPower.Value;
+                return true;
+            }
+
+            private static void Postfix(Humanoid __instance, bool __result, Spell __state)
+            {
+                if (__state == null || !__result) return;
+                _nextSpell = (_nextSpell + 1) % Spells.Count;
+                _nextCast = Time.time + _cooldown.Value;
+                __instance.Message(MessageHud.MessageType.TopLeft, __state.Name + "!");
+            }
+        }
 
         private static float ShaftRadius(float y) => Mathf.Lerp(0.0095f, 0.0045f, Mathf.InverseLerp(0.04f, 0.33f, y));
 

@@ -32,7 +32,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | What it does | Crafted at |
 |---|---|---|
-| **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
+| **The Elder Wand** | Cycles through three spells as you cast: **Stupefy** (bolts, based on the Staff of Frost), **Confringo** (a fireball, like the Staff of Embers) and **Expulso** (a spray of lightning, like Dundr). Each spell takes a moment to gather but hits twice as hard. Uses stamina instead of eitr by default. No durability. | Workbench 4 |
 | **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
 | **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
 
@@ -91,8 +91,6 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
    and/or electricity animation when attacking?
  - Invisibility cloak currently gives a player infinite stealth while crouched but doesn't have an visual effects
    indicating invisibility - can we swap the player model for a dark ethereal and translucent blue while crouched?
- - It might be more interesting if the elder wand cycled through various spells as you attacked. The spell casting
-   could also be slow but powerful to match the "power" of the elder wand without being unfair.
  - Sylspear could be more powerful and later in the game. It also might be cool if when sheathed with 'r' instead
    of being placed on the players back it transforms into a whisplight to simulate a spren. The modifiers could be
    adjusted too, slower fall speed, and higher jump might be more windrunner-y.
