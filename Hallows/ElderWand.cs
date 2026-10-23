@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -6,23 +6,28 @@ using UnityEngine;
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
-    /// The Elder Wand, the Deathstick. Built on a Mistlands staff so it casts spell bolts,
-    /// but by default it runs on stamina instead of eitr so anyone can wield it. Each cast moves on
-    /// to the next spell (bolts, a fireball, a burst of lightning, borrowed from the vanilla staffs),
-    /// and spells are slow to gather but hit harder.
+    /// The Elder Wand, the Deathstick. Built on the Staff of Embers: its attack is the staff's fireball, slow to
+    /// gather but far stronger, and its secondary attack is Dundr's charged spray of lightning, also stronger.
+    /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
+    /// stamina instead of eitr so anyone can wield it.
     /// </summary>
     internal class ElderWand : MysticalWeapon
     {
-        public override string PrefabName => "ElderWand";
-        public override string[] SourcePrefabs => new[] { "StaffIceShards", "StaffFireball" };
+        private const string Name = "ElderWand";
+
+        public override string PrefabName => Name;
+        // The Staff of Embers first: its own attack is the fireball, with its animation and sounds
+        public override string[] SourcePrefabs => new[] { "StaffFireball", "StaffIceShards" };
         public override string VanillaPeer => "StaffThunderBlood"; // a Deep North staff
         public override string DisplayName => "The Elder Wand";
         public override string Description =>
             "Fifteen inches of elder wood, knotted like a string of beads. The Deathstick, the " +
-            "Wand of Destiny - unbeatable, they say, in the hand of its true master.";
+            "Wand of Destiny - unbeatable, they say, in the hand of its true master. It knows one " +
+            "curse, and it does not miss twice.";
 
-        protected override string DefaultDamage => "pierce:16,lightning:22";
-        protected override string DefaultDamagePerLevel => "pierce:2,lightning:3";
+        // The fireball: twice the Staff of Embers (120 blunt + 120 fire, Mistlands), one every SpellCooldown, Deep North tier
+        protected override string DefaultDamage => "blunt:240,fire:240";
+        protected override string DefaultDamagePerLevel => "blunt:10,fire:10";
         // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
         protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
         protected override string DefaultStation => "piece_magetable";
@@ -30,27 +35,25 @@ namespace MysticalWeapons.Hallows
 
         private ConfigEntry<float> _eitrCost;
         private ConfigEntry<float> _staminaCost;
-        private ConfigEntry<bool> _cycle;
-        private ConfigEntry<string> _confringoDamage;
-        private ConfigEntry<string> _expulsoDamage;
-        private static ConfigEntry<float> _spellPower;
         private static ConfigEntry<float> _cooldown;
+        private ConfigEntry<string> _lightningDamage;
+        private ConfigEntry<string> _lightningDamagePerLevel;
+        private static ConfigEntry<bool> _blockShield;
+        private static ConfigEntry<float> _shieldCooldown;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
             _eitrCost = cfg.Bind(PrefabName, "EitrCost", 0f, "Eitr used per spell (vanilla staffs use eitr).");
-            _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 4f, "Stamina used per spell.");
-            _cycle = cfg.Bind(PrefabName, "CycleSpells", true,
-                "Each cast moves on to the next spell: Stupefy (bolts, the Damage above), Confringo (a fireball) and " +
-                "Expulso (a burst of lightning). Off = Stupefy only. Restart to apply.");
-            _confringoDamage = cfg.Bind(PrefabName, "ConfringoDamage", "blunt:20,fire:25",
-                "Damage of Confringo, the fireball (it bursts on impact, like the Staff of Embers'). Restart to apply.");
-            _expulsoDamage = cfg.Bind(PrefabName, "ExpulsoDamage", "lightning:5",
-                "Damage of each of Expulso's bolts (a short-range spray, like Dundr's). Restart to apply.");
-            _spellPower = cfg.Bind(PrefabName, "SpellPower", 2f,
-                "Every spell's damage is multiplied by this, to make up for the time between spells.");
-            _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.5f, "Seconds the wand needs to gather power between spells.");
+            _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 20f, "Stamina used per spell.");
+            _cooldown = cfg.Bind(PrefabName, "SpellCooldown", 1.25f, "Seconds the wand needs to gather power between fireballs.");
+            _lightningDamage = cfg.Bind(PrefabName, "LightningDamage", "lightning:35",
+                "Secondary attack (Dundr's charged spray of 12 bolts): damage of each bolt. Dundr's is 20. Restart to apply.");
+            _lightningDamagePerLevel = cfg.Bind(PrefabName, "LightningDamagePerLevel", "lightning:4",
+                "Secondary attack: extra damage per bolt per upgrade level. Restart to apply.");
+            _blockShield = cfg.Bind(PrefabName, "ShieldOnBlock", true,
+                "Raising the wand to block puts up the Staff of Protection's shield around you (it grows with Elemental magic).");
+            _shieldCooldown = cfg.Bind(PrefabName, "ShieldCooldown", 20f, "Seconds before blocking can put up another shield.");
         }
 
         private const int Wood = 0, Knot = 1;
@@ -63,13 +66,22 @@ namespace MysticalWeapons.Hallows
 
         private SE_Stats _wandEffect;
 
-        private void CustomizeWand(ItemDrop.ItemData.SharedData shared)
+        protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
             foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
             {
                 if (attack == null) continue;
                 attack.m_attackEitr = _eitrCost.Value;
                 attack.m_attackStamina = _staminaCost.Value;
+                attack.m_attackHealth = 0f;
+                attack.m_attackHealthPercentage = 0f;
+                if (_eitrCost.Value <= 0f) attack.m_drawEitrDrain = 0f; // runs on stamina: charging Dundr's spray takes no eitr either
+            }
+            // The fireball is cast at once, never drawn or reloaded: no loading bar
+            if (shared.m_attack != null)
+            {
+                shared.m_attack.m_bowDraw = false;
+                shared.m_attack.m_requiresReload = false;
             }
             shared.m_useDurability = false; // the wand of destiny does not wear out
             shared.m_weight = 0.5f;
@@ -83,87 +95,103 @@ namespace MysticalWeapons.Hallows
 
         // ------------------------------------------------------------- spells
 
-        private class Spell
-        {
-            public string Name;
-            public Attack Attack;
-            public HitData.DamageTypes Damage;
-        }
+        private const string LightningSource = "StaffLightning"; // Dundr
+        private static HitData.DamageTypes _fireballDamage, _fireballPerLevel, _boltDamage, _boltPerLevel;
 
-        private static readonly List<Spell> Spells = new List<Spell>();
-        private static int _nextSpell;
-        private static float _nextCast;
-
+        /// <summary>The secondary attack is a copy of Dundr's, with its charge bar; it gets its own lightning damage.</summary>
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
-            Spells.Clear();
-            Spells.Add(new Spell { Name = "Stupefy", Attack = shared.m_attack, Damage = shared.m_damages });
-            if (!_cycle.Value) return;
-            AddSpell("Confringo", "StaffFireball", _confringoDamage.Value);
-            AddSpell("Expulso", "StaffLightning", _expulsoDamage.Value); // Dundr
-        }
+            _fireballDamage = shared.m_damages;
+            _fireballPerLevel = shared.m_damagesPerLevel;
+            _boltDamage = ParseDamage(_lightningDamage.Value);
+            _boltPerLevel = ParseDamage(_lightningDamagePerLevel.Value);
 
-        /// <summary>A spell that casts like a vanilla staff's primary attack, with our damage and costs.</summary>
-        private void AddSpell(string name, string staffName, string damage)
-        {
-            var staff = FindVanilla(staffName);
-            var source = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
+            var dundr = FindVanilla(LightningSource);
+            var source = dundr ? dundr.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
             if (source == null || !source.m_attackProjectile)
             {
-                Plugin.Log.LogWarning($"{PrefabName}: no '{staffName}' to borrow {name} from; the wand skips it");
+                Plugin.Log.LogWarning($"{PrefabName}: no '{LightningSource}' to borrow the lightning from; no secondary attack");
                 return;
             }
-            Spells.Add(new Spell { Name = name, Attack = source.Clone(), Damage = ParseDamage(damage) });
-            Plugin.Log.LogInfo($"{PrefabName}: {name} cast like '{staffName}' (projectile '{source.m_attackProjectile.name}', " +
-                               $"animation '{source.m_attackAnimation}', {source.m_projectiles} per cast)");
+            shared.m_secondaryAttack = source.Clone();
+            Plugin.Log.LogInfo($"{PrefabName}: attack is the fireball of '{SourceName}', secondary the lightning of '{LightningSource}' " +
+                               $"(projectile '{source.m_attackProjectile.name}', {source.m_projectiles} per cast)");
         }
 
-        protected override void Customize(ItemDrop.ItemData.SharedData shared)
-        {
-            foreach (var spell in Spells)
-            {
-                spell.Attack.m_attackEitr = _eitrCost.Value;
-                spell.Attack.m_attackStamina = _staminaCost.Value;
-                spell.Attack.m_attackHealth = 0f;
-                spell.Attack.m_attackHealthPercentage = 0f;
-            }
-            CustomizeWand(shared);
-        }
+        private static float _nextCast;
 
         /// <summary>
-        /// Before the local player casts with the wand, swap in the next spell's attack and damage (the game
-        /// copies the attack when it starts, and reads the damage when the spell flies). Only the caster's client
-        /// starts attacks; the projectiles sync to everyone.
+        /// The game reads a weapon's damage when its spell flies, and the wand has one damage for both attacks, so
+        /// swap in the fireball's or the lightning's as an attack starts. Skips a fireball while the wand gathers
+        /// power: staffs have no cooldown of their own to lengthen. Only the caster's client starts attacks; the
+        /// projectiles sync to everyone.
         /// </summary>
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
         private static class CastPatch
         {
-            private static bool Prefix(Humanoid __instance, bool secondaryAttack, ref bool __result, out Spell __state)
+            private static bool Prefix(Humanoid __instance, bool secondaryAttack, ref bool __result, out bool __state)
             {
-                __state = null;
-                if (secondaryAttack || Spells.Count == 0 || __instance != Player.m_localPlayer) return true;
+                __state = false;
+                if (_cooldown == null || __instance != Player.m_localPlayer) return true;
                 var wand = __instance.GetCurrentWeapon();
-                if (wand?.m_dropPrefab == null || wand.m_dropPrefab.name != "ElderWand" || __instance.InAttack()) return true;
-                // Skips the cast while the wand gathers power: staffs have no cooldown of their own to lengthen
+                if (!DeathlyHallows.IsItem(wand, Name) || __instance.InAttack()) return true;
+                if (secondaryAttack)
+                {
+                    wand.m_shared.m_damages = _boltDamage;
+                    wand.m_shared.m_damagesPerLevel = _boltPerLevel;
+                    return true;
+                }
                 if (Time.time < _nextCast)
                 {
                     __result = false;
                     return false;
                 }
-                __state = Spells[_nextSpell % Spells.Count];
-                wand.m_shared.m_attack = __state.Attack;
-                wand.m_shared.m_damages = __state.Damage;
-                __state.Attack.m_damageMultiplier = _spellPower.Value;
+                wand.m_shared.m_damages = _fireballDamage;
+                wand.m_shared.m_damagesPerLevel = _fireballPerLevel;
+                __state = true;
                 return true;
             }
 
-            private static void Postfix(Humanoid __instance, bool __result, Spell __state)
+            private static void Postfix(bool __result, bool __state)
             {
-                if (__state == null || !__result) return;
-                _nextSpell = (_nextSpell + 1) % Spells.Count;
-                _nextCast = Time.time + _cooldown.Value;
-                __instance.Message(MessageHud.MessageType.TopLeft, __state.Name + "!");
+                if (__state && __result) _nextCast = Time.time + _cooldown.Value;
+            }
+        }
+
+        // ------------------------------------------------------------- shield on block
+
+        private static SE_Shield _shield;
+        private static bool _shieldLookedUp;
+        private static float _nextShield;
+
+        /// <summary>The Staff of Protection's shield effect, found once in the ObjectDB.</summary>
+        private static SE_Shield Shield()
+        {
+            if (_shieldLookedUp) return _shield;
+            _shieldLookedUp = true;
+            _shield = ObjectDB.instance ? ObjectDB.instance.m_StatusEffects.OfType<SE_Shield>().FirstOrDefault() : null;
+            if (_shield) Plugin.Log.LogInfo($"{Name}: block shield is '{_shield.name}'");
+            else Plugin.Log.LogWarning($"{Name}: no shield status effect found; blocking puts up no shield");
+            return _shield;
+        }
+
+        /// <summary>
+        /// Pressing block with the wand in hand puts up the shield, at most every ShieldCooldown seconds. The game
+        /// sets the local player's controls here each frame, so this does nothing until block is pressed.
+        /// </summary>
+        [HarmonyPatch(typeof(Player), nameof(Player.SetControls))]
+        private static class BlockShieldPatch
+        {
+            private static void Postfix(Player __instance, bool block)
+            {
+                if (!block || _blockShield == null || !_blockShield.Value || __instance != Player.m_localPlayer) return;
+                if (Time.time < _nextShield) return;
+                var wand = __instance.GetCurrentWeapon();
+                if (!DeathlyHallows.IsItem(wand, Name) || !Shield()) return;
+                _nextShield = Time.time + _shieldCooldown.Value;
+                __instance.GetSEMan().AddStatusEffect(_shield, true, wand.m_quality,
+                    __instance.GetSkillLevel(Skills.SkillType.ElementalMagic));
             }
         }
 
