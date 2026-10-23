@@ -7,7 +7,7 @@ use it, change it and share it, commercially or not, as long as you credit
 
 That covers:
 - the models and textures in `models/`, except where `models/CREDITS.md` names another author;
-- `icon.png` and `icon.svg`;
+- `icon.png`, the mod icon, made with ChatGPT's image generator;
 - the pictures in `docs/images/`.
 
 Not covered:
