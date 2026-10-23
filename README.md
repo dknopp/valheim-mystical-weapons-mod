@@ -26,7 +26,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | From | What it does | Crafted at |
 |---|---|---|---|
-| **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: +150 carry weight, faster stamina regen, resistant to blunt, slash and pierce. | Forge 5 |
+| **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: you stand 25% taller in a soft Stormlight glow, lightning cracks where your blows land, +50 carry weight, faster stamina regen and resistant to blunt damage. | Forge 5 |
 
 ### The Deathly Hallows (Harry Potter)
 
@@ -76,7 +76,7 @@ Don't install the old standalone Bat'leth mod as well: this mod already includes
 Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on first launch. Each
 item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
 `Sulfuras`, `Thunderfury`, `WarglaivesOfAzzinoth`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
-`ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
+`ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`; the Shardplate set bonus has its own `Shardplate` section). There you can turn the
 item off or change its recipe, crafting station, boss trophy (`BossTrophy`, empty for none), stats
 and effects (fireball chance, undead damage, glow colours and more).
 
@@ -98,9 +98,6 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
 [docs/architecture.md](docs/architecture.md).
 
 ### Next up:
- - Rebalance existing weapons to make sure they're well aligned with natural game progression
- - Experiment with Shardplate - can the full set cause the character size to increase by 25%?. Can we add a storm
-   and/or electricity animation when attacking?
  - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
    matches an iron or silver sword but has the unique glow animation and behavior.
 
