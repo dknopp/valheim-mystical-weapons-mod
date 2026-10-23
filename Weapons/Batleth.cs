@@ -23,7 +23,9 @@ namespace MysticalWeapons.Weapons
 
         protected override string DefaultDamage => "slash:80,pierce:20";
         protected override string DefaultDamagePerLevel => "slash:6";
-        protected override string DefaultRecipe => "Iron:50,FineWood:10,LeatherScraps:8"; // the Battleaxe is Iron 35, Ancient bark 30
+        // Reforged from the Battleaxe it swings like, plus most of its cost again (it is Iron 35, Ancient bark 30, Leather 4):
+        // more than its peer for its adrenaline bar. Bloodbags for the warrior's blood
+        protected override string DefaultRecipe => "Battleaxe:1,Iron:30,FineWood:10,Bloodbag:5";
         protected override int DefaultStationLevel => 2;
         protected override float ModelScale => 0.9f;
         public override float IconAngle => 90f; // cutting edge up
