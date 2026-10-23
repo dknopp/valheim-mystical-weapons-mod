@@ -86,7 +86,8 @@ namespace MysticalWeapons
         /// are cleared, as for every item made before this option.
         /// </summary>
         protected virtual bool CleanMaterials => false;
-        /// <summary>Cloned from a dual-wield item: also put the model in both hands (see <see cref="ModelUtil.ReplaceSkinnedModel"/>).</summary>
+        /// <summary>Cloned from a dual-wield item: also put the model in both hands (see <see cref="ModelUtil.ReplaceSkinnedModel"/>)
+        /// and crossed on the back when holstered (see <see cref="ModelUtil.AddCrossedBackModel"/>).</summary>
         protected virtual bool DualWield => false;
 
         /// <summary>Materials, indexed by the submesh numbers used in <see cref="BuildModel"/>.</summary>
@@ -149,7 +150,11 @@ namespace MysticalWeapons
                 CleanMaterials = CleanMaterials
             };
             var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, place);
-            if (DualWield) ModelUtil.ReplaceSkinnedModel(prefab, PrefabName, model, place);
+            if (DualWield)
+            {
+                ModelUtil.ReplaceSkinnedModel(prefab, PrefabName, model, place);
+                ModelUtil.AddCrossedBackModel(prefab, PrefabName, model, place);
+            }
             DecorateModel(model);
         }
 

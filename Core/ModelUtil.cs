@@ -277,6 +277,101 @@ namespace MysticalWeapons
         }
 
         /// <summary>
+        /// Holstered, the game shows an item's "attach_back" child (if it has one) on the back joint for its
+        /// type, instead of its dropped "attach" model. Adds one with two copies of <paramref name="model"/>
+        /// crossed in an X, the second mirrored, laid flat on the back with the tips curving up and out.
+        /// <see cref="BackFramePatch"/> places them on the player.
+        /// </summary>
+        public static void AddCrossedBackModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        {
+            var back = new GameObject("attach_back");
+            back.layer = model.layer;
+            back.transform.SetParent(prefab.transform, false);
+            // The game takes the first child named attach_back or attach, and shows it once instantiated
+            back.transform.SetSiblingIndex(0);
+            back.SetActive(false);
+
+            var frame = new GameObject(name + BackFrame).transform;
+            frame.gameObject.layer = model.layer;
+            frame.SetParent(back.transform, false);
+            var mesh = model.GetComponent<MeshFilter>().sharedMesh;
+            var materials = model.GetComponent<MeshRenderer>().sharedMaterials;
+            var s = Mathf.Sin(BackAngle * Mathf.Deg2Rad);
+            var c = Mathf.Cos(BackAngle * Mathf.Deg2Rad);
+            for (var k = 0; k < 2; k++)
+            {
+                // Model +Y (tip to tip) leans off vertical, +Z (the way the tips curve) points up and out, +X (the
+                // grip side) faces the back so the medallion faces out. The second is the first mirrored left to right.
+                var side = k == 0 ? -1f : 1f;
+                var glaive = new GameObject($"{name}_back{k + 1}");
+                glaive.layer = model.layer;
+                glaive.transform.SetParent(frame, false);
+                glaive.transform.localRotation = Quaternion.LookRotation(new Vector3(-side * c, s, 0f), new Vector3(side * s, c, 0f));
+                glaive.transform.localPosition = new Vector3(0f, 0f, -BackGap * k);
+                glaive.transform.localScale = new Vector3(k == 0 ? -place.Scale : place.Scale, place.Scale, place.Scale);
+                glaive.AddComponent<MeshFilter>().sharedMesh = mesh;
+                glaive.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+        }
+
+        /// <summary>Name suffix of the body-space frame under "attach_back" (see <see cref="BackFramePatch"/>).</summary>
+        private const string BackFrame = "_backframe";
+
+        /// <summary>
+        /// The back joints sit at the shoulder or hip with their own axes and the rig's import scale, which
+        /// differ between the player prefab and a live player. So once our holstered model is attached, move it
+        /// onto the chest bone (it follows the torso, not the hips) and lay its frame out in the player's body
+        /// space (X right, Y up, Z forward), one unit to a metre. Body space is taken from the chest bone's rest
+        /// pose (the body mesh's bind pose), not its pose right now, which is mid-animation while holstering.
+        /// </summary>
+        [HarmonyLib.HarmonyPatch(typeof(VisEquipment), "AttachBackItem")]
+        private static class BackFramePatch
+        {
+            private static void Postfix(VisEquipment __instance, GameObject __result)
+            {
+                if (!__result || !__result.name.StartsWith("attach_back")) return;
+                foreach (Transform frame in __result.transform)
+                {
+                    if (!frame.name.EndsWith(BackFrame)) continue;
+                    var body = __instance.transform;
+                    var skin = __instance.m_bodyModel;
+                    var bones = skin ? skin.bones : new Transform[0];
+                    var bindposes = skin && skin.sharedMesh ? skin.sharedMesh.bindposes : new Matrix4x4[0];
+                    var i = System.Array.FindIndex(bones, t => t && t.name == "Spine2");
+                    var place = Matrix4x4.TRS(BackPosition, Quaternion.Euler(BackTilt, 0f, 0f), Vector3.one);
+                    if (i < 0 || i >= bindposes.Length)
+                    {
+                        // No rest pose to go by: lay it out against the body as it stands now
+                        frame.SetPositionAndRotation(body.TransformPoint(BackPosition), body.rotation * Quaternion.Euler(BackTilt, 0f, 0f));
+                        var parent = frame.parent.lossyScale;
+                        frame.localScale = new Vector3(1f / parent.x, 1f / parent.y, 1f / parent.z);
+                        continue;
+                    }
+
+                    // The chest bone at rest in body space; the body mesh doesn't move against the player
+                    var chestAtRest = body.worldToLocalMatrix * skin.transform.localToWorldMatrix * bindposes[i].inverse;
+                    var m = chestAtRest.inverse * place;
+                    __result.transform.SetParent(bones[i], false);
+                    __result.transform.localPosition = Vector3.zero;
+                    __result.transform.localRotation = Quaternion.identity;
+                    __result.transform.localScale = Vector3.one;
+                    frame.localPosition = m.GetColumn(3);
+                    frame.localRotation = m.rotation;
+                    frame.localScale = m.lossyScale;
+                }
+            }
+        }
+
+        /// <summary>Degrees each holstered blade leans off vertical.</summary>
+        private const float BackAngle = 30f;
+        /// <summary>Where the holstered blades cross in body space (metres): between the shoulder blades.</summary>
+        private static readonly Vector3 BackPosition = new Vector3(0f, 1.35f, -0.22f);
+        /// <summary>Degrees the holstered X tips forward at the top, so its lower half clears the cape.</summary>
+        private const float BackTilt = 8f;
+        /// <summary>Space between the two crossed blades, so they don't flicker through each other.</summary>
+        private const float BackGap = 0.03f;
+
+        /// <summary>
         /// How a weapon sits in a closed hand, in the hand bone's space and in metres: model +Y runs
         /// across the fist from the little finger to the index finger (like a held knife's grip), +X
         /// points along the fingers, and the grip passes just inside the knuckles.
