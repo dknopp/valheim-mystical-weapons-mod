@@ -95,6 +95,8 @@ namespace MysticalWeapons
 
         /// <summary>Rotation of the model in its inventory icon (degrees, counter-clockwise).</summary>
         public virtual float IconAngle => -45f;
+        /// <summary>Rotation that turns the model's flat towards its icon's camera, for models not flat in XY.</summary>
+        protected virtual Vector3 IconView => Vector3.zero;
 
         /// <summary>Extra things the weapon needs inside the model, e.g. lights.</summary>
         public virtual void DecorateModel(GameObject model) { }
@@ -129,7 +131,7 @@ namespace MysticalWeapons
             }
             else if (Plugin.TexturedModels.Value) AddGrain(builder);
             var specs = ModelUtil.WithTextures(Materials, builder);
-            Icon = ModelUtil.RenderIcon(builder, specs, IconAngle);
+            Icon = ModelUtil.RenderIcon(builder, specs, IconAngle, view: Quaternion.Euler(IconView));
 
             if (HasDamage)
             {

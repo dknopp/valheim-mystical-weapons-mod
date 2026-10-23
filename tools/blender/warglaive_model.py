@@ -3,7 +3,7 @@
 # Blender space: metres, hand at the origin, grip bar along +Z, fingers along +X. The blade is flat in
 # the YZ plane, offset along +X in front of the knuckles, its tips curving toward -Y.
 # The OBJ export (-Z forward, Y up) turns this into the mod's convention: grip +Y, fingers +X.
-# Proportions follow the Sketchfab reference (shape only): 0.88 m tip to tip.
+# Proportions follow the Sketchfab reference (shape only): 1.6 m tip to tip, a little shorter than the player.
 # Run inside Blender (Text editor or the MCP), or import and call build().
 import bpy, bmesh, math
 from mathutils import Vector
@@ -53,7 +53,7 @@ def new_object(name, bm, mats):
 # after a narrow bevel.
 # Outline of one blade in drawing units (u along the span, v toward the tips' side), from the root's
 # top round to its bottom; mirrored for the other blade. UNIT scales it to metres.
-UNIT = 0.0018
+UNIT = 0.00327
 BLADE_HALF = [
     (28, 30), (50, 34),                             # root, inside the hub
     (64, 42), (76, 62), (84, 36),                   # upper ear
