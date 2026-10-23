@@ -39,6 +39,9 @@ namespace MysticalWeapons
         /// <summary>Register networked prefabs this item spawns (creatures, projectiles...) with a ZNetScene.</summary>
         public virtual void RegisterNetExtras(ZNetScene scene) { }
 
+        /// <summary>Rebuild a custom model from disk (dev command mw_reload). Most items have none.</summary>
+        public virtual void ReloadCustomModel() { }
+
         // ------------------------------------------------------------- config
 
         public ConfigEntry<bool> Enabled;

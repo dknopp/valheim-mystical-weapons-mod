@@ -18,6 +18,12 @@ namespace MysticalWeapons.Armor
         protected override float DefaultArmor => 40f;
         protected override Color DefaultTint => new Color(0.62f, 0.68f, 0.78f);  // slate with a blue sheen
         protected override Color DefaultGlow => new Color(0.25f, 0.55f, 1f);     // Stormlight
+        // Custom models start from the Flametal chest's material (metallic, emissive), which gives the
+        // plates their sheen; the Drake helmet's own material is matte leather and looked flat
+        protected override string CustomModelMaterialSource => "ArmorFlametalChest";
+        // Krajkoa's plate is painted near-black; lift it to Stormlit slate-blue and let it glow
+        protected override float DefaultCustomBrightness => 2.4f;
+        protected override float DefaultCustomGlow => 1f;
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
@@ -64,6 +70,14 @@ namespace MysticalWeapons.Armor
         public override string PrefabName => "ShardplateHelm";
         // Drakescale helm: its swept-back crest reads more like a Shardhelm than the Flametal helmet
         public override string[] SourcePrefabs => new[] { "HelmetDrake", "HelmetFlametal", "HelmetPadded" };
+
+        protected override void Customize(ItemDrop.ItemData.SharedData shared)
+        {
+            base.Customize(shared);
+            // A closed Shardhelm: hide hair and beard so they don't poke out through the breastplate
+            shared.m_helmetHideHair = ItemDrop.ItemData.HelmetHairType.Hidden;
+            shared.m_helmetHideBeard = ItemDrop.ItemData.HelmetHairType.Hidden;
+        }
         public override string DisplayName => "Shardplate Helm";
         public override string Description =>
             "A seamless helm with a narrow eye-slit. When the visor locks, the world sharpens " +
@@ -71,14 +85,16 @@ namespace MysticalWeapons.Armor
         protected override string DefaultRecipe => "Silver:10,BlackMetal:10,Crystal:5";
 
         // Custom model (models/ShardplateHelm.obj): it faces -Z, Valheim's head faces +Z.
-        // Fitted to the Drake helmet, whose swept-back crest centres it too far back: nudge it forward.
-        protected override Vector3 CustomModelRotation => new Vector3(0f, 180f, 0f);
-        protected override Vector3 CustomModelOffset => new Vector3(0f, 0f, 0.03f);
+        // Fitted to the Drake helmet's largest dimension (its long crest), so shrink it to head size;
+        // the crest also centres it too far back, so move it forward to keep the visor over the face.
+        // To line the eye-slit up with the eyes it is tipped chin-down 6° (negative X: the model faces
+        // -Z before the 180° turn) and lowered by 11% of its fitted height (0.362), and 4% wider.
+        protected override Vector3 CustomModelRotation => new Vector3(-6f, 180f, 0f);
+        protected override float CustomModelScale => 0.78f;
+        protected override Vector3 CustomModelStretch => new Vector3(1.04f, 1f, 1f);
+        protected override Vector3 CustomModelOffset => new Vector3(0f, -0.040f, 0.08f);
         // In front of the visor (model space, before the 180° turn) so it lights the outside of the helm
         protected override Vector3 CustomModelLightPosition => new Vector3(0f, 0.05f, -0.35f);
-        // Krajkoa's plate is painted near-black; lift it to Stormlit slate-blue and let it glow
-        protected override float DefaultCustomBrightness => 2.4f;
-        protected override float DefaultCustomGlow => 1f;
         protected override float DefaultCustomLight => 0.8f;
     }
 
@@ -89,7 +105,7 @@ namespace MysticalWeapons.Armor
         public override string DisplayName => "Shardplate Breastplate";
         public override string Description =>
             "Overlapping plates that fit together without a seam. Cracks glow blue as Stormlight " +
-            "leaks out, then slowly seal themselves.";
+            "leaks out, then slowly seal themselves.\n\n<size=80%>Model: \"Shardplate\" by Krajkoa, CC BY 4.0</size>";
         protected override string DefaultRecipe => "Silver:20,BlackMetal:20,Crystal:10";
     }
 
@@ -99,7 +115,8 @@ namespace MysticalWeapons.Armor
         public override string[] SourcePrefabs => new[] { "ArmorFlametalLegs", "ArmorPaddedGreaves" };
         public override string DisplayName => "Shardplate Greaves";
         public override string Description =>
-            "Heavy legplates that feel like nothing. A Shardbearer can leap a wall and land running.";
+            "Heavy legplates that feel like nothing. A Shardbearer can leap a wall and land running." +
+            "\n\n<size=80%>Model: \"Shardplate\" by Krajkoa, CC BY 4.0</size>";
         protected override string DefaultRecipe => "Silver:15,BlackMetal:15,Crystal:8";
     }
 }

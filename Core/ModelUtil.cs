@@ -15,6 +15,8 @@ namespace MysticalWeapons
         public Vector3 Rotation;
         public Vector3 Offset;
         public float Scale;
+        /// <summary>Extra per-axis scale in the model's own axes, after fitting (zero = none).</summary>
+        public Vector3 Stretch;
         /// <summary>Clear everything the cloned item's material had (see <see cref="MysticalWeapon.CleanMaterials"/>).</summary>
         public bool CleanMaterials;
     }
@@ -29,9 +31,18 @@ namespace MysticalWeapons
         /// Loads "{prefabName}.obj" (and its textures) from <see cref="CustomModelDir"/>.
         /// Returns null if there is none or it fails to load.
         /// </summary>
-        public static MeshBuilder LoadCustomModel(string prefabName, int submeshes)
+        public static MeshBuilder LoadCustomModel(string prefabName, int submeshes) =>
+            LoadModelFile(Path.Combine(CustomModelDir, prefabName + ".obj"), submeshes, prefabName);
+
+        /// <summary>Textures shared between model files (e.g. one per Shardplate material) load once.</summary>
+        private static readonly Dictionary<string, Texture2D> TextureCache = new Dictionary<string, Texture2D>();
+
+        /// <summary>Forget loaded textures so the next load re-reads them from disk.</summary>
+        public static void ClearTextureCache() => TextureCache.Clear();
+
+        /// <summary>Loads an OBJ (and its textures, cached by path). Returns null if missing or broken.</summary>
+        public static MeshBuilder LoadModelFile(string path, int submeshes, string label)
         {
-            var path = Path.Combine(CustomModelDir, prefabName + ".obj");
             if (!File.Exists(path)) return null;
             try
             {
@@ -40,23 +51,74 @@ namespace MysticalWeapons
                 builder.Textures = new Texture2D[submeshes];
                 foreach (var kv in texturePaths)
                 {
-                    if (!File.Exists(kv.Value))
+                    var full = Path.GetFullPath(kv.Value);
+                    if (!TextureCache.TryGetValue(full, out var tex))
                     {
-                        Plugin.Log.LogWarning($"{prefabName}: texture {kv.Value} not found");
-                        continue;
+                        if (!File.Exists(full))
+                        {
+                            Plugin.Log.LogWarning($"{label}: texture {full} not found");
+                            continue;
+                        }
+                        tex = new Texture2D(2, 2, TextureFormat.RGBA32, true) { name = Path.GetFileName(full) };
+                        if (!LoadImage(tex, File.ReadAllBytes(full))) continue;
+                        TextureCache[full] = tex;
                     }
-                    var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true) { name = Path.GetFileName(kv.Value) };
-                    if (LoadImage(tex, File.ReadAllBytes(kv.Value))) builder.Textures[kv.Key] = tex;
+                    builder.Textures[kv.Key] = tex;
                 }
-                Plugin.Log.LogInfo($"{prefabName}: using custom model {path} ({builder.Verts.Count / 6} triangles, " +
+                Plugin.Log.LogInfo($"{label}: using custom model {path} ({builder.TriangleCount} triangles, " +
                                    $"{texturePaths.Count} textures)");
                 return builder;
             }
             catch (System.Exception e)
             {
-                Plugin.Log.LogError($"{prefabName}: could not load {path}, using the default model. {e.Message}");
+                Plugin.Log.LogError($"{label}: could not load {path}, using the default model. {e.Message}");
                 return null;
             }
+        }
+
+        /// <summary>Loads a PNG/JPG as an inventory icon sprite.</summary>
+        public static Sprite LoadSprite(string path)
+        {
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = Path.GetFileName(path) };
+            if (!LoadImage(tex, File.ReadAllBytes(path))) return null;
+            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+        }
+
+        /// <summary>
+        /// Gives a GameObject a mesh and materials built from a <see cref="MeshBuilder"/>: a skinned
+        /// renderer when the model has bone weights (bones are bound when Valheim attaches it), else a
+        /// plain one.
+        /// </summary>
+        public static void AddRenderer(GameObject go, MeshBuilder builder, MaterialSpec[] specs, Material baseMat, string name)
+        {
+            var mesh = builder.ToMesh(name);
+            var materials = new Material[specs.Length];
+            for (var i = 0; i < materials.Length; i++)
+                materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null,
+                    false);
+            if (builder.IsSkinned)
+            {
+                var smr = go.AddComponent<SkinnedMeshRenderer>();
+                smr.sharedMesh = mesh;
+                smr.sharedMaterials = materials;
+                go.AddComponent<SkinBoneNames>().Names = builder.BoneNames.ToArray();
+            }
+            else
+            {
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                go.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+            if (materials.Length > 0) LogMaterial(name, baseMat, materials[0]);
+        }
+
+        /// <summary>Logs where a model's material came from and its main shader settings.</summary>
+        private static void LogMaterial(string name, Material source, Material mat)
+        {
+            float F(string prop) => mat.HasProperty(prop) ? mat.GetFloat(prop) : float.NaN;
+            Plugin.Log.LogInfo($"{name}: material from {(source ? source.name : "none")}, shader {mat.shader.name}, " +
+                               $"metallic {F("_Metallic"):0.##}, gloss {F("_Glossiness"):0.##}, " +
+                               $"emission {(mat.IsKeywordEnabled("_EMISSION") ? "on" : "off")}");
         }
 
         /// <summary>
@@ -111,12 +173,14 @@ namespace MysticalWeapons
         }
 
         /// <summary>Hides the cloned item's renderers and puts our model under its "attach" child.</summary>
+        /// <param name="baseMatOverride">Material whose shader settings (metallic, gloss, emission...) to start
+        /// from; by default the cloned item's own.</param>
         public static GameObject ReplaceModel(GameObject prefab, string name, MeshBuilder builder,
-            MaterialSpec[] specs, ModelPlacement place)
+            MaterialSpec[] specs, ModelPlacement place, Material baseMatOverride = null)
         {
             var attach = FindDeep(prefab.transform, "attach") ?? prefab.transform;
 
-            Material baseMat = null;
+            var baseMat = baseMatOverride;
             var hasBounds = false;
             var bounds = new Bounds();
             foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
@@ -148,12 +212,7 @@ namespace MysticalWeapons
                     builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null,
                     place.CleanMaterials);
 
-            if (materials.Length > 0)
-            {
-                var m0 = materials[0];
-                Plugin.Log.LogInfo($"{name}: shader {m0.shader.name}; _Color {m0.HasProperty("_Color")}, _MainTex {m0.HasProperty("_MainTex")}, " +
-                                   $"_EmissionColor {m0.HasProperty("_EmissionColor")}, _EmissionMap {m0.HasProperty("_EmissionMap")}");
-            }
+            if (materials.Length > 0) LogMaterial(name, baseMat, materials[0]);
 
             var model = new GameObject(name + "_model");
             model.layer = attach.gameObject.layer;
@@ -164,7 +223,7 @@ namespace MysticalWeapons
             Fit(name, mesh.bounds, hasBounds ? bounds : (Bounds?)null, place, out var rotation, out var position, out var scale);
             model.transform.localRotation = rotation;
             model.transform.localPosition = position;
-            model.transform.localScale = Vector3.one * scale;
+            model.transform.localScale = Vector3.Scale(Vector3.one * scale, place.Stretch == Vector3.zero ? Vector3.one : place.Stretch);
             return model;
         }
 
@@ -675,6 +734,35 @@ namespace MysticalWeapons
             public Texture2D Texture;
             public Vector2 Ua, Ub, Uc;
             public Color Tint;
+        }
+
+        /// <summary>
+        /// Copies any texture (even an unreadable game texture) via the GPU and recolours each pixel
+        /// with <paramref name="recolor"/>. Returns null if the copy fails.
+        /// </summary>
+        public static Texture2D RecolorTexture(Texture source, System.Func<Color, Color> recolor)
+        {
+            try
+            {
+                var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
+                var previous = RenderTexture.active;
+                Graphics.Blit(source, rt);
+                RenderTexture.active = rt;
+                var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true) { name = source.name + "_recoloured" };
+                tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(rt);
+                var px = tex.GetPixels();
+                for (var i = 0; i < px.Length; i++) px[i] = recolor(px[i]);
+                tex.SetPixels(px);
+                tex.Apply(true);
+                return tex;
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogWarning($"Could not recolour texture {source.name}: {e.Message}");
+                return null;
+            }
         }
 
         private static void FillTriangle(Vector2 a, Vector2 b, Vector2 c, float za, float zb, float zc,
