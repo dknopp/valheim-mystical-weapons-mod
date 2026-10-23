@@ -99,9 +99,14 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
  - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
    matches an iron or silver sword but has the unique glow animation and behavior.
 
+## Editing the Shardplate set
+
+See [docs/SHARDPLATE.md](docs/SHARDPLATE.md) for how the Shardplate models are fitted, skinned and
+deployed, the current tuning values, and the pitfalls already hit.
+
 ## Credits
 
-- Shardplate Helm model: based on ["Shardplate"](https://sketchfab.com/3d-models/shardplate-5a4fca1f665b469c9669f387aa879b34)
+- Shardplate Helm, Breastplate and Greaves models: based on ["Shardplate"](https://sketchfab.com/3d-models/shardplate-5a4fca1f665b469c9669f387aa879b34)
   by [Krajkoa](https://sketchfab.com/Krajkoa), licensed under
   [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Helm and collar extracted from the full
   suit, rescaled, emissive texture merged into the base colour. See `models/CREDITS.md`.

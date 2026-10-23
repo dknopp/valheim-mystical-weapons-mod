@@ -12,11 +12,17 @@ if (args.Length == 2 && args[0] == "--load")
 {
     var model = new MeshBuilder(4);
     var textures = ObjImport.Load(args[1], model);
-    var perSub = string.Join(", ", model.Tris.Select((t, i) => $"submesh {i}: {t.Count / 6} tris"));
-    Console.WriteLine($"{model.Verts.Count / 6} triangles ({perSub}); bounds {Bounds(model)}");
+    var perSub = string.Join(", ", model.Tris.Select((t, i) => $"submesh {i}: {t.Count / 3} tris"));
+    Console.WriteLine($"{model.TriangleCount} triangles ({perSub}); bounds {Bounds(model)}");
     foreach (var kv in textures) Console.WriteLine($"texture for submesh {kv.Key}: {kv.Value} (exists: {File.Exists(kv.Value)})");
     var withUv = model.Uvs.Count(u => u != Vector2.zero);
     Console.WriteLine($"vertices with UVs: {withUv}/{model.Uvs.Count}");
+    if (model.BoneNames.Count > 0)
+    {
+        var sums = model.Weights.Select(w => w.weight0 + w.weight1 + w.weight2 + w.weight3).ToList();
+        Console.WriteLine($"skinned: {model.IsSkinned}, {model.BoneNames.Count} bones, {model.Weights.Count}/{model.Verts.Count} weighted vertices, " +
+                          $"weight sums {sums.Min():0.###}..{sums.Max():0.###}");
+    }
     return 0;
 }
 

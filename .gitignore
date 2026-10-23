@@ -7,7 +7,6 @@ obj/
 # Blender files (working files may hold reference models) and autosave backups
 *.blend
 *.blend1
-*.blend1
 
 # Reference exports of the code-built weapons (regenerate with tools/ModelExporter)
 exports/

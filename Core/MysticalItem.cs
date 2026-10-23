@@ -36,6 +36,9 @@ namespace MysticalWeapons
         /// <summary>Register status effects etc. with an ObjectDB.</summary>
         public virtual void RegisterExtras(ObjectDB db) { }
 
+        /// <summary>Rebuild a custom model from disk (dev command mw_reload). Most items have none.</summary>
+        public virtual void ReloadCustomModel() { }
+
         // ------------------------------------------------------------- config
 
         public ConfigEntry<bool> Enabled;
