@@ -33,11 +33,11 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | Item | What it does | Crafted at |
 |---|---|---|
 | **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
-| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
+| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. When you die, the stone stays in your inventory (everything else goes to your tombstone as usual). | Forge 3 |
 | **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
 
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
-resistant to poison, immune to spirit damage.
+resistant to poison, immune to spirit damage, and you keep everything you carry when you die (no tombstone).
 
 ## Installing
 
