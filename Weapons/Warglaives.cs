@@ -46,7 +46,7 @@ namespace MysticalWeapons.Weapons
             _aura = cfg.Bind(PrefabName, "FelAura", true, "Fel green aura around the blades, in hand and holstered on the back.");
             _auraSize = cfg.Bind(PrefabName, "FelAuraSize", 0.15f, "Size of the fel flames, relative to the Dead Raiser's.");
             _auraDensity = cfg.Bind(PrefabName, "FelAuraDensity", 3f, "How many fel flames, relative to the Dead Raiser's.");
-            _glow = cfg.Bind(PrefabName, "FelGlowStrength", 1.5f, "How brightly the fel blades glow (0 = not at all). Brighter blades give off a halo.");
+            _glow = cfg.Bind(PrefabName, "FelGlowStrength", 1.5f, "How brightly the fel blades glow (0 = not at all). Brighter blades give off a halo. Needs the models folder.");
         }
 
         // With the custom model the texture sets the colour and the fel blades glow by it (edges most)
@@ -125,7 +125,7 @@ namespace MysticalWeapons.Weapons
                 main.maxParticles = Mathf.CeilToInt(main.maxParticles * density);
                 var emission = ps.emission;
                 emission.rateOverTimeMultiplier *= density;
-                main.startColor = new ParticleSystem.MinMaxGradient(new Color(FelColor.r, FelColor.g, FelColor.b, main.startColor.color.a));
+                main.startColor = new ParticleSystem.MinMaxGradient(new Color(FelColor.r, FelColor.g, FelColor.b, StartAlpha(main.startColor)));
                 var colour = ps.colorOverLifetime;
                 if (colour.enabled)
                 {
@@ -160,6 +160,18 @@ namespace MysticalWeapons.Weapons
                             mat.SetColor(prop, new Color(FelColor.r, FelColor.g, FelColor.b, mat.GetColor(prop).a));
                     r.sharedMaterial = mat;
                 }
+            }
+        }
+
+        /// <summary>How opaque a particle system's start colour is, whichever way it is set (only Color mode has a plain colour).</summary>
+        private static float StartAlpha(ParticleSystem.MinMaxGradient c)
+        {
+            switch (c.mode)
+            {
+                case ParticleSystemGradientMode.Color: return c.color.a;
+                case ParticleSystemGradientMode.TwoColors: return Mathf.Max(c.colorMin.a, c.colorMax.a);
+                case ParticleSystemGradientMode.TwoGradients: return Mathf.Max(c.gradientMin.Evaluate(0f).a, c.gradientMax.Evaluate(0f).a);
+                default: return c.gradient != null ? c.gradient.Evaluate(0f).a : 1f;
             }
         }
 
