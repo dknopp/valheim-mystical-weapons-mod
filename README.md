@@ -106,6 +106,8 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
   by [Krajkoa](https://sketchfab.com/Krajkoa), licensed under
   [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Helm and collar extracted from the full
   suit, rescaled, emissive texture merged into the base colour. See `models/CREDITS.md`.
+- Mod icon: generated with ChatGPT's image generator (OpenAI), which assigns the output's rights to
+  its user.
 - Textures on the code-built weapons are taken from Valheim's own items while the game runs; none
   of the game's assets are included in this mod.
 
