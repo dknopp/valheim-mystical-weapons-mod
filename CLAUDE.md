@@ -27,8 +27,9 @@ items tables current when items change. Developer docs are in `docs/`.
   `tools/blender/`: headless Blender scripts that produce the shipped models (see each header).
 - `docs/`: `contributing.md` (setup, workflow, adding items, editing models in Blender) and
   `architecture.md` (how the mod, build, CI, packaging and releases work). Stephen's notes on how
-  he builds items: `art-direction.md` (look, effects and balance) and `building-items.md` (process and
-  lessons). Use what helps; they aren't rules for the repo.
+  he builds items: `art-direction.md` (look, effects and balance), `building-items.md` (process
+  and lessons) and `blender-mcp.md` (letting Claude drive Blender). Use what helps; they aren't
+  rules for the repo.
 
 ## Build and test
 - `dotnet build -c Release` builds and copies the DLL and `models/` into a mod manager profile.

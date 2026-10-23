@@ -28,7 +28,7 @@ namespace MysticalWeapons
             new Shardblade(),
             new Anduril(),
             new Sulfuras(),
-
+            new Thunderfury(),
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),

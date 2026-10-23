@@ -8,7 +8,7 @@ namespace = "OldManMods"
 name = "MysticalWeapons"
 # Placeholder: CI passes Version from Plugin.cs
 versionNumber = "0.0.0"
-description = "Legendary weapons and armor from other worlds: Anduril, Shardblades, Sulfuras, a bat'leth and the Deathly Hallows."
+description = "Legendary weapons and armor from other worlds: Anduril, Shardblades, Sulfuras, Thunderfury, a bat'leth and the Deathly Hallows."
 websiteUrl = "https://github.com/dknopp/valheim-mystical-weapons-mod"
 containsNsfwContent = false
 

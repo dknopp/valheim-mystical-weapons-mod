@@ -19,16 +19,29 @@ Questions I answer before building, in order:
 ## Look
 - Start from the source: silhouette, proportions and signature details (Andúril's swept
   crossguard, the bat'leth's crescent).
-- Gather references, best first: a downloadable 3D model of the item (Sketchfab and similar), a 3D
-  viewer you can rotate (Wowhead's for Sulfuras), or several images from different angles. Get
-  front, side and top views, note a few proportions (grip to blade, head width to shaft), and list
-  the parts: how pieces step, taper and join, thickness as well as outline, how many spikes or
-  studs and where. Check the model against those proportions and parts before building.
+- Gather references: a 3D viewer of the source's own model you can rotate (Wowhead's for Sulfuras
+  and Thunderfury), a downloadable 3D model of the item (Sketchfab and similar), or several images
+  from different angles. Get front, side and top views, note a few proportions (grip to blade, head
+  width to shaft), and list the parts: how pieces step, taper and join, thickness as well as outline,
+  how many spikes or studs and where, and what's open and what's solid (tilt the viewer and see
+  whether the background shows through). Check the model against those proportions and parts.
+- Use both kinds of reference when you can; each covers the other's blind spot:
+  - **The source's own viewer decides the design:** which parts exist, their shapes, what's open.
+    Captures are flat pictures, though, so they hide depth.
+  - **A downloaded 3D model decides the geometry:** thickness, cross-sections, how parts overlap,
+    measured from its mesh. Load it into Blender at the item's length, beside the build in its own
+    hidden collection, for side-by-side checks. A fan remake changes the design (Thunderfury's dropped
+    the orb and spiky base), so where it disagrees with the viewer on design, the viewer wins.
+  - Either way it's look-only: kept in the gitignored `references/` folder, never exported or
+    committed (see Rules in `CLAUDE.md`).
 - A detailed downloaded model is a reference to rebuild low-poly, not a mesh to decimate: decimated
   sculpts look lumpy next to Valheim's clean shapes. Use a downloaded mesh directly only if it is
   already low-poly and its licence allows it (see Rules in `CLAUDE.md`).
 - Draw it the Valheim way: low-poly, bold shapes that read in the inventory icon; worn, mostly
   matte materials unless the source item is famously pristine; textures 512px or smaller.
+- Spend triangles on accuracy where it reads: the signature shapes that make the item recognisable
+  (Thunderfury's split prongs, the orb's open socket). The budget in `building-items.md` is a starting
+  point, not a cap; go past it for those shapes, never for fine detail (that goes in the texture).
 - Prefer vanilla textures borrowed from the running game and tinted (`.Borrow(...)` on a
   `MaterialSpec`) over flat colours or new textures, when they fit the finish (step 2 above).
 - Custom textures: paint big, bold shapes (swirls, runes, colour bands) rather than fine noise,

@@ -129,3 +129,16 @@ command), so they can be regenerated:
   shape in `Sulfuras.cs` is then only the fallback, so after changing it, re-export and re-run the
   script or the game keeps showing the old model.
 - `make_shardplate_helm.py` extracts and prepares the helm from Krajkoa's Sketchfab model.
+- `thunderfury_model.py` builds Thunderfury in Blender part by part, and
+  `make_thunderfury_texture.py` bakes and exports it the same way as Sulfuras. `Thunderfury.cs`
+  keeps only a rough fallback shape.
+
+Building a model with Claude driving Blender directly (as for Thunderfury) needs the Blender MCP:
+see [blender-mcp.md](blender-mcp.md).
+
+### Picture for the pull request
+
+`tools/blender/render_views.py` renders an item's model from the front, in profile and at
+three-quarters in one picture (the script's header has the command). Commit it as
+`docs/images/<Prefab>-views.jpg` and link it in the pull request. Code-built items need exporting
+first (see the steps above).

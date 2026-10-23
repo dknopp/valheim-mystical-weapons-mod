@@ -2,7 +2,7 @@
 
 A [Valheim](https://www.valheimgame.com/) mod that brings legendary weapons and armor from other
 worlds into the game: Andúril from Middle-earth, Shardblades and Shardplate from Roshar, Sulfuras
-from Azeroth, a Klingon bat'leth and the three Deathly Hallows.
+and Thunderfury from Azeroth, a Klingon bat'leth and the three Deathly Hallows.
 
 Every item is crafted from Valheim's own materials, sits at a sensible point in the game's
 progression and has one power from its story. Models are drawn in Valheim's style, and the mod
@@ -19,6 +19,24 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
 | **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
 | **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
+| **Thunderfury, Blessed Blade of the Windseeker** | World of Warcraft | One-handed sword with a split blade and a crackling ball of lightning at its root (based on Nidhögg). Hits may loose chain lightning that leaps to other creatures nearby. Reforged from Nidhögg the Thundering. | Black forge 4 |
+
+### Armor
+
+| Item | From | What it does | Crafted at |
+|---|---|---|---|
+| **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: +150 carry weight, faster stamina regen, resistant to blunt, slash and pierce. | Forge 5 |
+
+### The Deathly Hallows (Harry Potter)
+
+| Item | What it does | Crafted at |
+|---|---|---|
+| **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
+| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
+| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
+
+**Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
+resistant to poison, immune to spirit damage.
 
 ### Armor
 
@@ -47,7 +65,7 @@ BepInEx comes with it.
 2. Download the zip from the latest [GitHub release](https://github.com/dknopp/valheim-mystical-weapons-mod/releases)
    and copy `MysticalWeapons.dll` **and** the `models` folder from its `plugins` folder into
    `BepInEx/plugins/MysticalWeapons/`.
-   Without `models`, the Shardplate Helm and Sulfuras fall back to simpler built-in looks.
+   Without `models`, the Shardplate Helm, Sulfuras and Thunderfury fall back to simpler built-in looks.
 
 Install it on the server **and** on every player's game.
 
@@ -60,7 +78,7 @@ Don't install the old standalone Bat'leth mod as well: this mod already includes
 
 Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on first launch. Each
 item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
-`Sulfuras`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
+`Sulfuras`, `Thunderfury`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
 `ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
 item off or change its recipe, crafting station, stats and effects (fireball chance, undead damage,
 glow colours and more).
