@@ -16,7 +16,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 |---|---|---|---|
 | **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
 | **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
-| **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
+| **Shardblade** | The Stormlight Archive | Huge two-hander that weighs nothing and also chops trees and mines rock (reforged from Krom). No durability. | Black forge 2 |
 | **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
 | **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
 | **Thunderfury, Blessed Blade of the Windseeker** | World of Warcraft | One-handed sword with a split blade and a crackling ball of lightning at its root (based on Nidhögg). Hits may loose chain lightning that leaps to other creatures nearby. Reforged from Nidhögg the Thundering. | Black forge 4 |

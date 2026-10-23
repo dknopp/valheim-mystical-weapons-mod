@@ -15,10 +15,12 @@ namespace MysticalWeapons.Weapons
             "Six feet of silvery metal etched with glyphs, yet light as a branch. It parts trees " +
             "and stone like water, and those it strikes feel their very soul burn.";
 
-        protected override string DefaultDamage => "slash:140,spirit:40,chop:100,pickaxe:80";
-        protected override string DefaultDamagePerLevel => "slash:8,spirit:4";
-        protected override string DefaultRecipe => "Silver:20,Crystal:15,BlackMetal:10";
-        protected override int DefaultStationLevel => 4;
+        // Mistlands, beside Krom (150 slash, black forge 1), which it is reforged from
+        protected override string DefaultDamage => "slash:150,spirit:30,chop:100,pickaxe:80";
+        protected override string DefaultDamagePerLevel => "slash:6,spirit:4";
+        protected override string DefaultRecipe => "THSwordKrom:1,Silver:20,Crystal:15,Eitr:10";
+        protected override string DefaultStation => "blackforge";
+        protected override int DefaultStationLevel => 2;
 
         private const int Steel = 0, Guard = 1, Grip = 2, Glyph = 3;
 
@@ -34,7 +36,7 @@ namespace MysticalWeapons.Weapons
         {
             shared.m_useDurability = false; // Shardblades never dull or break
             shared.m_toolTier = 4;          // can fell any tree and break any rock
-            shared.m_weight = 2f;           // impossibly light for its size
+            shared.m_weight = 0f;           // summoned from a spren, not carried
             shared.m_attackForce = 80f;
             shared.m_backstabBonus = 3f;
         }
