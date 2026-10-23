@@ -14,10 +14,10 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | From | What it does | Crafted at |
 |---|---|---|---|
-| **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
-| **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
+| **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). Battle excites a Klingon: held, it gives you an adrenaline bar that its hits and kills fill, and when full **A good day to die** restores 50 stamina and, for 15 s, makes axe attacks cost half the stamina and deal 20% more damage. | Forge 2 |
+| **Sylspear** | The Stormlight Archive | Glowing Shardspear (based on the Carapace spear). Grants **Windrunner** while held: higher jumps, a slow fall and faster stamina regen. Sheathe it and Syl follows you as a glowing spren instead of riding on your back. Like a Shardblade it also chops trees and mines rock, weighs nothing and has no durability. | Black forge 2 |
 | **Shardblade** | The Stormlight Archive | Huge two-hander that weighs nothing and also chops trees and mines rock (reforged from Krom). No durability. | Black forge 2 |
-| **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
+| **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Its secondary attack calls the Dead Men of Dunharrow: up to two ghostly Oathbreakers (the Dead Raiser's summon, for stamina instead of eitr and blood) that grow with your Swords skill. Reforged from an Iron Sword, the shards of Narsil. | Black forge 2 |
 | **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
 | **Thunderfury, Blessed Blade of the Windseeker** | World of Warcraft | One-handed sword with a split blade and a crackling ball of lightning at its root (based on Nidhögg). Hits may loose chain lightning that leaps to other creatures nearby. Reforged from Nidhögg the Thundering. | Black forge 4 |
 | **Warglaives of Azzinoth** | World of Warcraft | Illidan's twin glaives, one in each hand (Knives skill, based on Skoll and Hati), wreathed in fel flames and crossed on the back when holstered. Hits add fel poison. Reforged from Skoll and Hati. | Black forge 3 |
@@ -32,12 +32,25 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | What it does | Crafted at |
 |---|---|---|
-| **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
-| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
-| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
+| **The Elder Wand** | Cycles through three spells as you cast: **Stupefy** (bolts, based on the Staff of Frost), **Confringo** (a fireball, like the Staff of Embers) and **Expulso** (a spray of lightning, like Dundr). Each spell takes a moment to gather but hits twice as hard. Uses stamina instead of eitr by default. No durability. | Galdr table 5 (Deep North) |
+| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. When you die, the stone stays in your inventory (everything else goes to your tombstone as usual). | Forge 3 |
+| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you), and you fade to a dark, see-through blue shade that every player can see. | Workbench 4 |
 
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
-resistant to poison, immune to spirit damage.
+resistant to poison, immune to spirit damage, and you keep everything you carry when you die (no tombstone).
+
+### Boss trophies
+
+The items that are stronger than their tier also need one trophy from the boss that opens their
+home biome, so you beat that boss (again) before you can make them. The recipe stays hidden until
+you have picked that trophy up. Upgrades don't take another.
+
+| Boss | Trophy needed for |
+|---|---|
+| Bonemass | The Resurrection Stone |
+| Moder | Each Shardplate piece |
+| Yagluth | Andúril, Sylspear, Shardblade |
+| Fader | The Elder Wand |
 
 ## Installing
 
@@ -64,8 +77,8 @@ Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on fi
 item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
 `Sulfuras`, `Thunderfury`, `WarglaivesOfAzzinoth`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
 `ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
-item off or change its recipe, crafting station, stats and effects (fireball chance, undead damage,
-glow colours and more).
+item off or change its recipe, crafting station, boss trophy (`BossTrophy`, empty for none), stats
+and effects (fireball chance, undead damage, glow colours and more).
 
 - `[General] TexturedModels = false` turns off the textures borrowed from vanilla items (such as
   Sulfuras's flametal grain) for flat colours. Restart to apply.
@@ -86,16 +99,8 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
 
 ### Next up:
  - Rebalance existing weapons to make sure they're well aligned with natural game progression
- - Update Anduril to auto-summon spirits to aid in fights ... this should make the weapon a late game item
  - Experiment with Shardplate - can the full set cause the character size to increase by 25%?. Can we add a storm
    and/or electricity animation when attacking?
- - Invisibility cloak currently gives a player infinite stealth while crouched but doesn't have an visual effects
-   indicating invisibility - can we swap the player model for a dark ethereal and translucent blue while crouched?
- - It might be more interesting if the elder wand cycled through various spells as you attacked. The spell casting
-   could also be slow but powerful to match the "power" of the elder wand without being unfair.
- - Sylspear could be more powerful and later in the game. It also might be cool if when sheathed with 'r' instead
-   of being placed on the players back it transforms into a whisplight to simulate a spren. The modifiers could be
-   adjusted too, slower fall speed, and higher jump might be more windrunner-y.
  - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
    matches an iron or silver sword but has the unique glow animation and behavior.
 

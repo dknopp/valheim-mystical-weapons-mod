@@ -1,3 +1,4 @@
+using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 
@@ -5,7 +6,7 @@ namespace MysticalWeapons.Hallows
 {
     /// <summary>
     /// The Resurrection Stone, worn in the utility slot. If you die with it equipped,
-    /// your skills are not lowered.
+    /// your skills are not lowered. It also stays with you when you die.
     /// </summary>
     internal class ResurrectionStone : MysticalWeapon
     {
@@ -30,6 +31,17 @@ namespace MysticalWeapons.Hallows
             new MaterialSpec(new Color(0.07f, 0.07f, 0.08f), 0.85f),                                 // black stone
             new MaterialSpec(new Color(0.82f, 0.82f, 0.85f), 0.8f, new Color(0.06f, 0.06f, 0.08f)), // the sign
         };
+
+        private static ConfigEntry<bool> _staysOnDeath;
+        /// <summary>The stone stays in your inventory when you die (see <see cref="DeathlyHallows"/>' tombstone patch).</summary>
+        internal static bool StaysOnDeath => _staysOnDeath != null && _staysOnDeath.Value;
+
+        public override void BindConfig(ConfigFile cfg)
+        {
+            base.BindConfig(cfg);
+            _staysOnDeath = cfg.Bind(PrefabName, "StaysOnDeath", true,
+                "When you die, the stone stays in your inventory instead of going to your tombstone with everything else.");
+        }
 
         private SE_Stats _stoneEffect;
 

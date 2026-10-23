@@ -15,7 +15,7 @@ What I check on a new item, or when bringing one of mine up to date:
       out at 510. That's Blender's count: the mod draws every face from both sides, so double it
       before comparing with the peer (the item report already does: 1,020 against Nidhögg the
       Thundering's 420)
-- [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
+- [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose; boss trophy set if it is one of the strongest
 - [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
 - [ ] Inventory icon reads at a glance
 - [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod

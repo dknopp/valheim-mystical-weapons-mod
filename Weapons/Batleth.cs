@@ -1,11 +1,20 @@
+using BepInEx.Configuration;
+using HarmonyLib;
 using UnityEngine;
 
 namespace MysticalWeapons.Weapons
 {
-    /// <summary>Klingon bat'leth (Star Trek). A crescent blade held by a grip on its back.</summary>
+    /// <summary>
+    /// Klingon bat'leth (Star Trek). A crescent blade held by a grip on its back. Battle excites its
+    /// wielder: it carries its own adrenaline bar (like a trinket), filled by hits and kills, and when
+    /// full the Klingon fights on with "A good day to die".
+    /// </summary>
     internal class Batleth : MysticalWeapon
     {
-        public override string PrefabName => "Batleth";
+        private const string Name = "Batleth";
+        private static readonly int BatlethHash = Name.GetStableHashCode();
+
+        public override string PrefabName => Name;
         public override string[] SourcePrefabs => new[] { "Battleaxe" }; // wide two-handed swings
         public override string DisplayName => "Bat'leth";
         public override string Description =>
@@ -14,7 +23,7 @@ namespace MysticalWeapons.Weapons
 
         protected override string DefaultDamage => "slash:80,pierce:20";
         protected override string DefaultDamagePerLevel => "slash:6";
-        protected override string DefaultRecipe => "Iron:20,FineWood:6,LeatherScraps:6";
+        protected override string DefaultRecipe => "Iron:50,FineWood:10,LeatherScraps:8"; // the Battleaxe is Iron 35, Ancient bark 30
         protected override int DefaultStationLevel => 2;
         protected override float ModelScale => 0.9f;
         public override float IconAngle => 90f; // cutting edge up
@@ -25,10 +34,87 @@ namespace MysticalWeapons.Weapons
             new MaterialSpec(new Color(0.22f, 0.13f, 0.07f), 0.2f),  // 1 leather
         };
 
+        private ConfigEntry<bool> _fury;
+        private ConfigEntry<float> _maxAdrenaline;
+        private ConfigEntry<float> _hitAdrenaline;
+        private static ConfigEntry<float> _killAdrenaline;
+        private ConfigEntry<float> _furyDuration;
+        private ConfigEntry<float> _furyStamina;
+        private ConfigEntry<float> _furyDamage;
+
+        public override void BindConfig(ConfigFile cfg)
+        {
+            base.BindConfig(cfg);
+            _fury = cfg.Bind(PrefabName, "GoodDayToDie", true,
+                "Holding the bat'leth gives you an adrenaline bar, filled by its hits and kills; when full you get " +
+                "\"A good day to die\". It shares the bar with a worn trinket. Restart to apply.");
+            _maxAdrenaline = cfg.Bind(PrefabName, "MaxAdrenaline", 30f, "Adrenaline needed for \"A good day to die\". Restart to apply.");
+            _hitAdrenaline = cfg.Bind(PrefabName, "HitAdrenaline", 2f, "Adrenaline per hit with the bat'leth. Restart to apply.");
+            _killAdrenaline = cfg.Bind(PrefabName, "KillAdrenaline", 8f, "Extra adrenaline when the bat'leth's blow kills a creature.");
+            _furyDuration = cfg.Bind(PrefabName, "GoodDayToDieDuration", 15f, "Seconds \"A good day to die\" lasts. Restart to apply.");
+            _furyStamina = cfg.Bind(PrefabName, "GoodDayToDieStamina", 50f,
+                "Stamina restored at once when \"A good day to die\" starts. Restart to apply.");
+            _furyDamage = cfg.Bind(PrefabName, "GoodDayToDieDamage", 0.2f,
+                "Extra damage with axes during \"A good day to die\" (0.2 = +20%); attacks also cost half the stamina. Restart to apply.");
+        }
+
+        private SE_Stats _goodDay;
+
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
             shared.m_attackForce = 90f;
             shared.m_backstabBonus = 4f;
+            if (!_fury.Value) return;
+
+            _goodDay = ScriptableObject.CreateInstance<SE_Stats>();
+            _goodDay.name = "SE_GoodDayToDie";
+            _goodDay.m_name = "A good day to die";
+            _goodDay.m_tooltip = "Today is a good day to die! The blood sings: your strength returns, and every swing " +
+                                 "costs less and cuts deeper.";
+            _goodDay.m_icon = Icon;
+            _goodDay.m_ttl = _furyDuration.Value;
+            _goodDay.m_staminaUpFront = _furyStamina.Value;
+            _goodDay.m_attackStaminaUseModifier = -0.5f;
+            _goodDay.m_modifyAttackSkill = shared.m_skillType;
+            _goodDay.m_damageModifier = 1f + _furyDamage.Value;
+            _goodDay.m_startMessageType = MessageHud.MessageType.Center;
+            _goodDay.m_startMessage = "Today is a good day to die!";
+
+            // Like a trinket: equipped, it adds to your maximum adrenaline, and the game gives every equipped
+            // item's "full adrenaline" effect when the bar fills
+            shared.m_maxAdrenaline = _maxAdrenaline.Value;
+            shared.m_fullAdrenalineSE = _goodDay;
+            foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+                if (attack != null) attack.m_attackAdrenaline = _hitAdrenaline.Value;
+        }
+
+        public override void RegisterExtras(ObjectDB db)
+        {
+            if (_goodDay && !db.m_StatusEffects.Contains(_goodDay)) db.m_StatusEffects.Add(_goodDay);
+        }
+
+        private static readonly AccessTools.FieldRef<Character, HitData> LastHit =
+            AccessTools.FieldRefAccess<Character, HitData>("m_lastHit");
+        private static readonly AccessTools.FieldRef<VisEquipment, int> RightItemHash =
+            AccessTools.FieldRefAccess<VisEquipment, int>("m_currentRightItemHash");
+
+        /// <summary>
+        /// A creature killed by a player holding the bat'leth sends that player extra adrenaline. Runs where the
+        /// creature dies (its owner's client), so the weapon comes from the attacker's synced equipment and the
+        /// adrenaline goes over the same RPC the game uses for staggering an enemy.
+        /// </summary>
+        [HarmonyPatch(typeof(Character), "OnDeath")]
+        private static class KillPatch
+        {
+            private static void Postfix(Character __instance)
+            {
+                if (_killAdrenaline == null || _killAdrenaline.Value <= 0f || __instance.IsPlayer()) return;
+                var hit = LastHit(__instance);
+                if (hit == null || hit.m_ranged || !(hit.GetAttacker() is Player attacker)) return;
+                var vis = attacker.GetComponent<VisEquipment>();
+                if (!vis || RightItemHash(vis) != BatlethHash) return;
+                attacker.GetComponent<ZNetView>()?.InvokeRPC("RPC_AddAdrenaline", _killAdrenaline.Value);
+            }
         }
 
         // Shape in the XY plane: Y along the grip, +X towards the cutting edge

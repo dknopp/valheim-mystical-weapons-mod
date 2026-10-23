@@ -556,6 +556,52 @@ namespace MysticalWeapons
             return light;
         }
 
+        /// <summary>Vanilla creatures whose see-through body material makes things look like spirits, first found wins.</summary>
+        private static readonly string[] GhostSources = { "Ghost", "Wraith" };
+        private static Material _ghostBase;
+
+        /// <summary>
+        /// A tinted copy of a vanilla ghost's body material, or null if no ghost is loaded. Looks prefabs up in
+        /// <paramref name="scene"/>, so call it once a ZNetScene exists.
+        /// </summary>
+        public static Material GhostMaterial(ZNetScene scene, Color tint, string user)
+        {
+            if (!_ghostBase && scene)
+            {
+                foreach (var name in GhostSources)
+                {
+                    var source = scene.GetPrefab(name);
+                    var body = source
+                        ? source.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.sharedMaterial)
+                        : null;
+                    if (!body) continue;
+                    _ghostBase = body.sharedMaterial;
+                    Plugin.Log.LogInfo($"{user}: ghost material '{_ghostBase.name}' (shader '{_ghostBase.shader.name}') from '{name}'");
+                    break;
+                }
+                if (!_ghostBase) Plugin.Log.LogWarning($"{user}: no ghost material found ({string.Join(", ", GhostSources)})");
+            }
+            if (!_ghostBase) return null;
+
+            var mat = new Material(_ghostBase) { name = user + "_ghost" };
+            foreach (var property in new[] { "_Color", "_TintColor", "_BaseColor" })
+                if (mat.HasProperty(property)) mat.SetColor(property, tint);
+            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", tint * 0.5f);
+            return mat;
+        }
+
+        /// <summary>Gives every mesh under <paramref name="root"/> the same material (particles are left alone).</summary>
+        public static void SetAllMaterials(GameObject root, Material mat)
+        {
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r is ParticleSystemRenderer) continue;
+                var mats = r.sharedMaterials;
+                for (var i = 0; i < mats.Length; i++) mats[i] = mat;
+                r.sharedMaterials = mats;
+            }
+        }
+
         private static Transform FindDeep(Transform t, string name)
         {
             if (t.name == name) return t;

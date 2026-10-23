@@ -36,6 +36,9 @@ namespace MysticalWeapons
         /// <summary>Register status effects etc. with an ObjectDB.</summary>
         public virtual void RegisterExtras(ObjectDB db) { }
 
+        /// <summary>Register networked prefabs this item spawns (creatures, projectiles...) with a ZNetScene.</summary>
+        public virtual void RegisterNetExtras(ZNetScene scene) { }
+
         /// <summary>Rebuild a custom model from disk (dev command mw_reload). Most items have none.</summary>
         public virtual void ReloadCustomModel() { }
 
@@ -45,6 +48,24 @@ namespace MysticalWeapons
         private ConfigEntry<string> _recipe;
         private ConfigEntry<string> _station;
         private ConfigEntry<int> _stationLevel;
+        private ConfigEntry<string> _bossTrophy;
+
+        /// <summary>
+        /// Boss trophy needed to craft the items that are stronger than their vanilla tier (above-tier stats or a big
+        /// hidden power): the boss that opens the item's home biome, so the player beats it again first. Items in
+        /// line with their vanilla peers need none. Kept in one table so the whole progression reads at a glance.
+        /// </summary>
+        private static readonly Dictionary<string, string> BossTrophies = new Dictionary<string, string>
+        {
+            { "ResurrectionStone", "TrophyBonemass" },        // no skill loss on death
+            { "ShardplateHelm", "TrophyDragonQueen" },        // Moder: armour above its tier, and the set bonus
+            { "ShardplateBreastplate", "TrophyDragonQueen" },
+            { "ShardplateGreaves", "TrophyDragonQueen" },
+            { "Anduril", "TrophyGoblinKing" },                // Yagluth: spirits that fight for you
+            { "Sylspear", "TrophyGoblinKing" },               // fells trees and breaks rock, never wears out
+            { "Shardblade", "TrophyGoblinKing" },
+            { "ElderWand", "TrophyFader" },                   // completes Master of Death
+        };
 
         public virtual void BindConfig(ConfigFile cfg)
         {
@@ -54,6 +75,9 @@ namespace MysticalWeapons
             _station = cfg.Bind(s, "CraftingStation", DefaultStation,
                 "Prefab name of the crafting station (forge, piece_workbench, blackforge...). Empty = craft by hand.");
             _stationLevel = cfg.Bind(s, "StationLevel", DefaultStationLevel, "Minimum crafting station level.");
+            _bossTrophy = cfg.Bind(s, "BossTrophy", BossTrophies.TryGetValue(s, out var trophy) ? trophy : "",
+                "Boss trophy also needed to craft it, once (upgrades don't take another). The recipe stays hidden until " +
+                "you have picked one up, so beat that boss first. Empty = no trophy.");
         }
 
         // ------------------------------------------------------------- prefab
@@ -79,18 +103,8 @@ namespace MysticalWeapons
                 return null;
             }
 
-            if (!_holder)
-            {
-                // Instantiate under an inactive parent so no Awake() runs on the clones
-                var go = new GameObject("MysticalWeaponsPrefabs");
-                go.SetActive(false);
-                Object.DontDestroyOnLoad(go);
-                _holder = go.transform;
-            }
-
             SourceName = source.name;
-            Prefab = Object.Instantiate(source, _holder);
-            Prefab.name = PrefabName;
+            Prefab = CloneVanilla(source, PrefabName);
 
             var drop = Prefab.GetComponent<ItemDrop>();
             drop.m_itemData.m_dropPrefab = Prefab;
@@ -105,6 +119,35 @@ namespace MysticalWeapons
             Plugin.Log.LogInfo($"Created {PrefabName} from {source.name}");
             return Prefab;
         }
+
+        /// <summary>A renamed copy of a vanilla prefab that is never live itself, to register as a new prefab.</summary>
+        protected static GameObject CloneVanilla(GameObject source, string name)
+        {
+            if (!_holder)
+            {
+                // Instantiate under an inactive parent so no Awake() runs on the clones
+                var go = new GameObject("MysticalWeaponsPrefabs");
+                go.SetActive(false);
+                Object.DontDestroyOnLoad(go);
+                _holder = go.transform;
+            }
+            var clone = Object.Instantiate(source, _holder);
+            clone.name = name;
+            return clone;
+        }
+
+        /// <summary>Adds a prefab to a ZNetScene so it can be spawned and synced; false if the name is taken.</summary>
+        public static bool RegisterNetPrefab(ZNetScene scene, GameObject prefab)
+        {
+            if (scene.m_prefabs.Contains(prefab)) return true;
+            if (scene.m_prefabs.Exists(go => go && go.name == prefab.name)) return false;
+            scene.m_prefabs.Add(prefab);
+            if (NamedPrefabs(scene) is Dictionary<int, GameObject> named) named[prefab.name.GetStableHashCode()] = prefab;
+            return true;
+        }
+
+        private static readonly HarmonyLib.AccessTools.FieldRef<ZNetScene, Dictionary<int, GameObject>> NamedPrefabs =
+            HarmonyLib.AccessTools.FieldRefAccess<ZNetScene, Dictionary<int, GameObject>>("m_namedPrefabs");
 
         // ------------------------------------------------------------- recipe
 
@@ -130,8 +173,34 @@ namespace MysticalWeapons
             recipe.m_craftingStation = station;
             recipe.m_repairStation = station;
             recipe.m_minStationLevel = _stationLevel.Value;
-            recipe.m_resources = ParseRequirements(db, _recipe.Value);
+            recipe.m_resources = WithBossTrophy(db, ParseRequirements(db, _recipe.Value));
             db.m_recipes.Add(recipe);
+        }
+
+        /// <summary>
+        /// Adds the boss trophy to the recipe, needed once: none per upgrade level. The game lists a recipe only
+        /// once the player has picked up every ingredient, so this also hides it until the boss is beaten.
+        /// </summary>
+        private Piece.Requirement[] WithBossTrophy(ObjectDB db, Piece.Requirement[] resources)
+        {
+            var name = _bossTrophy.Value.Trim();
+            if (name.Length == 0) return resources;
+            var trophy = db.GetItemPrefab(name);
+            if (!trophy)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: boss trophy '{name}' not found; the recipe doesn't need one");
+                return resources;
+            }
+            var list = new List<Piece.Requirement>(resources);
+            list.RemoveAll(r => r.m_resItem && r.m_resItem.name == name); // already in the recipe: the trophy setting wins
+            list.Add(new Piece.Requirement
+            {
+                m_resItem = trophy.GetComponent<ItemDrop>(),
+                m_amount = 1,
+                m_amountPerLevel = 0,
+                m_recover = true
+            });
+            return list.ToArray();
         }
 
         private Piece.Requirement[] ParseRequirements(ObjectDB db, string spec)
