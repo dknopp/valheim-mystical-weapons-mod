@@ -18,6 +18,7 @@ day-to-day steps, see [contributing.md](contributing.md).
 | `docs/` | This documentation and Stephen's item-building notes |
 | `.github/` | CI workflows, the shared `setup-valheim` action and the pull request template |
 | `thunderstore.toml` | Thunderstore package definition (see Packaging) |
+| `LICENSE`, `LICENSE-ASSETS.md` | MIT for the code, CC BY 4.0 for our own art |
 
 Everything in `Core/` and the item folders shares the `MysticalWeapons` namespace (item folders add
 `.Weapons`, `.Armor`, `.Hallows`).
@@ -147,6 +148,7 @@ icon.png               256x256, from the repo root (source: icon.svg)
 README.md              the repo README, shown on the Thunderstore page
 plugins/MysticalWeapons.dll
 plugins/models/...     the shipped custom models and CREDITS.md
+LICENSE, LICENSE-ASSETS.md
 ```
 
 Mod managers install `plugins/` into `BepInEx/plugins/OldManMods-MysticalWeapons/`, so the models land

@@ -71,6 +71,7 @@ extra settings via `BindConfig`, Harmony patches nested in the item class.
 
 ## Rules
 - The repo is public: no secrets, tokens, webhook URLs, or personal paths in committed files.
+- Licences: code is MIT (`LICENSE`), our own art CC BY 4.0 (`LICENSE-ASSETS.md`).
 - Never rename an existing `PrefabName`, config section/key or `Plugin.Guid`: that breaks players'
   saved items and config.
 - Never copy Valheim's own textures, models or sounds into the repo; take them from the game at

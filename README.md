@@ -108,3 +108,9 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
   suit, rescaled, emissive texture merged into the base colour. See `models/CREDITS.md`.
 - Textures on the code-built weapons are taken from Valheim's own items while the game runs; none
   of the game's assets are included in this mod.
+
+## License
+
+Free to use, change and share. The code is under the [MIT licence](LICENSE); our models,
+textures and icon are under [CC BY 4.0](LICENSE-ASSETS.md), so credit "Mystical Weapons by
+OldManMods" if you reuse them. Third-party models keep their own licences (see Credits).

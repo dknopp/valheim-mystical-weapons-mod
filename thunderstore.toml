@@ -29,6 +29,14 @@ target = "plugins/"
 source = "./models"
 target = "plugins/models"
 
+[[build.copy]]
+source = "./LICENSE"
+target = "LICENSE"
+
+[[build.copy]]
+source = "./LICENSE-ASSETS.md"
+target = "LICENSE-ASSETS.md"
+
 [publish]
 repository = "https://thunderstore.io"
 communities = [ "valheim" ]
