@@ -4,7 +4,8 @@ obj/
 .idea/
 *.user
 
-# Blender autosave backups
+# Blender
+*.blend
 *.blend1
 
 # Reference exports of the code-built weapons (regenerate with tools/ModelExporter)
