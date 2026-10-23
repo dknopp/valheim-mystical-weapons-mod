@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using BepInEx.Configuration;
+using HarmonyLib;
 using UnityEngine;
 
 namespace MysticalWeapons.Armor
@@ -6,7 +8,8 @@ namespace MysticalWeapons.Armor
     /// <summary>
     /// Shardplate (The Stormlight Archive): seamless slate-grey plate powered by Stormlight.
     /// Built on Flametal (Ashlands) heavy plate, recoloured, with its fiery seams turned
-    /// Stormlight blue. Wearing all three pieces grants the Shardplate set bonus.
+    /// Stormlight blue. Wearing all three pieces grants the Shardplate set bonus, makes the wearer
+    /// a head taller, wraps them in Stormlight and cracks lightning where their blows land.
     /// </summary>
     internal abstract class ShardplatePiece : MysticalArmor
     {
@@ -15,7 +18,27 @@ namespace MysticalWeapons.Armor
 
         protected override string DefaultStation => "forge";
         protected override int DefaultStationLevel => 5;
-        protected override float DefaultArmor => 40f;
+        // A little above Padded (26), its Plains peer: the set needs Moder's trophy (see BossTrophies)
+        protected override float DefaultArmor => 30f;
+
+        private static ConfigEntry<float> _carryWeight;
+        private static ConfigEntry<float> _size;
+        private static ConfigEntry<bool> _stormlight;
+        private static ConfigEntry<bool> _storm;
+        private static ConfigEntry<float> _stormCooldown;
+
+        public override void BindConfig(ConfigFile cfg)
+        {
+            base.BindConfig(cfg);
+            if (_carryWeight != null) return; // the set's own settings, once for all three pieces
+            _carryWeight = cfg.Bind(SetName, "CarryWeight", 50f, "Full set: extra carry weight. Restart to apply.");
+            _size = cfg.Bind(SetName, "Size", 1.25f,
+                "Full set: the wearer looks this much bigger (1.25 = 25% taller), for everyone. Only the model grows; " +
+                "you still fit through doors.");
+            _stormlight = cfg.Bind(SetName, "StormlightGlow", true, "Full set: a soft Stormlight-blue glow surrounds the wearer.");
+            _storm = cfg.Bind(SetName, "StormStrikes", true, "Full set: lightning cracks where your melee blows land (looks only, no extra damage).");
+            _stormCooldown = cfg.Bind(SetName, "StormStrikeCooldown", 0.4f, "Shortest time between two lightning cracks, in seconds.");
+        }
         protected override Color DefaultTint => new Color(0.62f, 0.68f, 0.78f);  // slate with a blue sheen
         protected override Color DefaultGlow => new Color(0.25f, 0.55f, 1f);     // Stormlight
         // Custom models start from the Flametal chest's material (metallic, emissive), which gives the
@@ -45,16 +68,14 @@ namespace MysticalWeapons.Armor
             _setEffect = ScriptableObject.CreateInstance<SE_Stats>();
             _setEffect.name = "SE_Shardplate";
             _setEffect.m_name = "Shardplate";
-            _setEffect.m_tooltip = "Stormlight fills the plate: you are strong enough to carry a boulder " +
-                                   "and blows glance off you.";
+            _setEffect.m_tooltip = "Stormlight fills the plate: you stand a head taller, carry more, " +
+                                   "and crushing blows glance off you.";
             _setEffect.m_icon = Icon;
-            _setEffect.m_addMaxCarryWeight = 150f;
+            _setEffect.m_addMaxCarryWeight = _carryWeight.Value;
             _setEffect.m_staminaRegenMultiplier = 1.25f;
             _setEffect.m_mods = new List<HitData.DamageModPair>
             {
                 new HitData.DamageModPair { m_type = HitData.DamageType.Blunt, m_modifier = HitData.DamageModifier.Resistant },
-                new HitData.DamageModPair { m_type = HitData.DamageType.Slash, m_modifier = HitData.DamageModifier.Resistant },
-                new HitData.DamageModPair { m_type = HitData.DamageType.Pierce, m_modifier = HitData.DamageModifier.Resistant },
             };
             return _setEffect;
         }
@@ -62,6 +83,123 @@ namespace MysticalWeapons.Armor
         public override void RegisterExtras(ObjectDB db)
         {
             if (_setEffect && !db.m_StatusEffects.Contains(_setEffect)) db.m_StatusEffects.Add(_setEffect);
+        }
+
+        // ------------------------------------------------------------- Stormlight
+
+        private static readonly int HelmHash = "ShardplateHelm".GetStableHashCode();
+        private static readonly int ChestHash = "ShardplateBreastplate".GetStableHashCode();
+        private static readonly int LegsHash = "ShardplateGreaves".GetStableHashCode();
+        private static readonly AccessTools.FieldRef<VisEquipment, int> HelmetItemHash =
+            AccessTools.FieldRefAccess<VisEquipment, int>("m_currentHelmetItemHash");
+        private static readonly AccessTools.FieldRef<VisEquipment, int> ChestItemHash =
+            AccessTools.FieldRefAccess<VisEquipment, int>("m_currentChestItemHash");
+        private static readonly AccessTools.FieldRef<VisEquipment, int> LegItemHash =
+            AccessTools.FieldRefAccess<VisEquipment, int>("m_currentLegItemHash");
+
+        /// <summary>From the synced equipment visuals, so it reads the same on every client.</summary>
+        private static bool WearsFullSet(VisEquipment vis) =>
+            vis && HelmetItemHash(vis) == HelmHash && ChestItemHash(vis) == ChestHash && LegItemHash(vis) == LegsHash;
+
+        private static readonly AccessTools.FieldRef<VisEquipment, GameObject> VisualRoot =
+            AccessTools.FieldRefAccess<VisEquipment, GameObject>("m_visual");
+
+        [HarmonyPatch(typeof(Player), "Awake")]
+        private static class AddStormlightPatch
+        {
+            private static void Postfix(Player __instance) => __instance.gameObject.AddComponent<Stormlit>();
+        }
+
+        /// <summary>
+        /// On every player on every client: while they wear the full set, their model grows to <see cref="_size"/>
+        /// (only the model, so the collider still fits doors and beds) and a Stormlight glow surrounds them.
+        /// </summary>
+        private class Stormlit : MonoBehaviour
+        {
+            private const float Interval = 0.5f;   // seconds between checks of the worn armour
+            private const float GrowSpeed = 0.5f;  // scale per second while growing or shrinking
+
+            private VisEquipment _vis;
+            private Transform _visual;
+            private Vector3 _baseScale = Vector3.one;
+            private float _scale = 1f, _target = 1f, _next;
+            private Light _glow;
+
+            private void Awake() => _vis = GetComponent<VisEquipment>();
+
+            private void Update()
+            {
+                if (!_visual && _vis && VisualRoot(_vis))
+                {
+                    // Looked up here: the game may set it after this component wakes
+                    _visual = VisualRoot(_vis).transform;
+                    _baseScale = _visual.localScale;
+                }
+                if (Time.time >= _next)
+                {
+                    _next = Time.time + Interval;
+                    var full = _size != null && WearsFullSet(_vis);
+                    _target = full ? Mathf.Max(0.1f, _size.Value) : 1f;
+                    SetGlow(full && _stormlight.Value);
+                }
+                if (!_visual || Mathf.Approximately(_scale, _target)) return;
+                _scale = Mathf.MoveTowards(_scale, _target, GrowSpeed * Time.deltaTime);
+                _visual.localScale = _baseScale * _scale;
+            }
+
+            private void SetGlow(bool on)
+            {
+                if (!on && !_glow) return;
+                if (!_glow)
+                {
+                    var go = new GameObject("ShardplateStormlight");
+                    go.transform.SetParent(transform, false);
+                    go.transform.localPosition = new Vector3(0f, 1.3f, 0.3f); // in front of the chest
+                    _glow = go.AddComponent<Light>();
+                    _glow.type = LightType.Point;
+                    _glow.color = new Color(0.45f, 0.7f, 1f);
+                    _glow.range = 4f;
+                    _glow.intensity = 1.2f;
+                    _glow.shadows = LightShadows.None;
+                }
+                _glow.enabled = on;
+            }
+        }
+
+        private const string StrikeEffect = "fx_chainlightning_hit"; // the flash and crack Thunderfury uses
+        private static float _nextStrike;
+        private static bool _loggedStrike;
+
+        /// <summary>
+        /// A melee blow from the local player in full Shardplate cracks lightning where it lands. Looks only: the
+        /// hit is unchanged. Runs on the attacker's client; spell and lightning hits (no skill) are skipped.
+        /// </summary>
+        [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
+        private static class StormStrikePatch
+        {
+            private static void Prefix(HitData hit)
+            {
+                if (_storm == null || !_storm.Value || Time.time < _nextStrike) return;
+                if (hit.m_ranged || hit.m_skill == Skills.SkillType.None) return;
+                if (!(hit.GetAttacker() is Player attacker) || attacker != Player.m_localPlayer) return;
+                if (!WearsFullSet(attacker.GetComponent<VisEquipment>())) return;
+
+                var fx = ZNetScene.instance ? ZNetScene.instance.GetPrefab(StrikeEffect) : null;
+                if (!fx)
+                {
+                    if (!_loggedStrike) Plugin.Log.LogWarning($"Shardplate: no '{StrikeEffect}' prefab, no storm strikes");
+                    _loggedStrike = true;
+                    return;
+                }
+                if (!_loggedStrike)
+                {
+                    // A networked effect shows for everyone; otherwise only the wearer sees it
+                    Plugin.Log.LogInfo($"Shardplate: storm strikes use '{StrikeEffect}' (synced: {fx.GetComponent<ZNetView>() != null})");
+                    _loggedStrike = true;
+                }
+                _nextStrike = Time.time + _stormCooldown.Value;
+                Object.Instantiate(fx, hit.m_point, Quaternion.identity);
+            }
         }
     }
 
