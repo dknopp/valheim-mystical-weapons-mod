@@ -15,7 +15,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | Item | From | What it does | Crafted at |
 |---|---|---|---|
 | **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
-| **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
+| **Sylspear** | The Stormlight Archive | Glowing Shardspear (based on the Carapace spear). Grants **Windrunner** while held: higher jumps, a slow fall and faster stamina regen. Sheathe it and Syl follows you as a glowing spren instead of riding on your back. Like a Shardblade it also chops trees and mines rock, weighs nothing and has no durability. | Black forge 2 |
 | **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
 | **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Its secondary attack calls the Dead Men of Dunharrow: up to two ghostly Oathbreakers (the Dead Raiser's summon, for stamina instead of eitr and blood) that grow with your Swords skill. Reforged from an Iron Sword, the shards of Narsil. | Black forge 2 |
 | **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
@@ -90,9 +90,6 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
    and/or electricity animation when attacking?
  - It might be more interesting if the elder wand cycled through various spells as you attacked. The spell casting
    could also be slow but powerful to match the "power" of the elder wand without being unfair.
- - Sylspear could be more powerful and later in the game. It also might be cool if when sheathed with 'r' instead
-   of being placed on the players back it transforms into a whisplight to simulate a spren. The modifiers could be
-   adjusted too, slower fall speed, and higher jump might be more windrunner-y.
  - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
    matches an iron or silver sword but has the unique glow animation and behavior.
 
