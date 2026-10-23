@@ -13,7 +13,7 @@ namespace MysticalWeapons
     [BepInPlugin(Guid, "Mystical Weapons from Far Off Lands", Version)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "dankn.valheim.mysticalweapons";
+        public const string Guid = "omm.valheim.mysticalweapons";
         public const string Version = "1.6.3";
 
         internal static Plugin Instance;
@@ -28,10 +28,12 @@ namespace MysticalWeapons
             new Shardblade(),
             new Anduril(),
             new Sulfuras(),
+            new Thunderfury(),
             new Truthguard(),
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
+
             new ElderWand(),
             new ResurrectionStone(),
             new InvisibilityCloak(),
