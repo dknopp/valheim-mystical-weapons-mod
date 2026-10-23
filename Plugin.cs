@@ -46,6 +46,7 @@ namespace MysticalWeapons
             TexturedModels = Config.Bind("General", "TexturedModels", true,
                 "Texture code-built weapons with tinted textures borrowed from vanilla items. Off = flat colours.");
             foreach (var item in Items) item.BindConfig(Config);
+            DeathlyHallows.BindConfig(Config);
             ItemReport.BindConfig(Config);
             new Harmony(Guid).PatchAll();
             Log.LogInfo($"Loaded {Items.Count} mystical items.");
