@@ -121,8 +121,8 @@ namespace MysticalWeapons.Hallows
 
         /// <summary>
         /// The attack keeps the Staff of Frost's animation, hold and aim, with the Staff of Embers' fireball loaded in:
-        /// its projectile, how it flies and how it sounds. One fireball a cast: the frost staff's attack repeats while
-        /// held, which would get around the cooldown.
+        /// its projectile, how it flies and how it sounds. The frost cast loops while the button is held (the game ends
+        /// the animation when it is let go), so <see cref="FireballCooldownPatch"/> lets a fireball fly once per cooldown.
         /// </summary>
         private void LoadFireball(ItemDrop.ItemData.SharedData shared)
         {
@@ -142,9 +142,8 @@ namespace MysticalWeapons.Hallows
             cast.m_startEffect = fireball.m_startEffect;
             cast.m_triggerEffect = fireball.m_triggerEffect;
             cast.m_burstEffect = fireball.m_burstEffect;
-            cast.m_loopingAttack = false;
-            cast.m_perBurstResourceUsage = false;
             shared.m_attack = cast;
+            _fireballProjectile = cast.m_attackProjectile;
             Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' cast (animation '{cast.m_attackAnimation}') " +
                                $"with the fireball of '{FireballSource}' ('{fireball.m_attackProjectile.name}')");
         }
@@ -154,51 +153,54 @@ namespace MysticalWeapons.Hallows
         {
             var lightning = Borrow(LightningSource, "the lightning");
             if (lightning == null) return;
-            // The game only charges a weapon's primary attack: a charged secondary never charges, and its bolts
-            // fly at the speed of a 0% charge (none). Cast it at once at its full speed instead.
+            // The game only charges and reloads a weapon's primary attack: a secondary that must be charged never
+            // charges (its bolts fly at a 0% charge's speed, none), and one that must be reloaded never loads, so it
+            // never starts. Cast it at once instead.
             lightning.m_bowDraw = false;
+            lightning.m_requiresReload = false;
             shared.m_secondaryAttack = lightning;
             Plugin.Log.LogInfo($"{PrefabName}: secondary is the lightning of '{LightningSource}' ('{lightning.m_attackProjectile.name}', " +
                                $"{lightning.m_projectiles} per cast, animation '{lightning.m_attackAnimation}')");
         }
 
         private static float _nextCast;
+        private static GameObject _fireballProjectile;
+        private static readonly AccessTools.FieldRef<Attack, Humanoid> AttackCharacter =
+            AccessTools.FieldRefAccess<Attack, Humanoid>("m_character");
 
         /// <summary>
         /// The game reads a weapon's damage when its spell flies, and the wand has one damage for both attacks, so
-        /// swap in the fireball's or the lightning's as an attack starts. Skips a fireball while the wand gathers
-        /// power: staffs have no cooldown of their own to lengthen. Only the caster's client starts attacks; the
-        /// projectiles sync to everyone.
+        /// swap in the fireball's or the lightning's as an attack starts. Only the caster's client starts attacks;
+        /// the projectiles sync to everyone.
         /// </summary>
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
         private static class CastPatch
         {
-            private static bool Prefix(Humanoid __instance, bool secondaryAttack, ref bool __result, out bool __state)
+            private static void Prefix(Humanoid __instance, bool secondaryAttack)
             {
-                __state = false;
-                if (_cooldown == null || __instance != Player.m_localPlayer) return true;
+                if (__instance != Player.m_localPlayer || __instance.InAttack()) return;
                 var wand = __instance.GetCurrentWeapon();
-                if (!DeathlyHallows.IsItem(wand, Name) || __instance.InAttack()) return true;
-                if (secondaryAttack)
-                {
-                    wand.m_shared.m_damages = _boltDamage;
-                    wand.m_shared.m_damagesPerLevel = _boltPerLevel;
-                    return true;
-                }
-                if (Time.time < _nextCast)
-                {
-                    __result = false;
-                    return false;
-                }
-                wand.m_shared.m_damages = _fireballDamage;
-                wand.m_shared.m_damagesPerLevel = _fireballPerLevel;
-                __state = true;
-                return true;
+                if (!DeathlyHallows.IsItem(wand, Name)) return;
+                wand.m_shared.m_damages = secondaryAttack ? _boltDamage : _fireballDamage;
+                wand.m_shared.m_damagesPerLevel = secondaryAttack ? _boltPerLevel : _fireballPerLevel;
             }
+        }
 
-            private static void Postfix(bool __result, bool __state)
+        /// <summary>
+        /// Skips a fireball while the wand gathers power: staffs have no cooldown of their own to lengthen. The frost
+        /// cast keeps flicking while held, so held down it looses one fireball every SpellCooldown seconds. A skipped
+        /// burst costs nothing. Runs on the caster's client, where attacks run.
+        /// </summary>
+        [HarmonyPatch(typeof(Attack), "FireProjectileBurst")]
+        private static class FireballCooldownPatch
+        {
+            private static bool Prefix(Attack __instance)
             {
-                if (__state && __result) _nextCast = Time.time + _cooldown.Value;
+                if (_cooldown == null || !_fireballProjectile || __instance.m_attackProjectile != _fireballProjectile) return true;
+                if (AttackCharacter(__instance) != Player.m_localPlayer) return true;
+                if (Time.time < _nextCast) return false;
+                _nextCast = Time.time + _cooldown.Value;
+                return true;
             }
         }
 
