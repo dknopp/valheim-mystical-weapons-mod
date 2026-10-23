@@ -17,7 +17,7 @@ items tables current when items change. Developer docs are in `docs/`.
 - `Core/MysticalArmor.cs`: recoloured vanilla armor; rigid pieces (helmets) can take a custom OBJ.
 - `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
 - Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
-  materials, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
+  dual-wield hands and back holster, materials, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
   vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
   vanilla peers).
 - `Properties/AssemblyInfo.cs`: exposes internals to `tools/ModelExporter`.
