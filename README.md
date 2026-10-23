@@ -32,7 +32,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 | Item | What it does | Crafted at |
 |---|---|---|
-| **The Elder Wand** | Attack: a quick flick, like the Staff of Frost, that looses the Staff of Embers' fireball at twice its power, one every 1.25 s. Secondary attack (middle mouse): Dundr's spray of lightning, stronger than Dundr's. Block to put up the Staff of Protection's shield (every 20 s). Uses stamina instead of eitr by default. No durability. | Galdr table 5 (Deep North) |
+| **The Elder Wand** | Attack: a quick flick, like the Staff of Frost, that looses the Staff of Embers' fireball at twice its power, one every 1.25 s (hold to keep casting). Secondary attack (middle mouse): Dundr's spray of lightning, stronger than Dundr's. Block to put up the Staff of Protection's shield (every 20 s). Uses stamina instead of eitr by default. No durability. | Galdr table 5 (Deep North) |
 | **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. When you die, the stone stays in your inventory (everything else goes to your tombstone as usual). | Forge 3 |
 | **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you), and you fade to a dark, see-through blue shade that every player can see. | Workbench 4 |
 
