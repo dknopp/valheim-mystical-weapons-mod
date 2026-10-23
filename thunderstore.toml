@@ -1,0 +1,45 @@
+# Thunderstore package definition, read by tcli (https://github.com/thunderstore-io/thunderstore-cli).
+# CI builds the zip with `tcli build --package-version <Version>`; see docs/architecture.md.
+[config]
+schemaVersion = "0.0.1"
+
+[package]
+namespace = "OldManMods"
+name = "MysticalWeapons"
+# Placeholder: CI passes Version from Plugin.cs
+versionNumber = "0.0.0"
+description = "Provides legendary weapons and armor from other worlds. Check out the project's README to see the full list."
+websiteUrl = "https://github.com/dknopp/valheim-mystical-weapons-mod"
+containsNsfwContent = false
+
+[package.dependencies]
+denikson-BepInExPack_Valheim = "5.4.2351"
+
+[build]
+icon = "./icon.png"
+readme = "./README.md"
+outdir = "./build"
+
+# Mod managers install plugins/ into BepInEx/plugins/OldManMods-MysticalWeapons/
+[[build.copy]]
+source = "./bin/Release/MysticalWeapons.dll"
+target = "plugins/"
+
+[[build.copy]]
+source = "./models"
+target = "plugins/models"
+
+[[build.copy]]
+source = "./LICENSE"
+target = "LICENSE"
+
+[[build.copy]]
+source = "./LICENSE-ASSETS.md"
+target = "LICENSE-ASSETS.md"
+
+[publish]
+repository = "https://thunderstore.io"
+communities = [ "valheim" ]
+
+[publish.categories]
+valheim = [ "mods", "gear", "crafting", "ai-generated" ]

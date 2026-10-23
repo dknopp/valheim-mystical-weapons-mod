@@ -1,0 +1,15 @@
+<!-- The mod's original icon (a line drawing of the sword in the stone), kept for reference.
+     The published icon is icon.png at the repo root. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#ffffff"/>
+  <g fill="none" stroke="#111111" stroke-width="12" stroke-linecap="round">
+    <!-- Sword in one piece: pommel, grip, crossguard, tapering blade -->
+    <circle cx="128" cy="30" r="11" fill="#111111" stroke="none"/>
+    <line x1="128" y1="30" x2="128" y2="82" stroke-linecap="butt"/>
+    <line x1="86" y1="82" x2="170" y2="82"/>
+    <path d="M117 82 L139 82 L135 196 L121 196 Z" fill="#111111" stroke="none"/>
+    <!-- Stone: one swoop, open where the blade goes in -->
+    <path d="M36 222 A103.6 103.6 0 0 1 110 167.5"/>
+    <path d="M146 167.5 A103.6 103.6 0 0 1 220 222"/>
+  </g>
+</svg>

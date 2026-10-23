@@ -13,7 +13,7 @@
     <BepInExDir Condition="'$(BepInExDir)' == '' And Exists('$(GaleBepInExDir)\core\BepInEx.dll')">$(GaleBepInExDir)</BepInExDir>
     <BepInExDir Condition="'$(BepInExDir)' == ''">$(R2BepInExDir)</BepInExDir>
     <!-- Gale names plugin folders Author-ModName -->
-    <PluginFolder Condition="'$(BepInExDir)' == '$(GaleBepInExDir)'">Dank-MysticalWeapons</PluginFolder>
+    <PluginFolder Condition="'$(BepInExDir)' == '$(GaleBepInExDir)'">OldManMods-MysticalWeapons</PluginFolder>
     <PluginFolder Condition="'$(PluginFolder)' == ''">MysticalWeapons</PluginFolder>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
   </PropertyGroup>

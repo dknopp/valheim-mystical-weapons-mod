@@ -6,7 +6,8 @@
     <LangVersion>latest</LangVersion>
     <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
-    <BepInExCore>$(APPDATA)\com.kesomannen.gale\valheim\profiles\Default\BepInEx\core</BepInExCore>
+    <BepInExCore Condition="'$(BepInExDir)' != ''">$(BepInExDir)\core</BepInExCore>
+    <BepInExCore Condition="!Exists('$(BepInExCore)')">$(APPDATA)\com.kesomannen.gale\valheim\profiles\Default\BepInEx\core</BepInExCore>
     <BepInExCore Condition="!Exists('$(BepInExCore)')">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Default\BepInEx\core</BepInExCore>
   </PropertyGroup>
   <ItemGroup>

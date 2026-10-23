@@ -15,6 +15,11 @@ namespace MysticalWeapons
         public abstract string PrefabName { get; }
         /// <summary>Vanilla prefabs to clone, first one found wins.</summary>
         public abstract string[] SourcePrefabs { get; }
+        /// <summary>
+        /// Vanilla item to compare against in the item report (see <see cref="ItemReport"/>).
+        /// Null = the source prefab this item was cloned from.
+        /// </summary>
+        public virtual string VanillaPeer => null;
         public abstract string DisplayName { get; }
         public abstract string Description { get; }
 
@@ -58,7 +63,11 @@ namespace MysticalWeapons
 
         private static Transform _holder;
         public GameObject Prefab { get; private set; }
+        /// <summary>Name of the vanilla prefab this item was cloned from.</summary>
+        public string SourceName { get; private set; }
         public Sprite Icon { get; protected set; }
+        /// <summary>Looks up a vanilla prefab by name; only set during <see cref="Setup"/>.</summary>
+        protected Func<string, GameObject> FindVanilla { get; private set; }
 
         public GameObject GetOrCreatePrefab(Func<string, GameObject> findVanilla)
         {
@@ -82,6 +91,7 @@ namespace MysticalWeapons
                 _holder = go.transform;
             }
 
+            SourceName = source.name;
             Prefab = Object.Instantiate(source, _holder);
             Prefab.name = PrefabName;
 
@@ -92,6 +102,7 @@ namespace MysticalWeapons
             shared.m_description = Description;
             FindVanilla = findVanilla;
             Setup(Prefab, shared);
+            FindVanilla = null;
             Customize(shared);
 
             Plugin.Log.LogInfo($"Created {PrefabName} from {source.name}");

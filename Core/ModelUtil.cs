@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace MysticalWeapons
@@ -14,8 +15,13 @@ namespace MysticalWeapons
         public Vector3 Rotation;
         public Vector3 Offset;
         public float Scale;
+<<<<<<< HEAD:ModelUtil.cs
         /// <summary>Extra per-axis scale in the model's own axes, after fitting (zero = none).</summary>
         public Vector3 Stretch;
+=======
+        /// <summary>Clear everything the cloned item's material had (see <see cref="MysticalWeapon.CleanMaterials"/>).</summary>
+        public bool CleanMaterials;
+>>>>>>> origin/develop:Core/ModelUtil.cs
     }
 
     internal static class ModelUtil
@@ -152,13 +158,19 @@ namespace MysticalWeapons
             tex.Apply(true);
         }
 
-        /// <summary>Textured parts show their texture as-is: their base colour becomes white.</summary>
+        /// <summary>
+        /// Textured parts show their texture as-is: their base colour becomes white (borrowed
+        /// textures already carry the tint) and they use their textured gloss.
+        /// </summary>
         public static MaterialSpec[] WithTextures(MaterialSpec[] specs, MeshBuilder builder)
         {
             var result = (MaterialSpec[])specs.Clone();
             for (var i = 0; i < result.Length; i++)
                 if (builder.Textures != null && i < builder.Textures.Length && builder.Textures[i])
+                {
                     result[i].Color = Color.white;
+                    result[i].Gloss = result[i].TexturedGloss;
+                }
             return result;
         }
 
@@ -199,7 +211,8 @@ namespace MysticalWeapons
             var materials = new Material[specs.Length];
             for (var i = 0; i < materials.Length; i++)
                 materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
-                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null);
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null,
+                    place.CleanMaterials);
 
             if (materials.Length > 0) LogMaterial(name, baseMat, materials[0]);
 
@@ -209,23 +222,241 @@ namespace MysticalWeapons
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
             model.AddComponent<MeshRenderer>().sharedMaterials = materials;
 
-            var rotation = place.AutoAlign && hasBounds ? AlignToHandle(bounds) : Quaternion.identity;
-            rotation *= Quaternion.Euler(place.Rotation);
-            var scale = place.Scale;
-            var position = place.Offset;
-            if (place.FitToOriginal && hasBounds)
-            {
-                // Uniformly scale our rotated mesh to the original's largest dimension, centred on it
-                var ours = RotatedBounds(mesh.bounds, rotation);
-                scale *= bounds.size.MaxComponent() / Mathf.Max(ours.size.MaxComponent(), 1e-4f);
-                position += bounds.center - ours.center * scale;
-                Plugin.Log.LogInfo($"{name}: fitted custom model at {position}, scale {scale:0.###}");
-            }
+            Fit(name, mesh.bounds, hasBounds ? bounds : (Bounds?)null, place, out var rotation, out var position, out var scale);
             model.transform.localRotation = rotation;
             model.transform.localPosition = position;
             model.transform.localScale = Vector3.Scale(Vector3.one * scale, place.Stretch == Vector3.zero ? Vector3.one : place.Stretch);
             return model;
         }
+
+        /// <summary>Where our model goes against the original's bounds (null = unknown), as <see cref="ModelPlacement"/> asks.</summary>
+        private static void Fit(string name, Bounds ours, Bounds? original, ModelPlacement place,
+            out Quaternion rotation, out Vector3 position, out float scale)
+        {
+            rotation = place.AutoAlign && original.HasValue ? AlignToHandle(original.Value) : Quaternion.identity;
+            rotation *= Quaternion.Euler(place.Rotation);
+            scale = place.Scale;
+            position = place.Offset;
+            if (!place.FitToOriginal || !original.HasValue) return;
+            // Uniformly scale our rotated mesh to the original's largest dimension, centred on it
+            var rotated = RotatedBounds(ours, rotation);
+            scale *= original.Value.size.MaxComponent() / Mathf.Max(rotated.size.MaxComponent(), 1e-4f);
+            position += original.Value.center - rotated.center * scale;
+            Plugin.Log.LogInfo($"{name}: fitted custom model at {position}, scale {scale:0.###}");
+        }
+
+        /// <summary>
+        /// Dual-wield items (Skoll and Hati) show both blades in hand as one skinned mesh under
+        /// "attach_skin", bound to the player's hand bones. Replaces that mesh with two copies of
+        /// <paramref name="model"/> (from <see cref="ReplaceModel"/>), one per hand, the left one mirrored,
+        /// each held with its grip across the fist (see <see cref="GripFrame"/>).
+        /// Returns false if the cloned item has no such mesh.
+        /// </summary>
+        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        {
+            var skin = prefab.transform.Find("attach_skin");
+            var renderer = skin ? skin.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.sharedMesh) : null;
+            // The vanilla mesh can't be read, so find the hands by name in the skeleton it is bound to
+            var bones = renderer ? renderer.bones : new Transform[0];
+            var hands = new[]
+            {
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("RightHand")),
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("LeftHand"))
+            };
+            if (hands.Any(h => h < 0))
+            {
+                Plugin.Log.LogWarning($"{name}: no hand bones under attach_skin, the model only shows on the ground");
+                return false;
+            }
+
+            // Bind poses map mesh space to bone space, so each blade is built in its bone's space
+            var bindposes = new Matrix4x4[bones.Length];
+            var ours = model.GetComponent<MeshFilter>().sharedMesh;
+            var srcVerts = ours.vertices;
+            var srcNormals = ours.normals;
+            var srcUvs = ours.uv;
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var weights = new List<BoneWeight>();
+            var tris = new List<int>[ours.subMeshCount];
+            for (var s = 0; s < tris.Length; s++) tris[s] = new List<int>();
+            for (var k = 0; k < hands.Length; k++)
+            {
+                var bone = hands[k];
+                var hand = bones[bone];
+                var mirror = k == 1;
+                if (!GripFrame(hand, out var grip, out var gripAt))
+                    Plugin.Log.LogWarning($"{name}: no finger bones under {hand.name}, the blade follows the bone's own axes");
+                Fit(name, ours.bounds, null, place, out var rotation, out var position, out var scale);
+                // The grip frame is the same for both hands but turned the other way round, so mirroring
+                // across it (flat side, Z) makes the left blade the mirror image of the right
+                var flip = mirror ? Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) : Matrix4x4.identity;
+                var m = Matrix4x4.TRS(gripAt, grip, Vector3.one) * flip * Matrix4x4.TRS(position, rotation, Vector3.one * scale);
+
+                var first = verts.Count;
+                for (var i = 0; i < srcVerts.Length; i++)
+                {
+                    verts.Add(m.MultiplyPoint3x4(srcVerts[i]));
+                    normals.Add(m.MultiplyVector(srcNormals[i]).normalized);
+                    uvs.Add(i < srcUvs.Length ? srcUvs[i] : Vector2.zero);
+                    weights.Add(new BoneWeight { boneIndex0 = bone, weight0 = 1f });
+                }
+                for (var s = 0; s < tris.Length; s++)
+                {
+                    var t = ours.GetTriangles(s);
+                    for (var i = 0; i < t.Length; i += 3)
+                    {
+                        // Mirroring turns triangles inside out unless their winding is reversed too
+                        tris[s].Add(first + t[i]);
+                        tris[s].Add(first + t[mirror ? i + 2 : i + 1]);
+                        tris[s].Add(first + t[mirror ? i + 1 : i + 2]);
+                    }
+                }
+                // The player's bones carry the rig's import scale (a blade built in metres showed up
+                // giant), so undo the bone's scale to keep our blade at its real size
+                var boneScale = hand.lossyScale;
+                bindposes[bone] = Matrix4x4.Scale(new Vector3(1f / boneScale.x, 1f / boneScale.y, 1f / boneScale.z));
+                Plugin.Log.LogInfo($"{name}: blade {k + 1} on bone {bone} '{hand.name}' (bone scale {boneScale}), " +
+                                   $"grip at {gripAt}{(mirror ? ", mirrored" : "")}");
+            }
+
+            var mesh = new Mesh { name = name + "_skinned" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.subMeshCount = tris.Length;
+            for (var s = 0; s < tris.Length; s++) mesh.SetTriangles(tris[s], s);
+            mesh.boneWeights = weights.ToArray();
+            mesh.bindposes = bindposes;
+            mesh.RecalculateBounds();
+
+            renderer.sharedMesh = mesh;
+            renderer.sharedMaterials = model.GetComponent<MeshRenderer>().sharedMaterials;
+            renderer.enabled = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Holstered, the game shows an item's "attach_back" child (if it has one) on the back joint for its
+        /// type, instead of its dropped "attach" model. Adds one with two copies of <paramref name="model"/>
+        /// crossed in an X, the second mirrored, laid flat on the back with the tips curving up and out.
+        /// <see cref="BackFramePatch"/> places them on the player.
+        /// </summary>
+        public static void AddCrossedBackModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        {
+            var back = new GameObject("attach_back");
+            back.layer = model.layer;
+            back.transform.SetParent(prefab.transform, false);
+            // The game takes the first child named attach_back or attach, and shows it once instantiated
+            back.transform.SetSiblingIndex(0);
+            back.SetActive(false);
+
+            var frame = new GameObject(name + BackFrame).transform;
+            frame.gameObject.layer = model.layer;
+            frame.SetParent(back.transform, false);
+            var mesh = model.GetComponent<MeshFilter>().sharedMesh;
+            var materials = model.GetComponent<MeshRenderer>().sharedMaterials;
+            var s = Mathf.Sin(BackAngle * Mathf.Deg2Rad);
+            var c = Mathf.Cos(BackAngle * Mathf.Deg2Rad);
+            for (var k = 0; k < 2; k++)
+            {
+                // Model +Y (tip to tip) leans off vertical, +Z (the way the tips curve) points up and out, +X (the
+                // grip side) faces the back so the medallion faces out. The second is the first mirrored left to right.
+                var side = k == 0 ? -1f : 1f;
+                var glaive = new GameObject($"{name}_back{k + 1}");
+                glaive.layer = model.layer;
+                glaive.transform.SetParent(frame, false);
+                glaive.transform.localRotation = Quaternion.LookRotation(new Vector3(-side * c, s, 0f), new Vector3(side * s, c, 0f));
+                glaive.transform.localPosition = new Vector3(0f, 0f, -BackGap * k);
+                glaive.transform.localScale = new Vector3(k == 0 ? -place.Scale : place.Scale, place.Scale, place.Scale);
+                glaive.AddComponent<MeshFilter>().sharedMesh = mesh;
+                glaive.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+        }
+
+        /// <summary>Name suffix of the body-space frame under "attach_back" (see <see cref="BackFramePatch"/>).</summary>
+        private const string BackFrame = "_backframe";
+
+        /// <summary>
+        /// The back joints sit at the shoulder or hip with their own axes and the rig's import scale, which
+        /// differ between the player prefab and a live player. So once our holstered model is attached, move it
+        /// onto the chest bone (it follows the torso, not the hips) and lay its frame out in the player's body
+        /// space (X right, Y up, Z forward), one unit to a metre. Body space is taken from the chest bone's rest
+        /// pose (the body mesh's bind pose), not its pose right now, which is mid-animation while holstering.
+        /// </summary>
+        [HarmonyLib.HarmonyPatch(typeof(VisEquipment), "AttachBackItem")]
+        private static class BackFramePatch
+        {
+            private static void Postfix(VisEquipment __instance, GameObject __result)
+            {
+                if (!__result || !__result.name.StartsWith("attach_back")) return;
+                foreach (Transform frame in __result.transform)
+                {
+                    if (!frame.name.EndsWith(BackFrame)) continue;
+                    var body = __instance.transform;
+                    var skin = __instance.m_bodyModel;
+                    var bones = skin ? skin.bones : new Transform[0];
+                    var bindposes = skin && skin.sharedMesh ? skin.sharedMesh.bindposes : new Matrix4x4[0];
+                    var i = System.Array.FindIndex(bones, t => t && t.name == "Spine2");
+                    var place = Matrix4x4.TRS(BackPosition, Quaternion.Euler(BackTilt, 0f, 0f), Vector3.one);
+                    if (i < 0 || i >= bindposes.Length)
+                    {
+                        // No rest pose to go by: lay it out against the body as it stands now
+                        frame.SetPositionAndRotation(body.TransformPoint(BackPosition), body.rotation * Quaternion.Euler(BackTilt, 0f, 0f));
+                        var parent = frame.parent.lossyScale;
+                        frame.localScale = new Vector3(1f / parent.x, 1f / parent.y, 1f / parent.z);
+                        continue;
+                    }
+
+                    // The chest bone at rest in body space; the body mesh doesn't move against the player
+                    var chestAtRest = body.worldToLocalMatrix * skin.transform.localToWorldMatrix * bindposes[i].inverse;
+                    var m = chestAtRest.inverse * place;
+                    __result.transform.SetParent(bones[i], false);
+                    __result.transform.localPosition = Vector3.zero;
+                    __result.transform.localRotation = Quaternion.identity;
+                    __result.transform.localScale = Vector3.one;
+                    frame.localPosition = m.GetColumn(3);
+                    frame.localRotation = m.rotation;
+                    frame.localScale = m.lossyScale;
+                }
+            }
+        }
+
+        /// <summary>Degrees each holstered blade leans off vertical.</summary>
+        private const float BackAngle = 30f;
+        /// <summary>Where the holstered blades cross in body space (metres): between the shoulder blades.</summary>
+        private static readonly Vector3 BackPosition = new Vector3(0f, 1.35f, -0.22f);
+        /// <summary>Degrees the holstered X tips forward at the top, so its lower half clears the cape.</summary>
+        private const float BackTilt = 8f;
+        /// <summary>Space between the two crossed blades, so they don't flicker through each other.</summary>
+        private const float BackGap = 0.03f;
+
+        /// <summary>
+        /// How a weapon sits in a closed hand, in the hand bone's space and in metres: model +Y runs
+        /// across the fist from the little finger to the index finger (like a held knife's grip), +X
+        /// points along the fingers, and the grip passes just inside the knuckles.
+        /// False (and the bone's own axes) if the hand has no finger bones.
+        /// </summary>
+        private static bool GripFrame(Transform hand, out Quaternion rotation, out Vector3 position)
+        {
+            rotation = Quaternion.identity;
+            position = Vector3.zero;
+            var index = FindDeep(hand, hand.name + "Index1");
+            var middle = FindDeep(hand, hand.name + "Middle1");
+            var pinky = FindDeep(hand, hand.name + "Pinky1");
+            if (!index || !middle || !pinky) return false;
+            Vector3 Local(Transform t) => Vector3.Scale(hand.InverseTransformPoint(t.position), hand.lossyScale);
+            var up = (Local(index) - Local(pinky)).normalized;
+            var knuckles = Local(middle);
+            var forward = Vector3.ProjectOnPlane(knuckles, up).normalized;
+            rotation = Quaternion.LookRotation(Vector3.Cross(forward, up), up);
+            position = knuckles * GripDepth;
+            return true;
+        }
+
+        /// <summary>How far from the wrist to the knuckles the grip sits in a closed hand.</summary>
+        private const float GripDepth = 0.9f;
 
         private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
         {
@@ -254,12 +485,44 @@ namespace MysticalWeapons
             return Quaternion.LookRotation(Vector3.Cross(right, up), up);
         }
 
-        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name, Texture2D texture)
+        private static Material MakeMaterial(Material baseMat, MaterialSpec spec, string name, Texture2D texture, bool clean)
         {
             var mat = baseMat ? new Material(baseMat) : new Material(Shader.Find("Standard"));
             mat.name = name;
-            foreach (var prop in new[] { "_MainTex", "_BumpMap", "_MetallicGlossMap", "_EmissionMap" })
-                if (mat.HasProperty(prop)) mat.SetTexture(prop, null);
+            if (!clean)
+            {
+                foreach (var prop in new[] { "_MainTex", "_BumpMap", "_MetallicGlossMap", "_EmissionMap" })
+                    if (mat.HasProperty(prop)) mat.SetTexture(prop, null);
+                if (texture && mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
+                mat.color = spec.Color;
+                if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", spec.Gloss);
+                if (spec.Emission.maxColorComponent > 0f && mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", spec.Emission);
+                    if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
+                }
+                return mat;
+            }
+
+            // Clear every texture the cloned item had, not only the main ones: e.g. the ice staff's
+            // detail map would otherwise show its frost through our texture
+            var cleared = new List<string>();
+            foreach (var prop in mat.GetTexturePropertyNames())
+            {
+                if (!mat.GetTexture(prop)) continue;
+                mat.SetTexture(prop, null);
+                cleared.Add(prop);
+            }
+            foreach (var keyword in new[] { "_DETAIL_MULX2", "_PARALLAXMAP", "_NORMALMAP", "_METALLICGLOSSMAP" })
+                mat.DisableKeyword(keyword);
+            if (cleared.Count > 0) Plugin.Log.LogInfo($"{name}: cleared textures {string.Join(", ", cleared)}");
+            // Colour settings carry over too: e.g. black metal's metal colour tints our steel green
+            var colours = new List<string>();
+            foreach (var prop in mat.GetPropertyNames(MaterialPropertyType.Vector))
+                colours.Add($"{prop} {mat.GetVector(prop)}");
+            if (colours.Count > 0) Plugin.Log.LogInfo($"{name}: inherited colours {string.Join(", ", colours)}");
+            if (mat.HasProperty("_MetalColor")) mat.SetColor("_MetalColor", Color.white);
             if (texture && mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
             mat.color = spec.Color;
             if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", spec.Gloss);
@@ -269,6 +532,14 @@ namespace MysticalWeapons
                 mat.SetColor("_EmissionColor", spec.Emission);
                 // Textured: glow follows the texture, so bright details (glyphs, edges) glow most
                 if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
+            }
+            else if (mat.HasProperty("_EmissionColor"))
+            {
+                // No glow wanted: switch off any glow the cloned item had (the ice staff glows icy blue)
+                var old = mat.GetColor("_EmissionColor");
+                if (old.maxColorComponent > 0f) Plugin.Log.LogInfo($"{name}: removed the original glow {old}");
+                mat.DisableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.black);
             }
             return mat;
         }

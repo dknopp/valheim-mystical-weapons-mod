@@ -1,87 +1,103 @@
 # Mystical Weapons from Far Off Lands
 
-A Valheim BepInEx mod that adds legendary weapons and armor from other worlds.
-No Jotunn and no asset bundles: weapon models are built in code, armor is recoloured vanilla plate.
+A [Valheim](https://www.valheimgame.com/) mod that brings legendary weapons and armor from other
+worlds into the game: Andúril from Middle-earth, Shardblades and Shardplate from Roshar, Sulfuras,
+Thunderfury and the Warglaives of Azzinoth from Azeroth, a Klingon bat'leth and the three Deathly Hallows.
+
+Every item is crafted from Valheim's own materials, sits at a sensible point in the game's
+progression and has one power from its story. Models are drawn in Valheim's style, and the mod
+needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 ## Items
 
-| Item | Prefab | From | Notes |
+### Weapons
+
+| Item | From | What it does | Crafted at |
 |---|---|---|---|
-| Bat'leth | `Batleth` | Star Trek | Crescent blade, wide two-handed swings (based on the Iron Battleaxe) |
-| Sylspear | `Sylspear` | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** (slow fall, faster stamina) while held. No durability |
-| Shardblade | `Shardblade` | The Stormlight Archive | Huge two-hander that chops trees and mines rock. Light, no durability |
-| Andúril | `Anduril` | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Recipe consumes an Iron Sword - the shards of Narsil |
-| Shardplate Helm / Breastplate / Greaves | `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves` | The Stormlight Archive | Modelled on Krajkoa's Shardplate (see Credits), recoloured Stormlight slate-blue: the helm sits on the head, the breastplate and greaves are skinned to the player's skeleton so they bend with the body. Full set: +150 carry weight, faster stamina, resistant to blunt/slash/pierce |
-| The Elder Wand | `ElderWand` | Harry Potter | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability |
-| The Resurrection Stone | `ResurrectionStone` | Harry Potter | Utility slot. Die while wearing it and your skills are not lowered |
-| The Cloak of Invisibility | `InvisibilityCloak` | Harry Potter | Monsters cannot see you while you sneak (they can still hear you) |
+| **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
+| **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
+| **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
+| **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
+| **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
+| **Thunderfury, Blessed Blade of the Windseeker** | World of Warcraft | One-handed sword with a split blade and a crackling ball of lightning at its root (based on Nidhögg). Hits may loose chain lightning that leaps to other creatures nearby. Reforged from Nidhögg the Thundering. | Black forge 4 |
+| **Warglaives of Azzinoth** | World of Warcraft | Illidan's twin glaives, one in each hand (Knives skill, based on Skoll and Hati), wreathed in fel flames and crossed on the back when holstered. Hits add fel poison. Reforged from Skoll and Hati. | Black forge 3 |
 
-**Deathly Hallows set:** wand in hand + stone + cloak = **Master of Death**: 1.5x health regen, 1.25x stamina regen, resistant to poison, immune to spirit damage.
+### Armor
 
-Most items are crafted at the forge; the wand and cloak at the workbench. Recipes, stats, crafting station and model/colour tweaks are
-configurable in `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
+| Item | From | What it does | Crafted at |
+|---|---|---|---|
+| **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: +150 carry weight, faster stamina regen, resistant to blunt, slash and pierce. | Forge 5 |
+
+### The Deathly Hallows (Harry Potter)
+
+| Item | What it does | Crafted at |
+|---|---|---|
+| **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
+| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
+| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
+
+**Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
+resistant to poison, immune to spirit damage.
 
 ## Installing
 
-Requires [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/).
-Copy `MysticalWeapons.dll` to `BepInEx/plugins/MysticalWeapons/`.
-Install on the server **and** on every client.
+**With a mod manager** (Gale, r2modman): find *MysticalWeapons* on Thunderstore and install it.
+BepInEx comes with it.
 
-## Building
+**By hand:**
+1. Install [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/).
+2. Download the zip from the latest [GitHub release](https://github.com/dknopp/valheim-mystical-weapons-mod/releases)
+   and copy `MysticalWeapons.dll` **and** the `models` folder from its `plugins` folder into
+   `BepInEx/plugins/MysticalWeapons/`.
+   Without `models`, the Shardplate Helm, Sulfuras, Thunderfury and the Warglaives fall back to simpler built-in looks.
 
-Needs the .NET SDK and Valheim + BepInEx installed.
+Install it on the server **and** on every player's game.
 
-```
-dotnet build -c Release
-```
+**Beta builds** of the next version are published as *MysticalWeapons_BETA* for play testing.
+Install the beta or the stable version, never both.
 
-The build references Valheim from `C:\Program Files (x86)\Steam\steamapps\common\Valheim` and BepInEx
-from the `Default` profile of Gale (or r2modman if Gale is not installed), and copies the DLL into that
-profile. Override with `-p:ValheimDir=...` and `-p:BepInExDir=...`.
+Don't install the old standalone Bat'leth mod as well: this mod already includes the bat'leth.
 
-Do not install the old standalone Bat'leth mod alongside this one: Mystical Weapons includes the bat'leth.
+## Configuration
 
-## Editing models in Blender
+Settings live in `BepInEx/config/omm.valheim.mysticalweapons.cfg`, created on first launch. Each
+item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
+`Sulfuras`, `Thunderfury`, `WarglaivesOfAzzinoth`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
+`ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
+item off or change its recipe, crafting station, stats and effects (fireball chance, undead damage,
+glow colours and more).
 
-Weapon models are built in code, but you can export them, edit them in Blender and drop them back in.
+- `[General] TexturedModels = false` turns off the textures borrowed from vanilla items (such as
+  Sulfuras's flametal grain) for flat colours. Restart to apply.
+- After an update changes an item's defaults, your existing config keeps the old values. Delete
+  that item's section to get the new ones.
 
-1. Export: `tools/ModelExporter/bin/Release/net48/ModelExporter.exe exports` (after building
-   `tools/ModelExporter`) writes `exports/<Prefab>.obj` + `.mtl` for every code-built item.
-2. In Blender: **File > Import > Wavefront (.obj)** with default settings. Units are metres. The hand
-   sits at the origin and the grip runs along +Y (Blender's +Z after import). Run
-   **Mesh > Normals > Recalculate Outside** once.
-3. Keep the material names (`Anduril_0`, `Anduril_1`, ...): the number picks which of the weapon's
-   colours that part gets (blade, grip, glowing runes...). Unknown materials use the first colour.
-4. Export with **File > Export > Wavefront (.obj)**, default axes, and tick **Triangulated Mesh**.
-5. Put the file at `BepInEx/plugins/<mod folder>/models/<Prefab>.obj`, e.g.
-   `Dank-MysticalWeapons/models/Shardblade.obj`, and restart the game. The log says
-   `using custom model` when it is picked up; the inventory icon is drawn from it too.
+## Custom models
 
-Custom models are cosmetic and only affect the machine they are installed on, so copy them to every
-player who should see them. Delete the file to go back to the built-in model.
+You can replace any weapon's model with your own: drop a `<Prefab>.obj` (for example
+`Shardblade.obj`) into the plugin's `models` folder and restart. Custom models only change how the
+item looks on your machine. See [Editing models in Blender](docs/contributing.md#editing-models-in-blender).
 
-Models can be textured: a `map_Kd` texture in the `.mtl` is applied to that material (PNG or JPG).
-Helmets work too: a `models/ShardplateHelm.obj` is scaled and centred to fill the vanilla helmet,
-then rotated and nudged by fixed values in the item's code. Its texture is recoloured on load from
-the `Tint`, `Glow`, `CustomModelBrightness` and `CustomModelGlow` settings, and `CustomModelLight`
-adds a soft light in front of it. Placement is deliberately not configurable; colours are.
+## Contributing
 
-`ModelExporter.exe exports --verify` re-imports each exported file and checks it matches the original.
-`ModelExporter.exe --load models/ShardplateHelm.obj` shows how the mod will read a custom model.
+Bug reports and ideas are welcome as GitHub issues. To build the mod or add an item, see
+[docs/contributing.md](docs/contributing.md); for how the code and build fit together, see
+[docs/architecture.md](docs/architecture.md).
 
-Body armor can be modelled too, in a folder `models/<Prefab>/` that replaces the vanilla mesh:
-- `skin.obj`: one mesh skinned to the player's skeleton, attached as Valheim's `attach_skin`. It adds
-  two line types to OBJ: `bp <bone> <16 floats>` (bind poses, Unity space, row-major) and
-  `vw i0 w0 i1 w1 i2 w2 i3 w3` after each vertex (bone weights). Bones are matched by name when worn.
-- or `<BoneName>.obj` files, each a rigid piece in that bone's local frame, attached as `attach_<BoneName>`.
-An `icon.png` there becomes the item's icon.
-`tools/blender/fit_shardplate_body.py` builds these for the Shardplate from Krajkoa's model and the
-player skeleton in `tools/blender/player_skeleton.json`. To refresh that skeleton, create an empty
-file named `dump-skeleton` next to the plugin DLL and start the game; it writes `player_skeleton.json`.
-
-The repo's `models/` folder holds custom models that ship with the mod; the build copies it into the
-plugin folder. `exports/` is where the exporter writes the code-built weapons; it is not committed
-(run the exporter to generate it).
+### Next up:
+ - Rebalance existing weapons to make sure they're well aligned with natural game progression
+ - Update Anduril to auto-summon spirits to aid in fights ... this should make the weapon a late game item
+ - Experiment with Shardplate - can the full set cause the character size to increase by 25%?. Can we add a storm
+   and/or electricity animation when attacking?
+ - Invisibility cloak currently gives a player infinite stealth while crouched but doesn't have an visual effects
+   indicating invisibility - can we swap the player model for a dark ethereal and translucent blue while crouched?
+ - It might be more interesting if the elder wand cycled through various spells as you attacked. The spell casting
+   could also be slow but powerful to match the "power" of the elder wand without being unfair.
+ - Sylspear could be more powerful and later in the game. It also might be cool if when sheathed with 'r' instead
+   of being placed on the players back it transforms into a whisplight to simulate a spren. The modifiers could be
+   adjusted too, slower fall speed, and higher jump might be more windrunner-y.
+ - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
+   matches an iron or silver sword but has the unique glow animation and behavior.
 
 ## Editing the Shardplate set
 
@@ -92,14 +108,15 @@ deployed, the current tuning values, and the pitfalls already hit.
 
 - Shardplate Helm, Breastplate and Greaves models: based on ["Shardplate"](https://sketchfab.com/3d-models/shardplate-5a4fca1f665b469c9669f387aa879b34)
   by [Krajkoa](https://sketchfab.com/Krajkoa), licensed under
-  [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Helm and collar extracted from the full suit;
-  the rest split into plates, refitted to Valheim's player skeleton and reduced in detail; emissive
-  textures merged into the base colour. See `models/CREDITS.md`.
+  [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Helm and collar extracted from the full
+  suit, rescaled, emissive texture merged into the base colour. See `models/CREDITS.md`.
+- Mod icon: generated with ChatGPT's image generator (OpenAI), which assigns the output's rights to
+  its user.
+- Textures on the code-built weapons are taken from Valheim's own items while the game runs; none
+  of the game's assets are included in this mod.
 
-## Adding an item
+## License
 
-- **Weapon:** subclass `MysticalWeapon` in `Weapons/`. Pick vanilla `SourcePrefabs` to clone, set stats
-  and recipe, and build the model with `MeshBuilder` (blades, prisms, slabs). Hand at the origin, grip along +Y.
-- **Armor:** subclass `MysticalArmor` in `Armor/` with a source armor piece, tint and glow colour.
-
-Then add it to `Plugin.Items`.
+Free to use, change and share. The code is under the [MIT licence](LICENSE); our models,
+textures and icon are under [CC BY 4.0](LICENSE-ASSETS.md), so credit "Mystical Weapons by
+OldManMods" if you reuse them. Third-party models keep their own licences (see Credits).
