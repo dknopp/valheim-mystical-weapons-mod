@@ -1,0 +1,16 @@
+newmtl Shardplate_0
+Kd 1 1 1
+map_Kd Shardplate_0.png
+
+newmtl Shardplate_1
+Kd 1 1 1
+map_Kd Shardplate_1.png
+
+newmtl Shardplate_2
+Kd 1 1 1
+map_Kd Shardplate_2.png
+
+newmtl Shardplate_3
+Kd 1 1 1
+map_Kd Shardplate_3.png
+

@@ -11,6 +11,9 @@ namespace MysticalWeapons
     /// Materials named "{anything}_{N}" go to submesh N, others to submesh 0.
     /// Texture coordinates and vertex normals are kept when present. Polygons are fan-triangulated,
     /// so triangulate concave faces before exporting.
+    ///
+    /// Skinned models add two line types: "bp &lt;bone&gt; &lt;16 floats&gt;" (a bind pose, Unity space, row-major)
+    /// and "vw i0 w0 i1 w1 i2 w2 i3 w3" after each vertex (indices into the bp list).
     /// </summary>
     internal static class ObjImport
     {
@@ -19,6 +22,7 @@ namespace MysticalWeapons
         {
             var inv = CultureInfo.InvariantCulture;
             var verts = new List<Vector3>();
+            var weights = new List<BoneWeight>();
             var uvs = new List<Vector2>();
             var normals = new List<Vector3>();
             var materialTextures = new Dictionary<string, string>();
@@ -43,6 +47,24 @@ namespace MysticalWeapons
                         verts.Add(new Vector3(-float.Parse(p[1], inv), float.Parse(p[2], inv), float.Parse(p[3], inv)));
                         break;
 
+                    case "bp":
+                        b.BoneNames.Add(p[1]);
+                        var m = new Matrix4x4();
+                        for (var k = 0; k < 16; k++) m[k / 4, k % 4] = float.Parse(p[2 + k], inv);
+                        b.Bindposes.Add(m);
+                        break;
+
+                    case "vw":
+                        while (weights.Count < verts.Count - 1) weights.Add(default);
+                        weights.Add(new BoneWeight
+                        {
+                            boneIndex0 = int.Parse(p[1]), weight0 = float.Parse(p[2], inv),
+                            boneIndex1 = int.Parse(p[3]), weight1 = float.Parse(p[4], inv),
+                            boneIndex2 = int.Parse(p[5]), weight2 = float.Parse(p[6], inv),
+                            boneIndex3 = int.Parse(p[7]), weight3 = float.Parse(p[8], inv),
+                        });
+                        break;
+
                     case "vt":
                         uvs.Add(new Vector2(float.Parse(p[1], inv), p.Length > 2 ? float.Parse(p[2], inv) : 0f));
                         break;
@@ -61,14 +83,15 @@ namespace MysticalWeapons
                         break;
 
                     case "f":
-                        var corners = new (Vector3 v, Vector2 uv, Vector3? n)[p.Length - 1];
+                        var corners = new (Vector3 v, Vector2 uv, Vector3? n, BoneWeight? w)[p.Length - 1];
                         for (var i = 1; i < p.Length; i++)
                         {
                             var parts = p[i].Split('/');
                             var v = Index(parts[0], verts.Count);
                             var uv = parts.Length > 1 && parts[1].Length > 0 ? uvs[Index(parts[1], uvs.Count)] : Vector2.zero;
                             Vector3? nrm = parts.Length > 2 && parts[2].Length > 0 ? normals[Index(parts[2], normals.Count)] : (Vector3?)null;
-                            corners[i - 1] = (verts[v], uv, nrm);
+                            BoneWeight? w = v < weights.Count ? weights[v] : (BoneWeight?)null;
+                            corners[i - 1] = (verts[v], uv, nrm, w);
                         }
                         // Reverse winding to undo the mirror; MeshBuilder adds both sides anyway
                         for (var i = 1; i < corners.Length - 1; i++)
@@ -76,7 +99,7 @@ namespace MysticalWeapons
                             var a = corners[0];
                             var c = corners[i + 1];
                             var d = corners[i];
-                            b.Tri(sub, a.v, c.v, d.v, a.uv, c.uv, d.uv, a.n, c.n, d.n);
+                            b.Tri(sub, a.v, c.v, d.v, a.uv, c.uv, d.uv, a.n, c.n, d.n, a.w, c.w, d.w);
                         }
                         faces++;
                         break;
