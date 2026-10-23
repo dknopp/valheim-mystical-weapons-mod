@@ -100,7 +100,10 @@ fantasy of the source deciding where that is.
 - **Cost:** the peer plus roughly 1.5 to 2 times its cost again in home-biome materials, plus one
   signature material from the lore (Surtling cores for the Eye of Sulfuras). Same station as the
   peer, at its level or one above. It should feel like a project for that biome, not a first craft.
-- **Stats:** base damage within about 10% of the peer, with the same per-level growth. The lore
+- **Stats:** base damage within about 10% of the peer, with the same per-level growth. When the
+  recipe consumes an item from an earlier biome, scale up by the tier gap and compare with the home
+  biome's items instead (the Warglaives consume Mistlands' Skoll and Hati, 90 total, and sit about
+  40% above them in the Ashlands, beside Sulfuras's 165 and Thunderfury's 145). The lore
   power is the edge, ideally conditional (against undead, on a proc, near goblins) rather than
   always-on stats. A proc's average gain is chance x damage x how often it can fire; Sulfuras's
   fireball adds very roughly 5 to 8%.

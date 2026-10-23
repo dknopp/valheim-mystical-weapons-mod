@@ -59,7 +59,12 @@ Two base classes implement `Setup`:
   if it exists, otherwise builds the mesh in code (`BuildModel` with `MeshBuilder`). It borrows
   vanilla textures for parts that ask for them, renders the inventory icon from the mesh, hides the
   vanilla renderers and puts the new model under the clone's `attach` point, lined up with the
-  original handle. Damage comes from config.
+  original handle. Damage comes from config. Items cloned from a dual-wield weapon (`DualWield`, e.g.
+  Skoll and Hati) also replace the skinned mesh under `attach_skin`, which shows both blades in hand,
+  with a copy of the model on each hand bone (left mirrored), and add an `attach_back` child with
+  two copies crossed on the back for when it's holstered. A postfix on `VisEquipment.AttachBackItem`
+  moves that onto the chest bone and lays it out from the bone's rest pose: the back joints' axes and
+  the rig's import scale differ between the player prefab and a live player.
 - **`MysticalArmor`**: body armor is skinned to the player's skeleton, so it keeps the vanilla model
   and recolours it (tint and glow from config). Rigid pieces such as helmets can use a custom OBJ
   instead, scaled to fill the vanilla piece.
