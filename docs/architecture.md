@@ -38,7 +38,8 @@ Everything in `Core/` and the item folders shares the `MysticalWeapons` namespac
    - registers extras such as status effects (`RegisterExtras`);
    - adds its recipe, parsed from the config (`AddRecipe`).
 3. A postfix on `ZNetScene.Awake` adds the same prefabs to the network scene, so items can be
-   dropped, picked up and synced in multiplayer.
+   dropped, picked up and synced in multiplayer, along with any networked prefabs the item spawns
+   (`RegisterNetExtras`, e.g. Andúril's spirits; copies made with `MysticalItem.CloneVanilla`).
 
 Each item's registration runs inside `Plugin.Guard`: an exception is logged with the item's name
 and the game carries on, instead of breaking the main menu.
