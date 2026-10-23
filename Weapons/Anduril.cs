@@ -14,19 +14,16 @@ namespace MysticalWeapons.Weapons
     {
         public override string PrefabName => "Anduril";
         public override string[] SourcePrefabs => new[] { "SwordSilver", "SwordIron" };
-        public override string VanillaPeer => "SwordMistwalker";
         public override string DisplayName => "Andúril";
         public override string Description =>
             "The Flame of the West, forged anew from the shards of Narsil. Elven runes run down its " +
             "blade, and the dead remember the oath they broke when they see it drawn. Raise it, and " +
             "they come to fulfil it.";
 
-        // Mistlands, beside Mistwalker (75 slash + 40 frost): the summon is the late-game power
-        protected override string DefaultDamage => "slash:100,spirit:40";
+        protected override string DefaultDamage => "slash:90,spirit:40";
         protected override string DefaultDamagePerLevel => "slash:6,spirit:5";
-        protected override string DefaultRecipe => "SwordIron:1,BlackMetal:20,Eitr:12,Crystal:6"; // the shards of Narsil
-        protected override string DefaultStation => "blackforge";
-        protected override int DefaultStationLevel => 2;
+        protected override string DefaultRecipe => "SwordIron:1,Silver:15,Crystal:4"; // the shards of Narsil
+        protected override int DefaultStationLevel => 3;
 
         internal static ConfigEntry<float> UndeadMultiplier;
         private static ConfigEntry<bool> _summon;
