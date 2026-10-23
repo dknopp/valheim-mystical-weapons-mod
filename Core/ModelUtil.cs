@@ -15,13 +15,10 @@ namespace MysticalWeapons
         public Vector3 Rotation;
         public Vector3 Offset;
         public float Scale;
-<<<<<<< HEAD:ModelUtil.cs
         /// <summary>Extra per-axis scale in the model's own axes, after fitting (zero = none).</summary>
         public Vector3 Stretch;
-=======
         /// <summary>Clear everything the cloned item's material had (see <see cref="MysticalWeapon.CleanMaterials"/>).</summary>
         public bool CleanMaterials;
->>>>>>> origin/develop:Core/ModelUtil.cs
     }
 
     internal static class ModelUtil
