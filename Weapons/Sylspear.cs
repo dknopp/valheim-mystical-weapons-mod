@@ -15,21 +15,17 @@ namespace MysticalWeapons.Weapons
         private const string Name = "Sylspear";
 
         public override string PrefabName => Name;
-        // Carapace spear first: same spear animations, and the Mistlands peer it is compared with
-        public override string[] SourcePrefabs => new[] { "SpearCarapace", "SpearWolfFang", "SpearElderbark", "SpearBronze" };
-        public override string VanillaPeer => "SpearCarapace";
+        public override string[] SourcePrefabs => new[] { "SpearWolfFang", "SpearElderbark", "SpearBronze" };
         public override string DisplayName => "Sylspear";
         public override string Description =>
             "A silver Shardspear that hums with Stormlight - the honorspren Syl, bonded to a " +
             "Windrunner. Whoever wields it feels the winds lift them. Put it away and she rides " +
             "the air beside you as a ribbon of light. Life before death.";
 
-        // Mistlands, beside the Carapace spear (115 pierce)
-        protected override string DefaultDamage => "pierce:110,lightning:30";
+        protected override string DefaultDamage => "pierce:70,lightning:25";
         protected override string DefaultDamagePerLevel => "pierce:6,lightning:3";
-        protected override string DefaultRecipe => "Silver:10,Eitr:10,Crystal:8,Wisp:3"; // wisps, the nearest thing to spren
-        protected override string DefaultStation => "blackforge";
-        protected override int DefaultStationLevel => 2;
+        protected override string DefaultRecipe => "Silver:12,FineWood:6,Crystal:6";
+        protected override int DefaultStationLevel => 3;
 
         private ConfigEntry<float> _fallSpeed;
         private ConfigEntry<float> _jump;
