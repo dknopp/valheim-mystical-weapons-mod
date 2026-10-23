@@ -6,8 +6,8 @@ using UnityEngine;
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
-    /// The Elder Wand, the Deathstick. Held and flicked like the Staff of Frost, but its attack looses the Staff of
-    /// Embers' fireball, slow to gather but far stronger; its secondary attack is Dundr's spray of lightning, also stronger.
+    /// The Elder Wand, the Deathstick. Held in one hand and jabbed like the butcher knife, its attack looses the Staff
+    /// of Embers' fireball, slow to gather but far stronger; its secondary attack is Dundr's spray of lightning, also stronger.
     /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
     /// stamina instead of eitr so anyone can wield it.
     /// </summary>
@@ -16,8 +16,9 @@ namespace MysticalWeapons.Hallows
         private const string Name = "ElderWand";
 
         public override string PrefabName => Name;
-        // The Staff of Frost: its quick one-handed flick and its plain staff (the Staff of Embers carries a burning orb)
-        public override string[] SourcePrefabs => new[] { "StaffIceShards", "StaffFireball" };
+        // The butcher knife: a one-handed hold and a quick jab that plays once a click. Then the Staff of Frost (a cast
+        // that loops while held); not the Staff of Embers first, which carries a burning orb over the staff
+        public override string[] SourcePrefabs => new[] { "KnifeButcher", "StaffIceShards", "StaffFireball" };
         public override string VanillaPeer => "StaffThunderBlood"; // a Deep North staff
         public override string DisplayName => "The Elder Wand";
         public override string Description =>
@@ -82,6 +83,7 @@ namespace MysticalWeapons.Hallows
                 shared.m_attack.m_bowDraw = false;
                 shared.m_attack.m_requiresReload = false;
             }
+            shared.m_skillType = Skills.SkillType.ElementalMagic; // a wand, whatever it is built on
             shared.m_useDurability = false; // the wand of destiny does not wear out
             shared.m_weight = 0.5f;
 
@@ -120,15 +122,25 @@ namespace MysticalWeapons.Hallows
         }
 
         /// <summary>
-        /// The attack keeps the Staff of Frost's animation, hold and aim, with the Staff of Embers' fireball loaded in:
-        /// its projectile, how it flies and how it sounds. The frost cast loops while the button is held (the game ends
-        /// the animation when it is let go), so <see cref="FireballCooldownPatch"/> lets a fireball fly once per cooldown.
+        /// The attack keeps the source item's animation and hold (the butcher knife's jab), with the Staff of Embers'
+        /// fireball loaded in: a projectile attack, launched from where the staff launches it, flying and sounding like
+        /// it. <see cref="FireballCooldownPatch"/> lets a fireball fly once per cooldown, however fast the jabs come.
         /// </summary>
         private void LoadFireball(ItemDrop.ItemData.SharedData shared)
         {
             var fireball = Borrow(FireballSource, "the fireball");
             if (fireball == null || shared.m_attack == null || SourceName == FireballSource) return;
             var cast = shared.m_attack.Clone();
+            cast.m_attackType = fireball.m_attackType;
+            cast.m_attackOriginJoint = fireball.m_attackOriginJoint;
+            cast.m_attackHeight = fireball.m_attackHeight;
+            cast.m_attackRange = fireball.m_attackRange;
+            cast.m_attackOffset = fireball.m_attackOffset;
+            cast.m_useCharacterFacing = fireball.m_useCharacterFacing;
+            cast.m_useCharacterFacingYAim = fireball.m_useCharacterFacingYAim;
+            cast.m_damageMultiplier = fireball.m_damageMultiplier;
+            cast.m_lastChainDamageMultiplier = 1f; // every jab of the knife's combo looses the same fireball
+            cast.m_raiseSkillAmount = fireball.m_raiseSkillAmount;
             cast.m_attackProjectile = fireball.m_attackProjectile;
             cast.m_projectiles = fireball.m_projectiles;
             cast.m_projectileBursts = fireball.m_projectileBursts;
@@ -144,7 +156,7 @@ namespace MysticalWeapons.Hallows
             cast.m_burstEffect = fireball.m_burstEffect;
             shared.m_attack = cast;
             _fireballProjectile = cast.m_attackProjectile;
-            Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' cast (animation '{cast.m_attackAnimation}') " +
+            Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' animation ('{cast.m_attackAnimation}', looping {cast.m_loopingAttack}) " +
                                $"with the fireball of '{FireballSource}' ('{fireball.m_attackProjectile.name}')");
         }
 
