@@ -6,8 +6,8 @@ using UnityEngine;
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
-    /// The Elder Wand, the Deathstick. Built on the Staff of Embers: its attack is the staff's fireball, slow to
-    /// gather but far stronger, and its secondary attack is Dundr's spray of lightning, also stronger.
+    /// The Elder Wand, the Deathstick. Held and flicked like the Staff of Frost, but its attack looses the Staff of
+    /// Embers' fireball, slow to gather but far stronger; its secondary attack is Dundr's spray of lightning, also stronger.
     /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
     /// stamina instead of eitr so anyone can wield it.
     /// </summary>
@@ -16,8 +16,8 @@ namespace MysticalWeapons.Hallows
         private const string Name = "ElderWand";
 
         public override string PrefabName => Name;
-        // The Staff of Embers first: its own attack is the fireball, with its animation and sounds
-        public override string[] SourcePrefabs => new[] { "StaffFireball", "StaffIceShards" };
+        // The Staff of Frost: its quick one-handed flick and its plain staff (the Staff of Embers carries a burning orb)
+        public override string[] SourcePrefabs => new[] { "StaffIceShards", "StaffFireball" };
         public override string VanillaPeer => "StaffThunderBlood"; // a Deep North staff
         public override string DisplayName => "The Elder Wand";
         public override string Description =>
@@ -94,10 +94,10 @@ namespace MysticalWeapons.Hallows
 
         // ------------------------------------------------------------- spells
 
+        private const string FireballSource = "StaffFireball"; // the Staff of Embers
         private const string LightningSource = "StaffLightning"; // Dundr
         private static HitData.DamageTypes _fireballDamage, _fireballPerLevel, _boltDamage, _boltPerLevel;
 
-        /// <summary>The secondary attack is a copy of Dundr's, cast at once; it gets its own lightning damage.</summary>
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
@@ -105,22 +105,61 @@ namespace MysticalWeapons.Hallows
             _fireballPerLevel = shared.m_damagesPerLevel;
             _boltDamage = ParseDamage(_lightningDamage.Value);
             _boltPerLevel = ParseDamage(_lightningDamagePerLevel.Value);
+            LoadFireball(shared);
+            LoadLightning(shared);
+        }
 
-            var dundr = FindVanilla(LightningSource);
-            var source = dundr ? dundr.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
-            if (source == null || !source.m_attackProjectile)
-            {
-                Plugin.Log.LogWarning($"{PrefabName}: no '{LightningSource}' to borrow the lightning from; no secondary attack");
-                return;
-            }
-            var lightning = source.Clone();
+        /// <summary>A copy of a vanilla staff's primary attack, or null (logged) if it has none that fires.</summary>
+        private Attack Borrow(string staffName, string use)
+        {
+            var staff = FindVanilla(staffName);
+            var attack = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
+            if (attack != null && attack.m_attackProjectile) return attack.Clone();
+            Plugin.Log.LogWarning($"{PrefabName}: no '{staffName}' to borrow {use} from");
+            return null;
+        }
+
+        /// <summary>
+        /// The attack keeps the Staff of Frost's animation, hold and aim, with the Staff of Embers' fireball loaded in:
+        /// its projectile, how it flies and how it sounds. One fireball a cast: the frost staff's attack repeats while
+        /// held, which would get around the cooldown.
+        /// </summary>
+        private void LoadFireball(ItemDrop.ItemData.SharedData shared)
+        {
+            var fireball = Borrow(FireballSource, "the fireball");
+            if (fireball == null || shared.m_attack == null || SourceName == FireballSource) return;
+            var cast = shared.m_attack.Clone();
+            cast.m_attackProjectile = fireball.m_attackProjectile;
+            cast.m_projectiles = fireball.m_projectiles;
+            cast.m_projectileBursts = fireball.m_projectileBursts;
+            cast.m_burstInterval = fireball.m_burstInterval;
+            cast.m_projectileVel = fireball.m_projectileVel;
+            cast.m_projectileVelMin = fireball.m_projectileVelMin;
+            cast.m_randomVelocity = fireball.m_randomVelocity;
+            cast.m_projectileAccuracy = fireball.m_projectileAccuracy;
+            cast.m_projectileAccuracyMin = fireball.m_projectileAccuracyMin;
+            cast.m_launchAngle = fireball.m_launchAngle;
+            cast.m_startEffect = fireball.m_startEffect;
+            cast.m_triggerEffect = fireball.m_triggerEffect;
+            cast.m_burstEffect = fireball.m_burstEffect;
+            cast.m_loopingAttack = false;
+            cast.m_perBurstResourceUsage = false;
+            shared.m_attack = cast;
+            Plugin.Log.LogInfo($"{PrefabName}: attack is the '{SourceName}' cast (animation '{cast.m_attackAnimation}') " +
+                               $"with the fireball of '{FireballSource}' ('{fireball.m_attackProjectile.name}')");
+        }
+
+        /// <summary>The secondary attack is a copy of Dundr's, cast at once; it gets its own lightning damage.</summary>
+        private void LoadLightning(ItemDrop.ItemData.SharedData shared)
+        {
+            var lightning = Borrow(LightningSource, "the lightning");
+            if (lightning == null) return;
             // The game only charges a weapon's primary attack: a charged secondary never charges, and its bolts
             // fly at the speed of a 0% charge (none). Cast it at once at its full speed instead.
             lightning.m_bowDraw = false;
             shared.m_secondaryAttack = lightning;
-            Plugin.Log.LogInfo($"{PrefabName}: attack is the fireball of '{SourceName}', secondary the lightning of '{LightningSource}' " +
-                               $"(projectile '{source.m_attackProjectile.name}', {source.m_projectiles} per cast, animation '{source.m_attackAnimation}', " +
-                               $"draw state '{source.m_drawAnimationState}')");
+            Plugin.Log.LogInfo($"{PrefabName}: secondary is the lightning of '{LightningSource}' ('{lightning.m_attackProjectile.name}', " +
+                               $"{lightning.m_projectiles} per cast, animation '{lightning.m_attackAnimation}')");
         }
 
         private static float _nextCast;
