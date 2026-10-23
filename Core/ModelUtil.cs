@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace MysticalWeapons
@@ -160,23 +161,146 @@ namespace MysticalWeapons
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
             model.AddComponent<MeshRenderer>().sharedMaterials = materials;
 
-            var rotation = place.AutoAlign && hasBounds ? AlignToHandle(bounds) : Quaternion.identity;
-            rotation *= Quaternion.Euler(place.Rotation);
-            var scale = place.Scale;
-            var position = place.Offset;
-            if (place.FitToOriginal && hasBounds)
-            {
-                // Uniformly scale our rotated mesh to the original's largest dimension, centred on it
-                var ours = RotatedBounds(mesh.bounds, rotation);
-                scale *= bounds.size.MaxComponent() / Mathf.Max(ours.size.MaxComponent(), 1e-4f);
-                position += bounds.center - ours.center * scale;
-                Plugin.Log.LogInfo($"{name}: fitted custom model at {position}, scale {scale:0.###}");
-            }
+            Fit(name, mesh.bounds, hasBounds ? bounds : (Bounds?)null, place, out var rotation, out var position, out var scale);
             model.transform.localRotation = rotation;
             model.transform.localPosition = position;
             model.transform.localScale = Vector3.one * scale;
             return model;
         }
+
+        /// <summary>Where our model goes against the original's bounds (null = unknown), as <see cref="ModelPlacement"/> asks.</summary>
+        private static void Fit(string name, Bounds ours, Bounds? original, ModelPlacement place,
+            out Quaternion rotation, out Vector3 position, out float scale)
+        {
+            rotation = place.AutoAlign && original.HasValue ? AlignToHandle(original.Value) : Quaternion.identity;
+            rotation *= Quaternion.Euler(place.Rotation);
+            scale = place.Scale;
+            position = place.Offset;
+            if (!place.FitToOriginal || !original.HasValue) return;
+            // Uniformly scale our rotated mesh to the original's largest dimension, centred on it
+            var rotated = RotatedBounds(ours, rotation);
+            scale *= original.Value.size.MaxComponent() / Mathf.Max(rotated.size.MaxComponent(), 1e-4f);
+            position += original.Value.center - rotated.center * scale;
+            Plugin.Log.LogInfo($"{name}: fitted custom model at {position}, scale {scale:0.###}");
+        }
+
+        /// <summary>
+        /// Dual-wield items (Skoll and Hati) show both blades in hand as one skinned mesh under
+        /// "attach_skin", bound to the player's hand bones. Replaces that mesh with two copies of
+        /// <paramref name="model"/> (from <see cref="ReplaceModel"/>), one per hand, the left one mirrored,
+        /// each held with its grip across the fist (see <see cref="GripFrame"/>).
+        /// Returns false if the cloned item has no such mesh.
+        /// </summary>
+        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        {
+            var skin = prefab.transform.Find("attach_skin");
+            var renderer = skin ? skin.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.sharedMesh) : null;
+            // The vanilla mesh can't be read, so find the hands by name in the skeleton it is bound to
+            var bones = renderer ? renderer.bones : new Transform[0];
+            var hands = new[]
+            {
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("RightHand")),
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("LeftHand"))
+            };
+            if (hands.Any(h => h < 0))
+            {
+                Plugin.Log.LogWarning($"{name}: no hand bones under attach_skin, the model only shows on the ground");
+                return false;
+            }
+
+            // Bind poses map mesh space to bone space, so each blade is built in its bone's space
+            var bindposes = new Matrix4x4[bones.Length];
+            var ours = model.GetComponent<MeshFilter>().sharedMesh;
+            var srcVerts = ours.vertices;
+            var srcNormals = ours.normals;
+            var srcUvs = ours.uv;
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var weights = new List<BoneWeight>();
+            var tris = new List<int>[ours.subMeshCount];
+            for (var s = 0; s < tris.Length; s++) tris[s] = new List<int>();
+            for (var k = 0; k < hands.Length; k++)
+            {
+                var bone = hands[k];
+                var hand = bones[bone];
+                var mirror = k == 1;
+                if (!GripFrame(hand, out var grip, out var gripAt))
+                    Plugin.Log.LogWarning($"{name}: no finger bones under {hand.name}, the blade follows the bone's own axes");
+                Fit(name, ours.bounds, null, place, out var rotation, out var position, out var scale);
+                // The grip frame is the same for both hands but turned the other way round, so mirroring
+                // across it (flat side, Z) makes the left blade the mirror image of the right
+                var flip = mirror ? Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) : Matrix4x4.identity;
+                var m = Matrix4x4.TRS(gripAt, grip, Vector3.one) * flip * Matrix4x4.TRS(position, rotation, Vector3.one * scale);
+
+                var first = verts.Count;
+                for (var i = 0; i < srcVerts.Length; i++)
+                {
+                    verts.Add(m.MultiplyPoint3x4(srcVerts[i]));
+                    normals.Add(m.MultiplyVector(srcNormals[i]).normalized);
+                    uvs.Add(i < srcUvs.Length ? srcUvs[i] : Vector2.zero);
+                    weights.Add(new BoneWeight { boneIndex0 = bone, weight0 = 1f });
+                }
+                for (var s = 0; s < tris.Length; s++)
+                {
+                    var t = ours.GetTriangles(s);
+                    for (var i = 0; i < t.Length; i += 3)
+                    {
+                        // Mirroring turns triangles inside out unless their winding is reversed too
+                        tris[s].Add(first + t[i]);
+                        tris[s].Add(first + t[mirror ? i + 2 : i + 1]);
+                        tris[s].Add(first + t[mirror ? i + 1 : i + 2]);
+                    }
+                }
+                // The player's bones carry the rig's import scale (a blade built in metres showed up
+                // giant), so undo the bone's scale to keep our blade at its real size
+                var boneScale = hand.lossyScale;
+                bindposes[bone] = Matrix4x4.Scale(new Vector3(1f / boneScale.x, 1f / boneScale.y, 1f / boneScale.z));
+                Plugin.Log.LogInfo($"{name}: blade {k + 1} on bone {bone} '{hand.name}' (bone scale {boneScale}), " +
+                                   $"grip at {gripAt}{(mirror ? ", mirrored" : "")}");
+            }
+
+            var mesh = new Mesh { name = name + "_skinned" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.subMeshCount = tris.Length;
+            for (var s = 0; s < tris.Length; s++) mesh.SetTriangles(tris[s], s);
+            mesh.boneWeights = weights.ToArray();
+            mesh.bindposes = bindposes;
+            mesh.RecalculateBounds();
+
+            renderer.sharedMesh = mesh;
+            renderer.sharedMaterials = model.GetComponent<MeshRenderer>().sharedMaterials;
+            renderer.enabled = true;
+            return true;
+        }
+
+        /// <summary>
+        /// How a weapon sits in a closed hand, in the hand bone's space and in metres: model +Y runs
+        /// across the fist from the little finger to the index finger (like a held knife's grip), +X
+        /// points along the fingers, and the grip passes just inside the knuckles.
+        /// False (and the bone's own axes) if the hand has no finger bones.
+        /// </summary>
+        private static bool GripFrame(Transform hand, out Quaternion rotation, out Vector3 position)
+        {
+            rotation = Quaternion.identity;
+            position = Vector3.zero;
+            var index = FindDeep(hand, hand.name + "Index1");
+            var middle = FindDeep(hand, hand.name + "Middle1");
+            var pinky = FindDeep(hand, hand.name + "Pinky1");
+            if (!index || !middle || !pinky) return false;
+            Vector3 Local(Transform t) => Vector3.Scale(hand.InverseTransformPoint(t.position), hand.lossyScale);
+            var up = (Local(index) - Local(pinky)).normalized;
+            var knuckles = Local(middle);
+            var forward = Vector3.ProjectOnPlane(knuckles, up).normalized;
+            rotation = Quaternion.LookRotation(Vector3.Cross(forward, up), up);
+            position = knuckles * GripDepth;
+            return true;
+        }
+
+        /// <summary>How far from the wrist to the knuckles the grip sits in a closed hand.</summary>
+        private const float GripDepth = 0.9f;
 
         private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
         {
