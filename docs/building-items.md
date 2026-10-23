@@ -200,6 +200,9 @@ valheim.tools and valheim.weirdgloop.org.
 ### Recipes and death
 - The game lists a recipe only once the player has picked up every ingredient, so a boss trophy hides
   the recipe until the boss is beaten. Give it `m_amountPerLevel` 0, or every upgrade takes another.
+- Each upgrade level costs every ingredient's `m_amountPerLevel` again. `ParseRequirements` gives gear
+  (anything with upgrade levels of its own: the Iron Sword Andúril is reforged from) 0, so it is used
+  up only by the first craft; materials cost half their amount again per level.
 - `Player.CreateTombStone` moves the inventory to the grave, and checks the world's keep-items
   modifiers itself. Skip it to keep everything (Master of Death), or take an item out before it and
   put it back after (the Resurrection Stone).

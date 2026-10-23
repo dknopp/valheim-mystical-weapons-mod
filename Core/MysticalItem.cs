@@ -216,11 +216,15 @@ namespace MysticalWeapons
                     Plugin.Log.LogWarning($"{PrefabName}: recipe item '{kv[0].Trim()}' not found, skipping");
                     continue;
                 }
+                var drop = item.GetComponent<ItemDrop>();
+                // Gear the item is reforged from (an Iron Sword, a Battleaxe: anything with upgrade levels of its
+                // own) is consumed once, by the first craft; materials are paid again at every upgrade
+                var consumedGear = drop && drop.m_itemData.m_shared.m_maxQuality > 1;
                 list.Add(new Piece.Requirement
                 {
-                    m_resItem = item.GetComponent<ItemDrop>(),
+                    m_resItem = drop,
                     m_amount = amount,
-                    m_amountPerLevel = Mathf.Max(1, amount / 2),
+                    m_amountPerLevel = consumedGear ? 0 : Mathf.Max(1, amount / 2),
                     m_recover = true
                 });
             }
