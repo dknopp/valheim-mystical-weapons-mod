@@ -32,6 +32,7 @@ namespace MysticalWeapons
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
+
             new ElderWand(),
             new ResurrectionStone(),
             new InvisibilityCloak(),

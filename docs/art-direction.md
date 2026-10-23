@@ -11,7 +11,7 @@ Questions I answer before building, in order:
    supports that finish once tinted? Use it only if it does; a mottled, worn texture on a famously
    flawless blade is wrong, and a flat colour with the right gloss beats the wrong texture.
 3. **Custom work:** only if neither fits, plan a custom model or texture: Blender and an OBJ in
-   `models/` (see "Editing models in Blender" in README.md), with licences checked (see Rules in `CLAUDE.md`),
+   `models/` (see "Editing models in Blender" in `contributing.md`), with licences checked (see Rules in `CLAUDE.md`),
    and a vanilla grain laid over the custom texture so it matches Valheim's painterly look (see Look).
 4. **Place in the journey:** suggest a tier, cost and stats (see "Tier, cost and balance" below);
    the maintainer building it decides before any code.

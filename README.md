@@ -1,12 +1,18 @@
 # Mystical Weapons from Far Off Lands
 
-A Valheim BepInEx mod that adds legendary weapons and armor from other worlds.
-No Jotunn and no asset bundles: weapon models are built in code or shipped as OBJ files in `models/`,
-armor is recoloured vanilla plate.
+A [Valheim](https://www.valheimgame.com/) mod that brings legendary weapons and armor from other
+worlds into the game: Andúril from Middle-earth, Shardblades and Shardplate from Roshar, Sulfuras
+from Azeroth, a Klingon bat'leth and the three Deathly Hallows.
+
+Every item is crafted from Valheim's own materials, sits at a sensible point in the game's
+progression and has one power from its story. Models are drawn in Valheim's style, and the mod
+needs nothing but BepInEx: no Jotunn and no asset bundles.
 
 ## Items
 
-| Item | Prefab | From | Notes |
+### Weapons
+
+| Item | From | What it does | Crafted at |
 |---|---|---|---|
 | Bat'leth | `Batleth` | Star Trek | Crescent blade, wide two-handed swings (based on the Iron Battleaxe) |
 | Sylspear | `Sylspear` | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** (slow fall, faster stamina) while held. No durability |
@@ -25,62 +31,58 @@ Most items are crafted at the forge; the wand and cloak at the workbench. Recipe
 configurable in `BepInEx/config/dankn.valheim.mysticalweapons.cfg`. `[General] TexturedModels = false`
 turns off textures borrowed from vanilla items, such as Sulfuras's flametal grain (restart to apply).
 
+### Armor
+
+| Item | From | What it does | Crafted at |
+|---|---|---|---|
+| **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: +150 carry weight, faster stamina regen, resistant to blunt, slash and pierce. | Forge 5 |
+
+### The Deathly Hallows (Harry Potter)
+
+| Item | What it does | Crafted at |
+|---|---|---|
+| **The Elder Wand** | Casts spell bolts (based on the Staff of Frost). Uses stamina instead of eitr by default. No durability. | Workbench 4 |
+| **The Resurrection Stone** | Utility slot. Die while wearing it and your skills aren't lowered. | Forge 3 |
+| **The Cloak of Invisibility** | Monsters can't see you while you sneak (they can still hear you). | Workbench 4 |
+
+**Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
+resistant to poison, immune to spirit damage.
+
 ## Installing
 
-Requires [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/).
-Copy `MysticalWeapons.dll` and the `models` folder to `BepInEx/plugins/MysticalWeapons/`. Without
-`models`, the Shardplate Helm and Sulfuras fall back to their simpler built-in looks.
-Install on the server **and** on every client.
+1. Install [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)
+   (a mod manager such as Gale or r2modman does this for you).
+2. Copy `MysticalWeapons.dll` **and** the `models` folder into `BepInEx/plugins/MysticalWeapons/`.
+   Without `models`, the Shardplate Helm and Sulfuras fall back to simpler built-in looks.
+3. Install it on the server **and** on every player's game.
 
-## Building
+Don't install the old standalone Bat'leth mod as well: this mod already includes the bat'leth.
 
-Needs the .NET SDK and Valheim + BepInEx installed.
+## Configuration
 
-```
-dotnet build -c Release
-```
+Settings live in `BepInEx/config/dankn.valheim.mysticalweapons.cfg`, created on first launch. Each
+item has its own section, named after its prefab (`Batleth`, `Sylspear`, `Shardblade`, `Anduril`,
+`Sulfuras`, `ShardplateHelm`, `ShardplateBreastplate`, `ShardplateGreaves`, `ElderWand`,
+`ResurrectionStone`, `InvisibilityCloak`; also the names to use with `spawn`). There you can turn the
+item off or change its recipe, crafting station, stats and effects (fireball chance, undead damage,
+glow colours and more).
 
-The build references Valheim from `C:\Program Files (x86)\Steam\steamapps\common\Valheim` and BepInEx
-from the `Default` profile of Gale (or r2modman if Gale is not installed), and copies the DLL into that
-profile. Override with `-p:ValheimDir=...` and `-p:BepInExDir=...`.
+- `[General] TexturedModels = false` turns off the textures borrowed from vanilla items (such as
+  Sulfuras's flametal grain) for flat colours. Restart to apply.
+- After an update changes an item's defaults, your existing config keeps the old values. Delete
+  that item's section to get the new ones.
 
-Do not install the old standalone Bat'leth mod alongside this one: Mystical Weapons includes the bat'leth.
+## Custom models
 
-## Editing models in Blender
+You can replace any weapon's model with your own: drop a `<Prefab>.obj` (for example
+`Shardblade.obj`) into the plugin's `models` folder and restart. Custom models only change how the
+item looks on your machine. See [Editing models in Blender](docs/contributing.md#editing-models-in-blender).
 
-Weapon models are built in code, but you can export them, edit them in Blender and drop them back in.
+## Contributing
 
-1. Export: `tools/ModelExporter/bin/Release/net48/ModelExporter.exe exports` (after building
-   `tools/ModelExporter`) writes `exports/<Prefab>.obj` + `.mtl` for every code-built item.
-2. In Blender: **File > Import > Wavefront (.obj)** with default settings. Units are metres. The hand
-   sits at the origin and the grip runs along +Y (Blender's +Z after import). Run
-   **Mesh > Normals > Recalculate Outside** once.
-3. Keep the material names (`Anduril_0`, `Anduril_1`, ...): the number picks which of the weapon's
-   colours that part gets (blade, grip, glowing runes...). Unknown materials use the first colour.
-4. Export with **File > Export > Wavefront (.obj)**, default axes, and tick **Triangulated Mesh**.
-5. Put the file at `BepInEx/plugins/<mod folder>/models/<Prefab>.obj`, e.g.
-   `Dank-MysticalWeapons/models/Shardblade.obj`, and restart the game. The log says
-   `using custom model` when it is picked up; the inventory icon is drawn from it too.
-
-Custom models are cosmetic and only affect the machine they are installed on, so copy them to every
-player who should see them. Delete the file to go back to the built-in model.
-
-Models can be textured: a `map_Kd` texture in the `.mtl` is applied to that material (PNG or JPG).
-Helmets work too: a `models/ShardplateHelm.obj` is scaled and centred to fill the vanilla helmet,
-then rotated and nudged by fixed values in the item's code. Its texture is recoloured on load from
-the `Tint`, `Glow`, `CustomModelBrightness` and `CustomModelGlow` settings, and `CustomModelLight`
-adds a soft light in front of it. Placement is deliberately not configurable; colours are.
-
-`ModelExporter.exe exports --verify` re-imports each exported file and checks it matches the original.
-`ModelExporter.exe --load models/ShardplateHelm.obj` shows how the mod will read a custom model.
-
-The repo's `models/` folder holds custom models that ship with the mod; the build copies it into the
-plugin folder. `exports/` is where the exporter writes the code-built weapons; it is not committed
-(run the exporter to generate it).
-
-Sulfuras ships a custom model made by `tools/blender/make_sulfuras_texture.py` (procedural textures, no
-hand painting; the script's header has the command). Its shape in `Sulfuras.cs` is then only the fallback,
-so after changing that shape, re-export and re-run the script or the game keeps showing the old one.
+Bug reports and ideas are welcome as GitHub issues. To build the mod or add an item, see
+[docs/contributing.md](docs/contributing.md); for how the code and build fit together, see
+[docs/architecture.md](docs/architecture.md).
 
 Thunderfury ships a custom model built by `tools/blender/make_thunderfury_texture.py` the same way;
 `Thunderfury.cs` keeps only a rough fallback shape.

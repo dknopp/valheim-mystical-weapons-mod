@@ -1,7 +1,7 @@
 # Building items: process and lessons
 
 Stephen's notes on how to build an item with as few game launches as possible, and what earlier items taught us.
-README.md ("Adding an item") has the basics; `docs/art-direction.md` has how items look and act.
+`contributing.md` ("Adding an item") has the basics; `docs/art-direction.md` has how items look and act.
 
 ## My item checklist
 
@@ -20,7 +20,7 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] Inventory icon reads at a glance
 - [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod
 - [ ] Effects show for other players on a server (at least before a release)
-- [ ] README items table updated
+- [ ] README items tables updated
 - [ ] Changed defaults on an existing item: the PR says players must reset that item's config
       section (see Config below)
 - [ ] Views in the PR: front, profile and three-quarter in one picture, from
