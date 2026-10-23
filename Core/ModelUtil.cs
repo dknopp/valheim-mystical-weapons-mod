@@ -95,7 +95,8 @@ namespace MysticalWeapons
             var materials = new Material[specs.Length];
             for (var i = 0; i < materials.Length; i++)
                 materials[i] = MakeMaterial(baseMat, specs[i], $"{name}_mat{i}",
-                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null);
+                    builder.Textures != null && i < builder.Textures.Length ? builder.Textures[i] : null,
+                    false);
             if (builder.IsSkinned)
             {
                 var smr = go.AddComponent<SkinnedMeshRenderer>();

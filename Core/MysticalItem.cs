@@ -30,9 +30,6 @@ namespace MysticalWeapons
         /// <summary>Turn the freshly cloned prefab into this item (model, icon, stats).</summary>
         protected abstract void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared);
 
-        /// <summary>Looks up a vanilla prefab by name; valid during <see cref="Setup"/>.</summary>
-        protected Func<string, GameObject> FindVanilla { get; private set; }
-
         /// <summary>Item-specific tweaks run after <see cref="Setup"/>: knockback, durability, effects...</summary>
         protected virtual void Customize(ItemDrop.ItemData.SharedData shared) { }
 
