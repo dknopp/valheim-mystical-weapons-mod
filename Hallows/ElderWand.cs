@@ -27,9 +27,11 @@ namespace MysticalWeapons.Hallows
             "Wand of Destiny - unbeatable, they say, in the hand of its true master. It knows one " +
             "curse, and it does not miss twice.";
 
-        // Each of the lightning spray's 12 bolts, every jab: Dundr's do 20 (Ashlands), Deep North tier
-        protected override string DefaultDamage => "lightning:35";
-        protected override string DefaultDamagePerLevel => "lightning:4";
+        // Each of the lightning spray's 12 bolts, matched to Lightning Strike (Deep North: 300 lightning a cast, +20 a
+        // level, a slow-to-moderate ~1.5 s cast, ~1000 in 5 s) over 5 seconds: ~9 knife jabs, about half the bolts on one
+        // target at range, 9 x 6 x 18 = ~970. Up close all 12 land; Lightning Strike hits all within 3 m and staggers.
+        protected override string DefaultDamage => "lightning:18";
+        protected override string DefaultDamagePerLevel => "lightning:1.2"; // Lightning Strike's +20 of 300 a level
         // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
         protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
         protected override string DefaultStation => "piece_magetable";
@@ -44,7 +46,8 @@ namespace MysticalWeapons.Hallows
         {
             base.BindConfig(cfg);
             _eitrCost = cfg.Bind(PrefabName, "EitrCost", 0f, "Eitr used per spell (vanilla staffs use eitr).");
-            _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 20f, "Stamina used per spell.");
+            // About nine jabs in 5 s: a cost a player can keep up, so the damage above is reachable
+            _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 10f, "Stamina used per spell.");
             _blockShield = cfg.Bind(PrefabName, "ShieldOnBlock", true,
                 "Raising the wand to block puts up the Staff of Protection's shield around you (it grows with Elemental magic).");
             _shieldCooldown = cfg.Bind(PrefabName, "ShieldCooldown", 20f, "Seconds before blocking can put up another shield.");
@@ -188,62 +191,6 @@ namespace MysticalWeapons.Hallows
                 wand.m_shared.m_damagesPerLevel = secondaryAttack ? _rootsPerLevel : _boltPerLevel;
             }
         }
-
-        // ------------------------------------------------------------- TEMP balance probe
-        // Remove with the Deep North damage change: logs the Deep North staves and the player's spell animations once,
-        // so the wand's damage over 5 seconds can be matched to theirs.
-
-        private static bool _probed;
-        private static readonly string[] ProbeItems =
-            { "StaffThunderBlood", "StaffFrostOrbs", "StaffOrbofAhri", "StaffSpiritCaller", "StaffLightning", "KnifeButcher" };
-
-        public override void RegisterNetExtras(ZNetScene scene)
-        {
-            if (_probed) return;
-            _probed = true;
-            foreach (var name in ProbeItems)
-            {
-                var item = scene.GetPrefab(name);
-                var data = item ? item.GetComponent<ItemDrop>()?.m_itemData.m_shared : null;
-                if (data == null) { Plugin.Log.LogInfo($"PROBE {name}: not found"); continue; }
-                Plugin.Log.LogInfo($"PROBE {name} '{data.m_name}': damage [{Describe(data.m_damages)}] per level [{Describe(data.m_damagesPerLevel)}]");
-                foreach (var attack in new[] { data.m_attack, data.m_secondaryAttack })
-                {
-                    if (attack == null || string.IsNullOrEmpty(attack.m_attackAnimation)) continue;
-                    var projectile = attack.m_attackProjectile ? attack.m_attackProjectile.GetComponent<Projectile>() : null;
-                    var hitAoe = projectile && projectile.m_spawnOnHit ? projectile.m_spawnOnHit.GetComponentInChildren<Aoe>(true) : null;
-                    Plugin.Log.LogInfo($"PROBE {name} {(attack == data.m_attack ? "attack" : "secondary")}: anim '{attack.m_attackAnimation}' " +
-                                       $"type {attack.m_attackType} loop {attack.m_loopingAttack} chains {attack.m_attackChainLevels}, " +
-                                       $"projectiles {attack.m_projectiles} bursts {attack.m_projectileBursts} interval {attack.m_burstInterval}, " +
-                                       $"draw {attack.m_bowDraw} {attack.m_drawDurationMin}s, reload {attack.m_requiresReload} {attack.m_reloadTime}s, " +
-                                       $"multiplier {attack.m_damageMultiplier}, eitr {attack.m_attackEitr}, projectile " +
-                                       $"'{(attack.m_attackProjectile ? attack.m_attackProjectile.name : "-")}' (aoe {(projectile ? projectile.m_aoe : 0f)}, " +
-                                       $"own [{(projectile ? Describe(projectile.m_damage) : "")}], on hit " +
-                                       $"'{(projectile && projectile.m_spawnOnHit ? projectile.m_spawnOnHit.name : "-")}' [{(hitAoe ? Describe(hitAoe.m_damage) : "")}]), " +
-                                       $"spawn '{(attack.m_spawnOnTrigger ? attack.m_spawnOnTrigger.name : "-")}'");
-                }
-            }
-            // The Animator lives in a Unity module this project doesn't reference: read it by reflection
-            var player = scene.GetPrefab("Player");
-            var animator = player ? player.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c && c.GetType().Name == "Animator") : null;
-            var controller = animator ? animator.GetType().GetProperty("runtimeAnimatorController")?.GetValue(animator, null) : null;
-            var clips = controller?.GetType().GetProperty("animationClips")?.GetValue(controller, null) as System.Array;
-            if (clips == null) { Plugin.Log.LogInfo("PROBE: no player animation clips"); return; }
-            var seen = new System.Collections.Generic.HashSet<string>();
-            foreach (Object clip in clips)
-            {
-                if (!clip || !seen.Add(clip.name)) continue;
-                if (!System.Text.RegularExpressions.Regex.IsMatch(clip.name, "staff|knife|lightning|magic|spell",
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase)) continue;
-                var length = (float)clip.GetType().GetProperty("length").GetValue(clip, null);
-                Plugin.Log.LogInfo($"PROBE clip '{clip.name}': {length:0.00}s");
-            }
-        }
-
-        private static string Describe(HitData.DamageTypes damage) =>
-            string.Join(",", typeof(HitData.DamageTypes).GetFields()
-                .Where(f => f.FieldType == typeof(float) && (float)f.GetValue(damage) != 0f)
-                .Select(f => $"{f.Name.Substring(2)}:{(float)f.GetValue(damage):0.#}"));
 
         // ------------------------------------------------------------- shield on block
 
