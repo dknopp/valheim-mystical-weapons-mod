@@ -47,8 +47,8 @@ namespace MysticalWeapons.Weapons
                 "Windrunner: share of fall damage you still take with the spear held or sheathed (0 = none, 1 = all). Restart to apply.");
             _spren = cfg.Bind(PrefabName, "SprenWhenSheathed", true,
                 "Sheathed (R), the spear disappears from your back and Syl follows you as a glowing spren. Restart to apply.");
-            _sprenClearsMist = cfg.Bind(PrefabName, "SprenClearsMist", false,
-                "The spren also clears the Mistlands mist like a Wisplight. Restart to apply.");
+            _sprenClearsMist = cfg.Bind(PrefabName, "SprenClearsMist", true,
+                "The spren clears the Mistlands mist around you like a Wisplight: the Sylspear doubles as one. Restart to apply.");
             _sprenColor = cfg.Bind(PrefabName, "SprenColor", new Color(0.55f, 0.8f, 1f), "Colour of the spren's light. Restart to apply.");
         }
 
