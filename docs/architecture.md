@@ -59,7 +59,12 @@ Two base classes implement `Setup`:
   if it exists, otherwise builds the mesh in code (`BuildModel` with `MeshBuilder`). It borrows
   vanilla textures for parts that ask for them, renders the inventory icon from the mesh, hides the
   vanilla renderers and puts the new model under the clone's `attach` point, lined up with the
-  original handle. Damage comes from config.
+  original handle. Damage comes from config. Items cloned from a dual-wield weapon (`DualWield`, e.g.
+  Skoll and Hati) also replace the skinned mesh under `attach_skin`, which shows both blades in hand,
+  with a copy of the model on each hand bone (left mirrored), and add an `attach_back` child with
+  two copies crossed on the back for when it's holstered. A postfix on `VisEquipment.AttachBackItem`
+  moves that onto the chest bone and lays it out from the bone's rest pose: the back joints' axes and
+  the rig's import scale differ between the player prefab and a live player.
 - **`MysticalArmor`**: body armor is skinned to the player's skeleton, so it keeps the vanilla model
   and recolours it (tint and glow from config). Rigid pieces such as helmets can use a custom OBJ
   instead, scaled to fill the vanilla piece.
@@ -144,7 +149,7 @@ Thunderstore's official build and upload tool. `tcli build --package-version <Ve
 
 ```
 manifest.json          generated from thunderstore.toml (name, version, BepInExPack dependency)
-icon.png               256x256, from the repo root (source: icon.svg)
+icon.png               256x256, from the repo root
 README.md              the repo README, shown on the Thunderstore page
 plugins/MysticalWeapons.dll
 plugins/models/...     the shipped custom models and CREDITS.md
@@ -204,7 +209,7 @@ re-run of a run that did upload fails harmlessly. A stable release that uploaded
   `THUNDERSTORE_TOKEN`. In the environment's settings, limit deployments to the `develop` branch
   and `v*` tags so no other ref can use the token. Required reviewers on that environment would
   hold every beta too, so leave them off.
-- A 256x256 `icon.png` in the repo root (done; drawn from `icon.svg`).
+- A 256x256 `icon.png` in the repo root (done).
 
 Never change `Plugin.Guid` or an existing `PrefabName` in a release: players' items and config are
 keyed on them.

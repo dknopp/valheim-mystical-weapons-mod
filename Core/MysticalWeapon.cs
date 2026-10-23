@@ -86,6 +86,9 @@ namespace MysticalWeapons
         /// are cleared, as for every item made before this option.
         /// </summary>
         protected virtual bool CleanMaterials => false;
+        /// <summary>Cloned from a dual-wield item: also put the model in both hands (see <see cref="ModelUtil.ReplaceSkinnedModel"/>)
+        /// and crossed on the back when holstered (see <see cref="ModelUtil.AddCrossedBackModel"/>).</summary>
+        protected virtual bool DualWield => false;
 
         /// <summary>Materials, indexed by the submesh numbers used in <see cref="BuildModel"/>.</summary>
         public abstract MaterialSpec[] Materials { get; }
@@ -93,6 +96,8 @@ namespace MysticalWeapons
 
         /// <summary>Rotation of the model in its inventory icon (degrees, counter-clockwise).</summary>
         public virtual float IconAngle => -45f;
+        /// <summary>Rotation that turns the model's flat towards its icon's camera, for models not flat in XY.</summary>
+        protected virtual Vector3 IconView => Vector3.zero;
 
         /// <summary>Extra things the weapon needs inside the model, e.g. lights.</summary>
         public virtual void DecorateModel(GameObject model) { }
@@ -127,7 +132,7 @@ namespace MysticalWeapons
             }
             else if (Plugin.TexturedModels.Value) AddGrain(builder);
             var specs = ModelUtil.WithTextures(Materials, builder);
-            Icon = ModelUtil.RenderIcon(builder, specs, IconAngle);
+            Icon = ModelUtil.RenderIcon(builder, specs, IconAngle, view: Quaternion.Euler(IconView));
 
             if (HasDamage)
             {
@@ -136,14 +141,20 @@ namespace MysticalWeapons
             }
             shared.m_icons = new[] { Icon };
 
-            var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, new ModelPlacement
+            var place = new ModelPlacement
             {
                 AutoAlign = AutoAlign,
                 Rotation = ModelRotation,
                 Offset = ModelOffset,
                 Scale = ModelScale,
                 CleanMaterials = CleanMaterials
-            });
+            };
+            var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, place);
+            if (DualWield)
+            {
+                ModelUtil.ReplaceSkinnedModel(prefab, PrefabName, model, place);
+                ModelUtil.AddCrossedBackModel(prefab, PrefabName, model, place);
+            }
             DecorateModel(model);
         }
 
