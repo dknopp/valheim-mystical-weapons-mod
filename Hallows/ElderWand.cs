@@ -15,6 +15,7 @@ namespace MysticalWeapons.Hallows
     {
         public override string PrefabName => "ElderWand";
         public override string[] SourcePrefabs => new[] { "StaffIceShards", "StaffFireball" };
+        public override string VanillaPeer => "StaffThunderBlood"; // a Deep North staff
         public override string DisplayName => "The Elder Wand";
         public override string Description =>
             "Fifteen inches of elder wood, knotted like a string of beads. The Deathstick, the " +
@@ -22,9 +23,10 @@ namespace MysticalWeapons.Hallows
 
         protected override string DefaultDamage => "pierce:16,lightning:22";
         protected override string DefaultDamagePerLevel => "pierce:2,lightning:3";
-        protected override string DefaultRecipe => "ElderBark:10,Thunderstone:2,Crystal:6";
-        protected override string DefaultStation => "piece_workbench";
-        protected override int DefaultStationLevel => 4;
+        // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
+        protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
+        protected override string DefaultStation => "piece_magetable";
+        protected override int DefaultStationLevel => 5;
 
         private ConfigEntry<float> _eitrCost;
         private ConfigEntry<float> _staminaCost;
