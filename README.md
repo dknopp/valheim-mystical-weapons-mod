@@ -39,6 +39,9 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
 resistant to poison, immune to spirit damage, and you keep everything you carry when you die (no tombstone).
 
+Items reforged from a vanilla weapon (Andúril, the Bat'leth, the Shardblade, Sulfuras, Thunderfury, the
+Warglaives) use up that weapon once, when you first craft them; upgrades only cost materials.
+
 ### Boss trophies
 
 The items that are stronger than their tier also need one trophy from the boss that opens their
