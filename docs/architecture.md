@@ -1,6 +1,7 @@
 # Architecture
 
-How the mod works inside the game, how it's built and deployed, and how a release is cut. For the
+How the mod works inside the game, how it's built, tested in CI and deployed, and how a release is
+published. For the
 day-to-day steps, see [contributing.md](contributing.md).
 
 ## Repository layout
@@ -15,7 +16,9 @@ day-to-day steps, see [contributing.md](contributing.md).
 | `tools/ModelExporter/` | Console app that exports the code-built models to OBJ, without starting the game |
 | `tools/blender/` | Headless Blender scripts that produce the models in `models/` |
 | `docs/` | This documentation and Stephen's item-building notes |
-| `.github/` | CI workflows and the pull request template |
+| `.github/` | CI workflows, the shared `setup-valheim` action and the pull request template |
+| `thunderstore.toml` | Thunderstore package definition (see Packaging) |
+| `LICENSE`, `LICENSE-ASSETS.md` | MIT for the code, CC BY 4.0 for our own art |
 
 Everything in `Core/` and the item folders shares the `MysticalWeapons` namespace (item folders add
 `.Weapons`, `.Armor`, `.Hallows`).
@@ -81,7 +84,7 @@ Patches on shared game methods always check first that our item is involved.
 ### Configuration
 
 All settings go through BepInEx's `ConfigFile` into
-`BepInEx/config/dankn.valheim.mysticalweapons.cfg`. Each item binds a section named after its
+`BepInEx/config/omm.valheim.mysticalweapons.cfg`. Each item binds a section named after its
 `PrefabName` with the common keys (`Enabled`, `Recipe`, `CraftingStation`, `StationLevel`, plus
 `Damage` for weapons or `Armor`, `Tint` and `Glow` for armor) and its own keys in `BindConfig`.
 Section and key names are part of players' saved setup and must not be renamed.
@@ -104,27 +107,104 @@ lets the .NET SDK build for .NET Framework without Visual Studio.
 
 **Deploy.** After every build, the `DeployToProfile` target copies the DLL to
 `<BepInExDir>/plugins/<PluginFolder>/` and the repo's `models/` folder next to it. `PluginFolder`
-is `Dank-MysticalWeapons` when building into Gale's `Default` profile (Gale's naming) and
+is `OldManMods-MysticalWeapons` when building into Gale's `Default` profile (Gale's naming) and
 `MysticalWeapons` otherwise. Launching the game from that profile loads the new build.
 
 **ModelExporter.** `tools/ModelExporter` references the mod project and copies the game's
 assemblies next to its exe, so it can run the item classes' `BuildModel` code outside the game.
 `Properties/AssemblyInfo.cs` makes the mod's internals visible to it.
 
-**CI.** GitHub can't build the mod (the game's assemblies aren't available there), so CI only
-scans the source: CodeQL (C# and the Python Blender scripts, without building), Semgrep, and
-Trivy on PRs into `main`. `restrict-main-merges.yml` fails any PR into `main` that doesn't come
-from `develop`.
+## CI
+
+The game's assemblies can't be committed or redistributed, so CI fetches them on each run instead.
+`.github/actions/setup-valheim` downloads:
+- **Valheim's dedicated server** (Steam app `896660`) with SteamCMD's anonymous login. It's free
+  and has the same `assembly_valheim.dll`, `assembly_utils.dll` and Unity assemblies the client
+  uses, under `valheim_server_Data/Managed`.
+- **BepInExPack_Valheim** from Thunderstore, for `BepInEx.dll` and `0Harmony.dll`. Its version is the
+  action's `bepinex-version` input; keep it in step with the dependency in `thunderstore.toml`.
+
+Both land in the runner's temp folder and are discarded after the run. The build is pointed at
+them with `-p:ManagedDir=...` and `-p:BepInExDir=...`; nothing in the `.csproj` is CI-specific.
+
+| Workflow | Runs on | What it does |
+|---|---|---|
+| `build.yml` | Every PR, and pushes to `develop`/`main` | Builds the mod and ModelExporter. Once `icon.png` exists, also builds the Thunderstore zip and attaches it to the run, ready to install for testing |
+| `publish.yml` | Pushes to `develop`, and `v*` tags | Develop: publishes the beta package. Tag: checks it, publishes the stable package and creates a GitHub release (see Releases) |
+| `codeql.yml`, `semgrep.yml`, `trivy.yml` | PRs (Trivy: into `main` only) | Source scanning; CodeQL covers C# and the Python Blender scripts without building |
+| `restrict-main-merges.yml` | PRs into `main` | Fails unless the PR comes from `develop` |
+
+CI can't launch the game, so in-game testing stays manual (see contributing.md).
+
+## Packaging
+
+`thunderstore.toml` defines the Thunderstore package for [tcli](https://github.com/thunderstore-io/thunderstore-cli),
+Thunderstore's official build and upload tool. `tcli build --package-version <Version>` writes
+`build/OldManMods-MysticalWeapons-<Version>.zip`:
+
+```
+manifest.json          generated from thunderstore.toml (name, version, BepInExPack dependency)
+icon.png               256x256, from the repo root (source: icon.svg)
+README.md              the repo README, shown on the Thunderstore page
+plugins/MysticalWeapons.dll
+plugins/models/...     the shipped custom models and CREDITS.md
+LICENSE, LICENSE-ASSETS.md
+```
+
+Mod managers install `plugins/` into `BepInEx/plugins/OldManMods-MysticalWeapons/`, so the models land
+next to the DLL where `ModelUtil` looks for them. To build the zip locally, install tcli
+(`dotnet tool install -g tcli`), build the mod, then run the same command.
 
 ## Releases
 
-There is no automated packaging, and no release has been tagged yet. The intended process:
+There are two channels, published as separate Thunderstore packages because Thunderstore has no
+pre-release versions:
 
-1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`.
+| Channel | Package | Published when | Version |
+|---|---|---|---|
+| Beta | `OldManMods-MysticalWeapons_BETA` | Every push to `develop` that changes the mod (each merged PR) | `<major>.<minor>` from `Version`, then the workflow's run number, e.g. `1.6.57` |
+| Stable | `OldManMods-MysticalWeapons` | A `v<Version>` tag on `main` | `Version` in `Plugin.cs` |
+
+The run number only goes up, so mod managers always see the newest beta as an update. Docs-only
+pushes (`docs/`, `tools/`, `CLAUDE.md`) skip the beta. The beta's Thunderstore page puts a beta
+notice above the README.
+
+Both packages are the same mod with the same `Plugin.Guid` and prefab names, so a profile must have
+**one or the other**, never both: BepInEx would load only one of them. Like the stable mod, the beta
+has to be on the server and on every player's game.
+
+### Play testing a beta
+
+1. Merge PRs into `develop`; each one publishes a new beta within a few minutes.
+2. The play-test server's profile and each tester's profile install `MysticalWeapons_BETA`
+   (not `MysticalWeapons`) and update it from the mod manager.
+3. Fix what testing finds with more PRs into `develop`.
+
+### Cutting a stable release
+
+1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`. (That
+   publishes one more beta, now numbered from the new version.)
 2. Open a pull request from `develop` into `main` and merge it once reviewed.
-3. Build from `main` with `dotnet build -c Release`. The release is `bin/Release/MysticalWeapons.dll`
-   plus the `models/` folder, installed together into `BepInEx/plugins/MysticalWeapons/`.
-4. Tag the merge commit (`v<Version>`) and attach a zip of the DLL and `models/` to a GitHub release.
+3. Tag the merge commit on `main` and push the tag:
+   ```bash
+   git tag v1.7.0 origin/main
+   git push origin v1.7.0
+   ```
+4. `publish.yml` checks that the tag is on `main` and matches `Version`, then builds, uploads
+   `OldManMods-MysticalWeapons` to Thunderstore and creates the GitHub release with generated notes.
+
+Thunderstore rejects a version it already has. If an upload fails, fix the cause and re-run; a
+re-run of a run that did upload fails harmlessly. A stable release that uploaded needs a new
+`Version` to change.
+
+### One-time setup
+
+- A Thunderstore team named `OldManMods` (or change `namespace` in `thunderstore.toml`), with a service
+  account. Its API token goes in a GitHub environment named `thunderstore` as the secret
+  `THUNDERSTORE_TOKEN`. In the environment's settings, limit deployments to the `develop` branch
+  and `v*` tags so no other ref can use the token. Required reviewers on that environment would
+  hold every beta too, so leave them off.
+- A 256x256 `icon.png` in the repo root (done; drawn from `icon.svg`).
 
 Never change `Plugin.Guid` or an existing `PrefabName` in a release: players' items and config are
 keyed on them.

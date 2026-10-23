@@ -8,8 +8,8 @@ Stephen's notes on how to build an item with as few game launches as possible, a
 What I check on a new item, or when bringing one of mine up to date:
 - [ ] Art-direction questions answered ("Before building an item")
 - [ ] Shape checked against the reference's proportions and parts
-- [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures (README,
-      "Item report"). Start from 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
+- [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures
+      (`contributing.md`, "Item report"). Start from 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
       texture at most one size above the peer's. Go past the triangle count when the item's signature
       shapes need it (see "Look" in `art-direction.md`); Thunderfury was planned at 250-400 and came
       out at 510. That's Blender's count: the mod draws every face from both sides, so double it
@@ -125,4 +125,4 @@ build is the quickest check: write the code and let the compiler say what doesn'
 ### Config
 - Changing a default in code doesn't change an existing config file: BepInEx keeps the value already
   there. After changing a default, edit or delete that line in the test profile's
-  `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
+  `BepInEx/config/omm.valheim.mysticalweapons.cfg`.

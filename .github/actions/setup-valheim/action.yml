@@ -1,0 +1,59 @@
+# Fetches what the build references, without committing any of it: Valheim's assemblies from the
+# free dedicated server (Steam app 896660, anonymous login) and BepInEx from BepInExPack_Valheim.
+# Both are downloaded into the runner's temp folder and discarded with it.
+name: "Set up Valheim references"
+description: "Downloads the Valheim dedicated server and BepInExPack_Valheim for building against"
+
+inputs:
+  bepinex-version:
+    description: "BepInExPack_Valheim version on Thunderstore"
+    default: "5.4.2351"
+
+outputs:
+  managed-dir:
+    description: "Folder with assembly_valheim.dll and the Unity assemblies"
+    value: ${{ steps.server.outputs.managed-dir }}
+  bepinex-dir:
+    description: "BepInEx folder (has core/BepInEx.dll and core/0Harmony.dll)"
+    value: ${{ steps.bepinex.outputs.bepinex-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download Valheim dedicated server
+      id: server
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq lib32gcc-s1 > /dev/null
+        steamcmd="$RUNNER_TEMP/steamcmd"
+        server="$RUNNER_TEMP/valheim-server"
+        mkdir -p "$steamcmd"
+        curl -sSL https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C "$steamcmd"
+        # SteamCMD often fails its first run while it updates itself, so allow a few tries
+        for attempt in 1 2 3; do
+          if "$steamcmd/steamcmd.sh" +force_install_dir "$server" +login anonymous \
+               +app_update 896660 validate +quit; then break; fi
+          [ "$attempt" = 3 ] && { echo "::error::SteamCMD could not download the Valheim server"; exit 1; }
+          echo "SteamCMD failed (attempt $attempt), retrying"
+        done
+        managed="$server/valheim_server_Data/Managed"
+        test -f "$managed/assembly_valheim.dll" || { echo "::error::assembly_valheim.dll not found in $managed"; exit 1; }
+        echo "managed-dir=$managed" >> "$GITHUB_OUTPUT"
+
+    - name: Download BepInExPack_Valheim
+      id: bepinex
+      shell: bash
+      env:
+        BEPINEX_VERSION: ${{ inputs.bepinex-version }}
+      run: |
+        set -euo pipefail
+        pack="$RUNNER_TEMP/bepinexpack"
+        mkdir -p "$pack"
+        curl -sSL -o "$pack/pack.zip" \
+          "https://thunderstore.io/package/download/denikson/BepInExPack_Valheim/$BEPINEX_VERSION/"
+        unzip -q "$pack/pack.zip" -d "$pack"
+        bepinex="$pack/BepInExPack_Valheim/BepInEx"
+        test -f "$bepinex/core/BepInEx.dll" || { echo "::error::BepInEx.dll not found in $bepinex/core"; exit 1; }
+        echo "bepinex-dir=$bepinex" >> "$GITHUB_OUTPUT"

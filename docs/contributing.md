@@ -33,8 +33,8 @@ This compiles `MysticalWeapons.dll` and copies it, with the `models/` folder, in
 `BepInEx/plugins/<mod folder>/` of your profile ([architecture.md](architecture.md#build-and-deploy)
 has the details).
 
-There are no automated tests, and GitHub can't build the mod because Valheim's assemblies can't be
-redistributed. Test in the game:
+The **Build** check on each pull request compiles the mod against Valheim's dedicated server (see
+[architecture.md](architecture.md#ci)). There are no automated tests, so test behaviour in the game:
 
 1. Launch Valheim from your test profile.
 2. Check `BepInEx/LogOutput.log` in the profile: it should say `Loaded N mystical items.` with no
@@ -44,7 +44,7 @@ redistributed. Test in the game:
    before a release.
 
 Changing a default in code doesn't change an existing config file: BepInEx keeps the saved value.
-Edit or delete the line in the profile's `BepInEx/config/dankn.valheim.mysticalweapons.cfg`.
+Edit or delete the line in the profile's `BepInEx/config/omm.valheim.mysticalweapons.cfg`.
 
 ## Workflow
 
@@ -54,8 +54,10 @@ Edit or delete the line in the profile's `BepInEx/config/dankn.valheim.mysticalw
    [CLAUDE.md](../CLAUDE.md) ("Reviewing changes").
 4. The other maintainer reviews and merges.
 
-`main` only takes pull requests from `develop`, when cutting a release (see
-[architecture.md](architecture.md#releases)). Don't bump `Version` in `Plugin.cs` in a feature PR.
+Every merge into `develop` publishes a beta to Thunderstore (`MysticalWeapons_BETA`) for play
+testing on our server. `main` only takes pull requests from `develop`, when cutting a stable
+release; tagging it publishes `MysticalWeapons` (see [architecture.md](architecture.md#releases)).
+Don't bump `Version` in `Plugin.cs` in a feature PR.
 
 ## Rules
 
@@ -127,3 +129,16 @@ command), so they can be regenerated:
   shape in `Sulfuras.cs` is then only the fallback, so after changing it, re-export and re-run the
   script or the game keeps showing the old model.
 - `make_shardplate_helm.py` extracts and prepares the helm from Krajkoa's Sketchfab model.
+- `thunderfury_model.py` builds Thunderfury in Blender part by part, and
+  `make_thunderfury_texture.py` bakes and exports it the same way as Sulfuras. `Thunderfury.cs`
+  keeps only a rough fallback shape.
+
+Building a model with Claude driving Blender directly (as for Thunderfury) needs the Blender MCP:
+see [blender-mcp.md](blender-mcp.md).
+
+### Picture for the pull request
+
+`tools/blender/render_views.py` renders an item's model from the front, in profile and at
+three-quarters in one picture (the script's header has the command). Commit it as
+`docs/images/<Prefab>-views.jpg` and link it in the pull request. Code-built items need exporting
+first (see the steps above).

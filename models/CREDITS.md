@@ -1,5 +1,7 @@
 # Model credits
 
+Models here are ours under CC BY 4.0 (see `LICENSE-ASSETS.md` in the repo) unless listed below.
+
 ## ShardplateHelm
 
 This work is based on "Shardplate" (https://sketchfab.com/3d-models/shardplate-5a4fca1f665b469c9669f387aa879b34)
