@@ -36,6 +36,9 @@ namespace MysticalWeapons
         /// <summary>Register status effects etc. with an ObjectDB.</summary>
         public virtual void RegisterExtras(ObjectDB db) { }
 
+        /// <summary>Register networked prefabs this item spawns (creatures, projectiles...) with a ZNetScene.</summary>
+        public virtual void RegisterNetExtras(ZNetScene scene) { }
+
         // ------------------------------------------------------------- config
 
         public ConfigEntry<bool> Enabled;
@@ -76,18 +79,8 @@ namespace MysticalWeapons
                 return null;
             }
 
-            if (!_holder)
-            {
-                // Instantiate under an inactive parent so no Awake() runs on the clones
-                var go = new GameObject("MysticalWeaponsPrefabs");
-                go.SetActive(false);
-                Object.DontDestroyOnLoad(go);
-                _holder = go.transform;
-            }
-
             SourceName = source.name;
-            Prefab = Object.Instantiate(source, _holder);
-            Prefab.name = PrefabName;
+            Prefab = CloneVanilla(source, PrefabName);
 
             var drop = Prefab.GetComponent<ItemDrop>();
             drop.m_itemData.m_dropPrefab = Prefab;
@@ -102,6 +95,35 @@ namespace MysticalWeapons
             Plugin.Log.LogInfo($"Created {PrefabName} from {source.name}");
             return Prefab;
         }
+
+        /// <summary>A renamed copy of a vanilla prefab that is never live itself, to register as a new prefab.</summary>
+        protected static GameObject CloneVanilla(GameObject source, string name)
+        {
+            if (!_holder)
+            {
+                // Instantiate under an inactive parent so no Awake() runs on the clones
+                var go = new GameObject("MysticalWeaponsPrefabs");
+                go.SetActive(false);
+                Object.DontDestroyOnLoad(go);
+                _holder = go.transform;
+            }
+            var clone = Object.Instantiate(source, _holder);
+            clone.name = name;
+            return clone;
+        }
+
+        /// <summary>Adds a prefab to a ZNetScene so it can be spawned and synced; false if the name is taken.</summary>
+        public static bool RegisterNetPrefab(ZNetScene scene, GameObject prefab)
+        {
+            if (scene.m_prefabs.Contains(prefab)) return true;
+            if (scene.m_prefabs.Exists(go => go && go.name == prefab.name)) return false;
+            scene.m_prefabs.Add(prefab);
+            if (NamedPrefabs(scene) is Dictionary<int, GameObject> named) named[prefab.name.GetStableHashCode()] = prefab;
+            return true;
+        }
+
+        private static readonly HarmonyLib.AccessTools.FieldRef<ZNetScene, Dictionary<int, GameObject>> NamedPrefabs =
+            HarmonyLib.AccessTools.FieldRefAccess<ZNetScene, Dictionary<int, GameObject>>("m_namedPrefabs");
 
         // ------------------------------------------------------------- recipe
 

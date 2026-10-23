@@ -17,7 +17,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | **Bat'leth** | Star Trek | Crescent-bladed two-hander with wide sweeping swings (based on the Iron Battleaxe). | Forge 2 |
 | **Sylspear** | The Stormlight Archive | Glowing Shardspear. Grants **Windrunner** while held: slow fall and faster stamina regen. No durability. | Forge 3 |
 | **Shardblade** | The Stormlight Archive | Huge, light two-hander that also chops trees and mines rock. No durability. | Forge 4 |
-| **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Reforged from an Iron Sword, the shards of Narsil. | Forge 3 |
+| **Andúril** | The Lord of the Rings | Rune-etched longsword with spirit damage and x1.5 damage against all undead (skeletons, ghosts, draugr, wraiths). Its secondary attack calls the Dead Men of Dunharrow: up to two ghostly Oathbreakers (the Dead Raiser's summon, for stamina instead of eitr and blood) that grow with your Swords skill. Reforged from an Iron Sword, the shards of Narsil. | Black forge 2 |
 | **Sulfuras, Hand of Ragnaros** | World of Warcraft | Ragnaros's two-handed hammer (Clubs skill): a three-hit combo, with the Demolisher's ground slam on the secondary attack. Hits may hurl a fireball that sets the target burning, and flames lick off its head. Reforged from a Demolisher. | Black forge 3 |
 | **Thunderfury, Blessed Blade of the Windseeker** | World of Warcraft | One-handed sword with a split blade and a crackling ball of lightning at its root (based on Nidhögg). Hits may loose chain lightning that leaps to other creatures nearby. Reforged from Nidhögg the Thundering. | Black forge 4 |
 | **Warglaives of Azzinoth** | World of Warcraft | Illidan's twin glaives, one in each hand (Knives skill, based on Skoll and Hati), wreathed in fel flames and crossed on the back when holstered. Hits add fel poison. Reforged from Skoll and Hati. | Black forge 3 |
@@ -86,7 +86,6 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
 
 ### Next up:
  - Rebalance existing weapons to make sure they're well aligned with natural game progression
- - Update Anduril to auto-summon spirits to aid in fights ... this should make the weapon a late game item
  - Experiment with Shardplate - can the full set cause the character size to increase by 25%?. Can we add a storm
    and/or electricity animation when attacking?
  - Invisibility cloak currently gives a player infinite stealth while crouched but doesn't have an visual effects

@@ -7,29 +7,48 @@ namespace MysticalWeapons.Weapons
     /// <summary>
     /// Andúril, Flame of the West (The Lord of the Rings): Narsil reforged for Aragorn.
     /// Spirit damage (which only hurts undead in Valheim) plus a damage multiplier against
-    /// every creature of the Undead faction: skeletons, ghosts, draugr, wraiths...
+    /// every creature of the Undead faction: skeletons, ghosts, draugr, wraiths... Its secondary attack calls
+    /// the Dead Men of Dunharrow: the Dead Raiser's summon, raising spirits that fight beside the wielder.
     /// </summary>
     internal class Anduril : MysticalWeapon
     {
         public override string PrefabName => "Anduril";
         public override string[] SourcePrefabs => new[] { "SwordSilver", "SwordIron" };
+        public override string VanillaPeer => "SwordMistwalker";
         public override string DisplayName => "Andúril";
         public override string Description =>
             "The Flame of the West, forged anew from the shards of Narsil. Elven runes run down its " +
-            "blade, and the dead remember the oath they broke when they see it drawn.";
+            "blade, and the dead remember the oath they broke when they see it drawn. Raise it, and " +
+            "they come to fulfil it.";
 
-        protected override string DefaultDamage => "slash:90,spirit:40";
+        // Mistlands, beside Mistwalker (75 slash + 40 frost): the summon is the late-game power
+        protected override string DefaultDamage => "slash:100,spirit:40";
         protected override string DefaultDamagePerLevel => "slash:6,spirit:5";
-        protected override string DefaultRecipe => "SwordIron:1,Silver:15,Crystal:4"; // the shards of Narsil
-        protected override int DefaultStationLevel => 3;
+        protected override string DefaultRecipe => "SwordIron:1,BlackMetal:20,Eitr:12,Crystal:6"; // the shards of Narsil
+        protected override string DefaultStation => "blackforge";
+        protected override int DefaultStationLevel => 2;
 
         internal static ConfigEntry<float> UndeadMultiplier;
+        private static ConfigEntry<bool> _summon;
+        private static ConfigEntry<int> _maxSpirits;
+        private static ConfigEntry<float> _summonStamina;
+        private static ConfigEntry<float> _summonEitr;
+        private static ConfigEntry<Color> _spiritColor;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
             UndeadMultiplier = cfg.Bind(PrefabName, "UndeadDamageMultiplier", 1.5f,
                 "All damage dealt to undead (skeletons, ghosts, draugr, wraiths...) is multiplied by this.");
+            _summon = cfg.Bind(PrefabName, "SummonSpirits", true,
+                "The secondary attack raises spirits of the dead to fight for you (the Dead Raiser's summon). " +
+                "Off = the sword's usual heavy thrust. Restart to apply.");
+            _maxSpirits = cfg.Bind(PrefabName, "MaxSpirits", 2, "Most spirits you can have at once. Restart to apply.");
+            _summonStamina = cfg.Bind(PrefabName, "SummonStamina", 40f, "Stamina used per summon. Restart to apply.");
+            _summonEitr = cfg.Bind(PrefabName, "SummonEitr", 0f,
+                "Eitr used per summon (the Dead Raiser uses 100, and 40% of your health). Restart to apply.");
+            _spiritColor = cfg.Bind(PrefabName, "SpiritColor", new Color(0.45f, 0.85f, 0.6f, 0.6f),
+                "Colour of the summoned spirits (alpha = how solid, if the ghost material uses it). Restart to apply.");
         }
 
         private const int Steel = 0, Hilt = 1, Grip = 2, Runes = 3;
@@ -46,6 +65,94 @@ namespace MysticalWeapons.Weapons
         {
             shared.m_maxDurability = Mathf.Max(shared.m_maxDurability, 300f);
             shared.m_backstabBonus = 3f;
+        }
+
+        // ------------------------------------------------------------- the Dead Men of Dunharrow
+
+        private const string SummonSource = "StaffSkeleton"; // the Dead Raiser
+        private const string SpiritName = "AndurilSpirit";
+        private GameObject _summonObject;
+        private GameObject _spirit;
+        private bool _ghosted;
+
+        protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            base.Setup(prefab, shared);
+            if (_summon.Value) SetupSummon(shared);
+        }
+
+        /// <summary>
+        /// Makes the secondary attack a copy of the Dead Raiser's, with copies of the object that spawns the
+        /// skeletons and of the skeleton itself, so the vanilla staff is untouched. The game runs the summon:
+        /// it spawns on the wielder's client, syncs to everyone and caps how many are alive.
+        /// </summary>
+        private void SetupSummon(ItemDrop.ItemData.SharedData shared)
+        {
+            var staff = FindVanilla(SummonSource);
+            var source = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
+            if (source == null)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: no '{SummonSource}' to borrow the summon from; keeping the sword's secondary attack");
+                return;
+            }
+
+            var attack = source.Clone();
+            SpawnAbility ability = null;
+            if (attack.m_attackProjectile)
+            {
+                attack.m_attackProjectile = _summonObject = CloneVanilla(attack.m_attackProjectile, PrefabName + "_summon");
+                ability = _summonObject.GetComponentInChildren<SpawnAbility>(true);
+            }
+            else if (attack.m_spawnOnTrigger)
+            {
+                attack.m_spawnOnTrigger = _summonObject = CloneVanilla(attack.m_spawnOnTrigger, PrefabName + "_summon");
+                ability = _summonObject.GetComponentInChildren<SpawnAbility>(true);
+            }
+            var creature = ability && ability.m_spawnPrefab != null && ability.m_spawnPrefab.Length > 0 ? ability.m_spawnPrefab[0] : null;
+            if (!creature)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: '{SummonSource}' has no spawner to copy; keeping the sword's secondary attack");
+                if (_summonObject) Object.Destroy(_summonObject);
+                _summonObject = null;
+                return;
+            }
+
+            _spirit = CloneVanilla(creature, SpiritName);
+            ability.m_spawnPrefab = new[] { _spirit };
+            ability.m_setMaxInstancesFromWeaponLevel = false;
+            ability.m_maxSpawned = Mathf.Max(1, _maxSpirits.Value);
+            // The staff's skeletons grow with Blood magic; the king's dead answer to his sword
+            if (ability.m_levelUpSettings != null)
+                foreach (var level in ability.m_levelUpSettings)
+                {
+                    level.m_skill = Skills.SkillType.Swords;
+                    level.m_maxSpawns = Mathf.Min(level.m_maxSpawns, ability.m_maxSpawned);
+                }
+            var character = _spirit.GetComponent<Character>();
+            if (character) character.m_name = "Oathbreaker";
+            var tame = _spirit.GetComponent<Tameable>();
+            if (tame) tame.m_levelUpOwnerSkill = Skills.SkillType.Swords;
+
+            attack.m_attackStamina = _summonStamina.Value;
+            attack.m_attackEitr = _summonEitr.Value;
+            attack.m_attackHealth = 0f;
+            attack.m_attackHealthPercentage = 0f;
+            shared.m_secondaryAttack = attack;
+            Plugin.Log.LogInfo($"{PrefabName}: secondary attack is the '{SummonSource}' summon (animation '{attack.m_attackAnimation}', " +
+                               $"spawner '{_summonObject.name}', creature '{creature.name}', up to {ability.m_maxSpawned})");
+        }
+
+        public override void RegisterNetExtras(ZNetScene scene)
+        {
+            if (!_spirit) return;
+            if (_summonObject.GetComponent<ZNetView>()) RegisterNetPrefab(scene, _summonObject);
+            if (!RegisterNetPrefab(scene, _spirit))
+                Plugin.Log.LogWarning($"{PrefabName}: another mod already adds a prefab named '{SpiritName}'");
+            if (_ghosted) return;
+            _ghosted = true;
+            // The ghost creature is only in the ZNetScene, so the spirits turn see-through here
+            var mat = ModelUtil.GhostMaterial(scene, _spiritColor.Value, SpiritName);
+            if (mat) ModelUtil.SetAllMaterials(_spirit, mat);
         }
 
         public override void BuildModel(MeshBuilder b)
