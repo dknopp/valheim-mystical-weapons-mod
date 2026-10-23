@@ -41,8 +41,10 @@ namespace MysticalWeapons.Weapons
         {
             base.BindConfig(cfg);
             _fallSpeed = cfg.Bind(PrefabName, "MaxFallSpeed", 3f,
-                "Windrunner: fastest you fall while holding the spear, in m/s (vanilla falling is far faster; the Feather cape is 5).");
-            _jump = cfg.Bind(PrefabName, "JumpBoost", 0.3f, "Windrunner: extra jump height while holding the spear (0.3 = 30% higher).");
+                "Windrunner: fastest you fall with the spear held or sheathed, in m/s (vanilla falling is far faster; the Feather cape is 5).");
+            _jump = cfg.Bind(PrefabName, "JumpBoost", 0.3f, "Windrunner: extra jump height with the spear held or sheathed (0.3 = 30% higher).");
+            _fallDamage = cfg.Bind(PrefabName, "FallDamage", 0f,
+                "Windrunner: share of fall damage you still take with the spear held or sheathed (0 = none, 1 = all). Restart to apply.");
             _spren = cfg.Bind(PrefabName, "SprenWhenSheathed", true,
                 "Sheathed (R), the spear disappears from your back and Syl follows you as a glowing spren. Restart to apply.");
             _sprenClearsMist = cfg.Bind(PrefabName, "SprenClearsMist", false,
@@ -59,7 +61,10 @@ namespace MysticalWeapons.Weapons
             new MaterialSpec(new Color(0.68f, 0.78f, 0.9f), 0.8f, new Color(0.18f, 0.32f, 0.5f)),   // accents
         };
 
+        private ConfigEntry<float> _fallDamage;
         private SE_Stats _windrunner;
+        /// <summary>Windrunner while the spear is sheathed: sheathing unequips it, which ends the equip effect.</summary>
+        private static SE_SheathedWindrunner _sheathedWindrunner;
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
@@ -68,23 +73,31 @@ namespace MysticalWeapons.Weapons
             shared.m_toolTier = 4;          // like a Shardblade: fells any tree and breaks any rock
             shared.m_attackForce = 40f;
 
-            _windrunner = ScriptableObject.CreateInstance<SE_Stats>();
-            _windrunner.name = "SE_Windrunner";
-            _windrunner.m_name = "Windrunner";
-            _windrunner.m_tooltip = "Stormlight lashes you to the sky: you jump higher, fall gently, " +
-                                    "and your stamina returns faster.";
-            _windrunner.m_icon = Icon;
-            _windrunner.m_maxMaxFallSpeed = _fallSpeed.Value;
-            _windrunner.m_jumpModifier = new Vector3(0f, _jump.Value, 0f);
-            _windrunner.m_staminaRegenMultiplier = 1.5f;
-            _windrunner.m_runStaminaDrainModifier = -0.25f;
+            _windrunner = MakeWindrunner<SE_Stats>("SE_Windrunner");
             shared.m_equipStatusEffect = _windrunner;
+            _sheathedWindrunner = MakeWindrunner<SE_SheathedWindrunner>("SE_WindrunnerSheathed");
+        }
+
+        private T MakeWindrunner<T>(string id) where T : SE_Stats
+        {
+            var se = ScriptableObject.CreateInstance<T>();
+            se.name = id;
+            se.m_name = "Windrunner";
+            se.m_tooltip = "Stormlight lashes you to the sky: you jump higher, fall gently and land unhurt, " +
+                           "and your stamina returns faster.";
+            se.m_icon = Icon;
+            se.m_maxMaxFallSpeed = _fallSpeed.Value;
+            se.m_jumpModifier = new Vector3(0f, _jump.Value, 0f);
+            se.m_fallDamageModifier = Mathf.Clamp01(_fallDamage.Value) - 1f; // added to 1: -1 takes it all away
+            se.m_staminaRegenMultiplier = 1.5f;
+            se.m_runStaminaDrainModifier = -0.25f;
+            return se;
         }
 
         public override void RegisterExtras(ObjectDB db)
         {
-            if (_windrunner && !db.m_StatusEffects.Contains(_windrunner)) db.m_StatusEffects.Add(_windrunner);
-            if (_sprenEffect && !db.m_StatusEffects.Contains(_sprenEffect)) db.m_StatusEffects.Add(_sprenEffect);
+            foreach (var se in new StatusEffect[] { _windrunner, _sheathedWindrunner, _sprenEffect })
+                if (se && !db.m_StatusEffects.Contains(se)) db.m_StatusEffects.Add(se);
         }
 
         public override void BuildModel(MeshBuilder b)
@@ -204,15 +217,31 @@ namespace MysticalWeapons.Weapons
             }
         }
 
-        /// <summary>Sheathing unequips the spear (ending Windrunner) and calls the spren. Runs on the owner's client.</summary>
+        /// <summary>Windrunner that stays while the spear is sheathed and ends itself once it is drawn or gone.</summary>
+        private class SE_SheathedWindrunner : SE_Stats
+        {
+            public override void UpdateStatusEffect(float dt)
+            {
+                base.UpdateStatusEffect(dt);
+                if (Sheathed(m_character)) return;
+                m_ttl = 0.01f; // done; drawing the spear gives the equip Windrunner back
+                m_time = 1f;
+            }
+        }
+
+        /// <summary>
+        /// Sheathing unequips the spear, which ends its Windrunner: give it back for as long as the spear stays
+        /// sheathed, and call the spren. Runs on the owner's client.
+        /// </summary>
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.HideHandItems))]
         private static class SheathePatch
         {
             private static void Postfix(Humanoid __instance)
             {
-                if (!_sprenEffect || __instance != Player.m_localPlayer || !Sheathed(__instance)) return;
+                if (__instance != Player.m_localPlayer || !Sheathed(__instance)) return;
                 var seman = __instance.GetSEMan();
-                if (!seman.HaveStatusEffect(_sprenEffect.NameHash())) seman.AddStatusEffect(_sprenEffect, true);
+                foreach (var se in new StatusEffect[] { _sheathedWindrunner, _sprenEffect })
+                    if (se && !seman.HaveStatusEffect(se.NameHash())) seman.AddStatusEffect(se, true);
             }
         }
     }
