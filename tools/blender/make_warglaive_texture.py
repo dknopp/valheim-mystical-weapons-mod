@@ -1,5 +1,5 @@
-# Builds one Warglaive of Azzinoth from warglaive_model.py, bakes one texture for it (fel-green blades,
-# pale at their sharp edges and darkening toward the middle with faint fel wisps, a silver hub with an
+# Builds one Warglaive of Azzinoth from warglaive_model.py, bakes one texture for it (fel-green blades
+# shaded by their edge, bevel, plateau and groove, with darker veins and faint cracks, a silver hub with an
 # engraved rim, a gold star, a brown leather wrap between silver collars) and writes
 # models/WarglaivesOfAzzinoth.obj/.mtl/.png. The game mirrors it for the left hand.
 #
@@ -118,32 +118,76 @@ x, y, z = p[:, 0], p[:, 1], p[:, 2]
 tone = (0.88 + 0.24 * fbm(p * 14, 50))[:, None]   # broad, soft variation
 col = np.zeros((len(p), 3))
 
-# Fel: pale yellow-green at the sharp edge, bright fel green over the bevel, deep green in the middle,
-# with faint brighter wisps streaming along the blade. The game glows it by its own colour, so the
-# edges glow most.
+def groove_frame(py, pz):
+    """For each point, the distance in the blade's plane to the nearest blade's groove line and how
+    far along that line it is (0 at the root, 1 at its end)."""
+    d = np.full(len(py), np.inf); s = np.zeros(len(py))
+    for mirror in (1, -1):
+        pts = np.array([[-v * wg.UNIT, mirror * u * wg.UNIT] for u, v in wg.GROOVE])
+        seg = np.hypot(*np.diff(pts, axis=0).T); start = np.concatenate([[0], np.cumsum(seg)]) / seg.sum()
+        for k, (a, b) in enumerate(zip(pts, pts[1:])):
+            ab = b - a
+            t = np.clip(((py - a[0]) * ab[0] + (pz - a[1]) * ab[1]) / (ab @ ab), 0, 1)
+            dk = np.hypot(py - a[0] - t * ab[0], pz - a[1] - t * ab[1])
+            closer = dk < d
+            d[closer] = dk[closer]; s[closer] = (start[k] + t * (start[k + 1] - start[k]))[closer]
+    return d, s
+
+# Fel, following the blade's shape: a pale yellow-green sharp edge, the bevel deepening from bright to
+# dark green as it climbs, a lighter mottled jade plateau, a dark groove with a lit lip, darker veining
+# (most on the bevel) and a few faint cracks across the blade. The game glows it by its own colour, so
+# the edges glow most and the veins and cracks least.
 fel = z_ == 0
-d = outline_distance(y[fel], z[fel])
-wisp = fbm(np.stack([x[fel] * 0, y[fel] * 60, z[fel] * 18], -1), 11)
-t = d / 0.022 - 0.6 * np.clip(wisp - 0.55, 0, 1)
-col[fel] = ramp(np.clip(t, 0, 1), [(0.0, (0.88, 1.0, 0.55)), (0.12, (0.50, 0.98, 0.22)),
-                                   (0.45, (0.22, 0.66, 0.10)), (1.0, (0.07, 0.30, 0.05))])
+pf, nf = p[fel], n[fel]
+d = outline_distance(pf[:, 1], pf[:, 2])
+rise = np.clip(np.abs(pf[:, 0] - wg.BLADE_X) / wg.BLADE_T, 0, 1)   # 0 at the edge, 1 on the plateau
+flat = np.clip((rise - 0.85) / 0.12, 0, 1)                          # 1 on the plateau
+g, s = groove_frame(pf[:, 1], pf[:, 2])
+c = ramp(rise, [(0.0, (0.42, 0.90, 0.16)), (0.4, (0.16, 0.54, 0.08)), (1.0, (0.08, 0.32, 0.05))])
+mottle = fbm(pf * 45, 21)
+c += (ramp(mottle, [(0.0, (0.15, 0.50, 0.11)), (1.0, (0.27, 0.68, 0.18))]) - c) * flat[:, None]
+c = np.where((d < 0.005)[:, None], ramp(d / 0.005, [(0.0, (0.85, 1.0, 0.45)), (1.0, (0.42, 0.90, 0.16))]), c)
+# Near the hub the blade is dark metal, kindling into fel along its length; the hooked back stays
+# metal further out than the serrated inner edge.
+metal = ramp(rise, [(0.0, (0.40, 0.44, 0.45)), (0.3, (0.18, 0.21, 0.22)), (1.0, (0.10, 0.12, 0.13))])
+metal *= (0.85 + 0.3 * mottle)[:, None]
+u_, v_ = np.abs(pf[:, 2]) / wg.UNIT, -pf[:, 1] / wg.UNIT
+start = 50 + 35 * np.clip(-v_ / 30, 0, 1) + 30 * (fbm(pf * 25, 60) - 0.5)
+kindle = np.clip((u_ - start) / 45, 0, 1); kindle = kindle * kindle * (3 - 2 * kindle)
+c = metal + (c - metal) * kindle[:, None]
+gw = wg.GROOVE_W * wg.UNIT
+c[g < gw * 0.8] = (0.03, 0.14, 0.03)
+lip = (g >= gw * 0.8) & (g < gw * 1.6)
+c[lip] = c[lip] * 0.5 + np.array([0.45, 0.85, 0.30]) * 0.5
+vein = 1 - np.abs(2 * fbm(pf * np.array([14, 26, 10]), 33) - 1)    # thin where the noise crosses 0.5
+c *= (1 - 0.4 * np.clip((vein - 0.9) / 0.07, 0, 1) * (1.1 - 0.5 * flat))[:, None]
+crack = np.zeros(len(pf))
+for k, at in enumerate((0.22, 0.46, 0.68, 0.86)):
+    wob = 0.012 * (fbm(pf * 120, 40 + k) - 0.5)
+    crack = np.maximum(crack, np.clip(1 - np.abs(s - at + g * 1.5 + wob) / 0.006, 0, 1) * (g < 0.07))
+c *= (1 - 0.35 * crack)[:, None]
+col[fel] = c
 
-# Silver: hub, collars and posts. A ring of engraved notches round the hub's raised rim, and the well
-# under the star a shade darker.
+# Silver: hub back, spikes, collars and posts. The shield's well under the star is dark steel, and a
+# ring of engraved notches runs round its gold rim. Radii are measured against the shield's outline.
 silver = z_ == 1
-r_hub = np.hypot(y, z) / wg.UNIT
-on_front = x > wg.BLADE_X + wg.BLADE_T + 0.002
+hub_a = np.arctan2(-y, z) % (2 * math.pi) / (2 * math.pi) * wg.HUB_SEGMENTS
+shield_k = np.interp(hub_a, np.arange(wg.HUB_SEGMENTS + 1), [wg.shield(i) for i in range(wg.HUB_SEGMENTS + 1)])
+r_hub = np.hypot(y, z) / wg.UNIT / shield_k
+lift = x - wg.BLADE_X - wg.BLADE_T
+on_front = lift > 0.002
 col[silver] = ramp(np.clip(n[silver, 0] * 0.5 + 0.5, 0, 1), [(0.0, (0.60, 0.63, 0.70)), (1.0, (0.84, 0.86, 0.91))])
-well = silver & on_front & (r_hub < 34)
-col[well] = (0.42, 0.45, 0.52)
+well = silver & on_front & (r_hub < 34) & (n[:, 0] > 0.98)   # flat, unlike the spikes' sides
+col[well] = (0.18, 0.23, 0.25)
 ang = np.arctan2(y, z) / (2 * math.pi) * 30 % 1.0
-notch = silver & on_front & (r_hub > 37.5) & (r_hub < 44.5) & (np.abs(ang - 0.5) < 0.16)
-col[notch] = (0.22, 0.24, 0.29)
+notch = on_front & (r_hub > 37.5) & (r_hub < 44.5) & (np.abs(ang - 0.5) < 0.16)
 
-# Gold: the star, deep at its base and pale toward its apex
+# Gold: the star and the shield's rim, deep low down and pale toward the star's apex; the rim's notches
+# engraved dark
 gold = z_ == 2
-h = np.clip((x - wg.BLADE_X - wg.BLADE_T) / wg.STAR_APEX, 0, 1)
+h = np.clip(lift / wg.STAR_APEX, 0, 1)
 col[gold] = ramp(h[gold], [(0.0, (0.55, 0.40, 0.18)), (0.5, (0.86, 0.70, 0.36)), (1.0, (0.98, 0.90, 0.62))])
+col[gold & notch] = (0.30, 0.21, 0.09)
 
 # Wrap: brown leather wound round the bar, a dark gap between turns
 wrap = z_ == 3
@@ -206,8 +250,9 @@ if preview:
     scene.cycles.samples = 48
     scene.render.resolution_x, scene.render.resolution_y = 600, 1000
     base_path, ext = os.path.splitext(preview)
-    for tag, direction, target, scale in (("front", Vector((-1, 0, 0)), Vector((0.08, -0.04, 0)), 1.0),
-                                          ("angle", Vector((-0.75, 0.6, -0.3)), Vector((0.08, -0.04, 0)), 1.0),
+    for tag, direction, target, scale in (("front", Vector((-1, 0, 0)), Vector((0.08, -0.12, 0)), 1.8),
+                                          ("angle", Vector((-0.75, 0.6, -0.3)), Vector((0.08, -0.12, 0)), 1.8),
+                                          ("blade", Vector((-0.8, 0.4, -0.45)), Vector((0.08, -0.1, 0.42)), 0.6),
                                           ("close", Vector((-0.9, 0.3, -0.2)), Vector((0.05, 0, 0)), 0.3)):
         cam.data.ortho_scale = scale
         cam.location = target - direction.normalized() * 3
