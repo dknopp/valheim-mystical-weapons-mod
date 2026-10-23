@@ -74,6 +74,26 @@ Item-specific behaviour lives in the item's own class as nested Harmony patches.
 `Anduril.UndeadBanePatch` prefixes `Character.Damage` and boosts hits from Andúril against undead.
 Patches on shared game methods always check first that our item is involved.
 
+### Borrowing from vanilla
+
+Most powers are vanilla behaviour, copied so the vanilla item is untouched:
+
+- **Attacks:** `Attack.Clone()` of another item's attack, assigned as a primary or secondary
+  attack. Andúril's summon is the Dead Raiser's. The Elder Wand loads Dundr's lightning into the
+  butcher knife's jab: the cloned item gives the hold and the animation, and the attack gives the
+  projectile and its launch point.
+- **Prefabs an item spawns:** `MysticalItem.CloneVanilla` copies a creature, projectile or effect
+  (Andúril's spirits, Syl's wisp). `RegisterNetExtras` adds the networked copies to the ZNetScene, so
+  other clients can spawn them.
+- **Status effects:** a new `SE_Stats` with the item's numbers, or a subclass of a vanilla effect
+  with its fields copied over (Syl's wisp is the Wisplight's `SE_Demister`). Effects that last only
+  while a condition holds end themselves in `UpdateStatusEffect` (Syl and the sheathed Windrunner
+  end when the spear is drawn).
+- **Looks other players must see** are worked out on every client from synced state, not sent: the
+  equipment hashes in `VisEquipment` and the crouch animation. Examples are the cloak's fade,
+  Shardplate's size and glow, and which weapon made a kill (the Bat'leth's adrenaline). Anything
+  that must reach one player goes over a vanilla RPC (`RPC_AddAdrenaline`).
+
 ### Models and textures
 
 - **`MeshBuilder`** builds meshes from simple parts (tapered blades from cross-section stations,
@@ -83,7 +103,9 @@ Patches on shared game methods always check first that our item is involved.
 - **`VanillaTextures`** takes textures from vanilla items while the game runs, turns them into
   greyscale detail and tints them per part. No game asset is ever stored in the repo.
 - **`ModelUtil`** swaps the model into the prefab, makes materials from the cloned item's shader,
-  loads custom models and textures, and rasterises inventory icons in software.
+  loads custom models and textures, and rasterises inventory icons in software. `SpectralMaterial`
+  and `MakeSpectral` make see-through copies of materials (Andúril's spirits, the cloak's shade) on
+  `Sprites/Default`, since Valheim's own creature shaders are opaque.
 - **`ItemReport`** (off by default, `[Debug] ItemReport`) renders each item next to its vanilla
   peer and writes triangle and texture counts, for checking that new items fit the game's look.
 
@@ -91,9 +113,14 @@ Patches on shared game methods always check first that our item is involved.
 
 All settings go through BepInEx's `ConfigFile` into
 `BepInEx/config/omm.valheim.mysticalweapons.cfg`. Each item binds a section named after its
-`PrefabName` with the common keys (`Enabled`, `Recipe`, `CraftingStation`, `StationLevel`, plus
-`Damage` for weapons or `Armor`, `Tint` and `Glow` for armor) and its own keys in `BindConfig`.
-Section and key names are part of players' saved setup and must not be renamed.
+`PrefabName` with the common keys (`Enabled`, `Recipe`, `CraftingStation`, `StationLevel`,
+`BossTrophy`, plus `Damage` for weapons or `Armor`, `Tint` and `Glow` for armor) and its own keys
+in `BindConfig`. Set bonuses bind sections of their own (`Shardplate`, `DeathlyHallows`). Section
+and key names are part of players' saved setup and must not be renamed.
+
+`BossTrophy` defaults come from one table, `MysticalItem.BossTrophies`, for the items stronger than
+their tier. The trophy is added to the recipe once (none per upgrade). The game lists a recipe only
+once the player has picked up every ingredient, so the trophy also hides it until the boss is beaten.
 
 ## Build and deploy
 
