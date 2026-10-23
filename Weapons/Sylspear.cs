@@ -63,7 +63,10 @@ namespace MysticalWeapons.Weapons
 
         private ConfigEntry<float> _fallDamage;
         private SE_Stats _windrunner;
-        /// <summary>Windrunner while the spear is sheathed: sheathing unequips it, which ends the equip effect.</summary>
+        /// <summary>
+        /// Windrunner while the spear is sheathed: sheathing unequips it, which ends the equip effect. With the spren on
+        /// it is hidden behind Syl's icon, so sheathed you have one effect, Syl: Windrunner's perks and the wisp.
+        /// </summary>
         private static SE_SheathedWindrunner _sheathedWindrunner;
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
@@ -76,6 +79,12 @@ namespace MysticalWeapons.Weapons
             _windrunner = MakeWindrunner<SE_Stats>("SE_Windrunner");
             shared.m_equipStatusEffect = _windrunner;
             _sheathedWindrunner = MakeWindrunner<SE_SheathedWindrunner>("SE_WindrunnerSheathed");
+            if (_sprenEffect)
+            {
+                _sheathedWindrunner.m_hidden = true; // the HUD lists Syl alone
+                _sprenEffect.m_tooltip = "Syl rides the wind beside you, lighting the way. Her Stormlight still lashes you: " +
+                                         "you jump higher, fall gently and land unhurt, and your stamina returns faster.";
+            }
         }
 
         private T MakeWindrunner<T>(string id) where T : SE_Stats
@@ -177,8 +186,10 @@ namespace MysticalWeapons.Weapons
                     if (System.Array.IndexOf(LiveFields, field.Name) < 0) field.SetValue(_sprenEffect, field.GetValue(source));
             _sprenEffect.name = "SE_SylSpren";
             _sprenEffect.m_name = "Syl";
-            _sprenEffect.m_tooltip = "Syl rides the wind beside you, lighting the way.";
             _sprenEffect.m_icon = Icon;
+            // Keep the Wisplight's sound, not its "You release the wisp" message
+            _sprenEffect.m_startMessage = "";
+            _sprenEffect.m_stopMessage = "";
             _sprenEffect.m_ballPrefab = _sprenBall;
             _sprenEffect.m_ttl = 0f;
 
