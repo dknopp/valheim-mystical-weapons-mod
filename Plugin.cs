@@ -90,8 +90,6 @@ namespace MysticalWeapons
         internal static void RegisterNetPrefabs(ZNetScene scene)
         {
             if (!scene.m_prefabs.Exists(go => go && go.name == VanillaProbe)) return;
-            var named = AccessTools.Field(typeof(ZNetScene), "m_namedPrefabs").GetValue(scene)
-                as Dictionary<int, GameObject>;
 
             foreach (var item in Items)
             {
@@ -99,10 +97,13 @@ namespace MysticalWeapons
                 Guard(item, () =>
                 {
                     var prefab = item.GetOrCreatePrefab(name => scene.m_prefabs.Find(go => go && go.name == name));
-                    if (!prefab || scene.m_prefabs.Contains(prefab) || TakenByOther(scene.m_prefabs, prefab)) return;
-
-                    scene.m_prefabs.Add(prefab);
-                    if (named != null) named[prefab.name.GetStableHashCode()] = prefab;
+                    if (!prefab) return;
+                    if (!scene.m_prefabs.Contains(prefab))
+                    {
+                        if (TakenByOther(scene.m_prefabs, prefab)) return;
+                        MysticalItem.RegisterNetPrefab(scene, prefab);
+                    }
+                    item.RegisterNetExtras(scene);
                 });
             }
         }

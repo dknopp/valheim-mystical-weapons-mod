@@ -193,7 +193,7 @@ namespace MysticalWeapons
             }
         }
 
-        private static HitData.DamageTypes ParseDamage(string spec)
+        protected static HitData.DamageTypes ParseDamage(string spec)
         {
             object damage = new HitData.DamageTypes();
             foreach (var part in spec.Split(','))

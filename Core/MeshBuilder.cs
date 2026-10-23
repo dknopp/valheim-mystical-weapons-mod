@@ -21,6 +21,12 @@ namespace MysticalWeapons
         /// </summary>
         public bool ProjectUvs;
 
+        // Skinning (imported skinned models only): weights per vertex, and the bones they refer to
+        public readonly List<BoneWeight> Weights = new List<BoneWeight>();
+        public readonly List<string> BoneNames = new List<string>();
+        public readonly List<Matrix4x4> Bindposes = new List<Matrix4x4>();
+        public bool IsSkinned => BoneNames.Count > 0 && Weights.Count == Verts.Count;
+
         public MeshBuilder(int submeshes)
         {
             Tris = new List<int>[submeshes];
@@ -28,6 +34,11 @@ namespace MysticalWeapons
         }
 
         public static Vector3 V(Vector2 p, float z) => new Vector3(p.x, p.y, z);
+
+        public int TriangleCount
+        {
+            get { var n = 0; foreach (var t in Tris) n += t.Count; return n / 3; }
+        }
 
         public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c)
         {
@@ -63,20 +74,36 @@ namespace MysticalWeapons
         }
 
         /// <summary>
-        /// A double-sided triangle with texture coordinates and (optionally smooth) vertex normals,
-        /// for imported models. Missing normals fall back to the flat face normal.
+        /// A triangle with texture coordinates and vertex normals, for imported models.
+        /// With normals it is added once, wound to face the way they point: Valheim's armor shader
+        /// draws both sides, so a second, inward-facing copy at the same depth could win and make the
+        /// surface render dark. Without normals it falls back to a flat double-sided triangle.
         /// </summary>
         public void Tri(int sub, Vector3 a, Vector3 b, Vector3 c, Vector2 ua, Vector2 ub, Vector2 uc,
-            Vector3? na = null, Vector3? nb = null, Vector3? nc = null)
+            Vector3? na = null, Vector3? nb = null, Vector3? nc = null,
+            BoneWeight? wa = null, BoneWeight? wb = null, BoneWeight? wc = null)
         {
+            var count = Verts.Count;
             var n = Vector3.Cross(b - a, c - a);
             if (n.sqrMagnitude < 1e-12f) return;
             n.Normalize();
-            Vector3 n0 = na ?? n, n1 = nb ?? n, n2 = nc ?? n;
-            // Give the vertex normals to whichever copy faces the same way they point
-            var s = Vector3.Dot(n0 + n1 + n2, n) >= 0f ? 1f : -1f;
-            Add(sub, a, b, c, s * n0, s * n1, s * n2, ua, ub, uc);
-            Add(sub, a, c, b, -s * n0, -s * n2, -s * n1, ua, uc, ub);
+            if (na == null || nb == null || nc == null)
+            {
+                Add(sub, a, b, c, n, n, n, ua, ub, uc);
+                Add(sub, a, c, b, -n, -n, -n, ua, uc, ub);
+                return;
+            }
+            var flip = Vector3.Dot(na.Value + nb.Value + nc.Value, n) < 0f;
+            if (!flip)
+                Add(sub, a, b, c, na.Value, nb.Value, nc.Value, ua, ub, uc);
+            else
+                Add(sub, a, c, b, na.Value, nc.Value, nb.Value, ua, uc, ub);
+            if (wa.HasValue && wb.HasValue && wc.HasValue)
+            {
+                Weights.Add(wa.Value);
+                Weights.Add(flip ? wc.Value : wb.Value);
+                Weights.Add(flip ? wb.Value : wc.Value);
+            }
         }
 
         private void Add(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 na, Vector3 nb, Vector3 nc,
@@ -209,6 +236,11 @@ namespace MysticalWeapons
             mesh.SetUVs(0, Uvs);
             mesh.subMeshCount = Tris.Length;
             for (var i = 0; i < Tris.Length; i++) mesh.SetTriangles(Tris[i], i);
+            if (IsSkinned)
+            {
+                mesh.boneWeights = Weights.ToArray();
+                mesh.bindposes = Bindposes.ToArray();
+            }
             mesh.RecalculateBounds();
             mesh.RecalculateTangents();
             return mesh;
