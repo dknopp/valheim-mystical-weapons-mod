@@ -205,7 +205,8 @@ Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
 4. Split in three:
    - 4a: the landing roll, README rows and the balance check above. **Done 2026-10-24.**
    - 4b: our own textures on the vanilla meshes (see "How the look is made"). **Done 2026-10-24:**
-     checked in game; the sash moved to the undershirt and the cape got its lining after the first look.
+     the first look checked in game; after it, the sash moved to the undershirt and the cape got its
+     lining, leather grain and linen weave, checked in in-engine renders.
    - 4b-2: a finer detail pass on the textures: embroidery on the tails and the hood's edge, stitching
      on the leather, smoother cloth shading than the vanilla 128-pixel textures give, a finer cloth bump
      on the cape. The textile stays fine and smooth like the hero reference, not rough-spun.
