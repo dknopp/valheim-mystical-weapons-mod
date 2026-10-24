@@ -43,6 +43,26 @@ The **Build** check on each pull request compiles the mod against Valheim's dedi
 4. For anything other players see (effects, models), check it on a server with a second player
    before a release.
 
+### Dev auto-run
+
+`tools/DevAutoRun` is a dev-only plugin (never packaged or published) with a script that does a
+test launch hands-off:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\DevAutoRun\run.ps1
+```
+
+The script builds the mod and the plugin into your `BepInExDir` profile, launches Valheim through
+Steam the way Gale does, and adds `-devautorun`. The plugin then loads the test character and
+world, waits for the player to spawn, checks that every enabled item is registered (prefab, network
+prefab, recipe) and quits without saving. The script prints this mod's log lines, then any other
+errors and warnings, and exits with 0 when every check passed. Steam must be running and Valheim
+closed. `-SkipBuild` launches whatever is already in the profile.
+
+The character (default `modtest`) and world (`Mod-Test`) are set in the profile's
+`BepInEx/config/omm.valheim.devautorun.cfg`. Launched from Gale, without `-devautorun`, the plugin
+does nothing. Add new checks to `tools/DevAutoRun/Probes.cs`.
+
 Changing a default in code doesn't change an existing config file: BepInEx keeps the saved value.
 Edit or delete the line in the profile's `BepInEx/config/omm.valheim.mysticalweapons.cfg`.
 
