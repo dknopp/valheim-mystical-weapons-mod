@@ -40,12 +40,17 @@ game once the textures are on.
 - **Workbench level 2 for every piece,** as Fenris. The bases' Galdr table (Eitr-weave, Embla) can't
   be built until the Mistlands, so their stations would lock a Mountain set out of its biome.
 - **Recipes:** wolf hair bundles, wolf pelts, leather scraps and a little silver (clasp, belt, cape
-  pin), in Fenris quantities.
+  pin), in Fenris quantities (20 wolf hair a piece). The hidden blades take the Flesh Rippers' 10
+  silver and forge level 3.
 - **Frost resistance on the robe,** as the Fenris coat: the set has to be wearable in the Mountains,
   and its cape takes the slot a wolf cape would.
 - **No movement bonus** (Fenris gives +3% a piece): the set's speed is for sneaking only.
-- **No boss-trophy gate.** Assassination balances itself: it needs a slow, careful approach, groups
-  are hard to sneak up on, and being seen ends it.
+- **Moder's trophy for the hidden blades** (changed 2026-10-24; first decided as no gate). They unlock
+  Assassination, so you earn it by finishing the Mountains and play it in the Plains, as Shardplate
+  does. Bonemass, the repo's usual pick for a Mountain item, would gate nothing: anyone mining silver
+  has beaten him. The armour stays ungated: on its own it's stealth gear at Fenris values.
+- **Stealth bonuses kept** (reconsidered 2026-10-24): Assassination needs an unaware target, so
+  stealth is what makes the first hit possible, and the Cloak of Invisibility already does more.
 
 ## Set bonuses
 
@@ -70,11 +75,15 @@ game once the textures are on.
   - Normal creatures (no star or 1 star): always killed.
   - 2-star creatures and "giants" (base health 500 or more: trolls, Lox, Abominations, most of the
     later biomes): 50%, rising with the average of your Unarmed and Sneak skills to a kill at 80.
+  - Champions (base health 1200 or more, not bosses: Seeker soldiers, Gjall, Morgen, Fallen
+    Valkyries, Jotun warriors, frost trolls, Hildir's bosses): 25%, rising to 50%; never a kill. A share
+    never falls behind as the biomes get harder, so without this the set would one-shot the big
+    creatures of every later biome.
   - Bosses: 10%, rising to 20% at the same skill; once per summoning.
   - Where shares differ, the lowest applies (they don't stack).
   - If the blades' normal sneak-attack damage is higher, that applies instead.
 - Players can't be assassinated. The vanilla sneak-attack test never applies to players (they have no alerted state), so a PvP option would need its own idea of "unaware"; dropped until someone asks.
-- These numbers are starting points: check them against vanilla creature health before release.
+- Checked against the game's creature health on 2026-10-24 (see "Balance check" below).
 
 ## Config (starting values)
 
@@ -92,9 +101,12 @@ game once the textures are on.
 | Assassination on | on |
 | Giant: base health from | 500 |
 | 2-star and giant share at no skill | 50% |
+| Champion: base health from | 1200 |
+| Champion share at no skill and at full skill | 25%, 50% |
 | Boss share at no skill and at full skill | 10%, 20% |
 | Skill average for the full share | 80 |
 | Leap of Faith on | on |
+| Landing roll on, and the fall it needs | on; 4 m (where vanilla fall damage starts) |
 
 ## How it's built
 
@@ -119,6 +131,10 @@ game once the textures are on.
   creature's owner through the normal damage path, so it isn't applied twice (as Andúril's effects
   are).
 - **Leap of Faith and sneaking:** only change the wearer, on their own client. Being harder to see is the game's own stealth setting, which it applies only while crouched and syncs to the creatures' owners; the vanilla stealth eye shows it.
+- **Landing roll:** a fall longer than 4 m (the game's own fall-damage threshold, counted from the top of the jump) plays the dodge roll, the way you face; the velocity at touchdown is deflected by the ground, so it rolled sideways. Unlike a
+  dodge it costs no stamina, makes no noise creatures hear (so an unaware target stays unaware) and
+  gives no dodge protection; the dodge's sound still plays. Not in water, mid-attack, already dodging,
+  staggered or over-encumbered. The animation syncs, so others see it.
 - **Attacking from a crouch:** the game has no crouched attack; it stands you up for the swing and
   crouches you again after. While crouch is on, with 2 pieces your stealth factor holds where it was until
   the crouch animation is back (it would otherwise climb), and Eagle Vision stays lit.
@@ -130,6 +146,27 @@ game once the textures are on.
   hidden blades show only the set name, the pieces worn and the 4-piece bonus, since their own weapon
   stats already make a long tooltip. `ArmorSet` builds it, so later sets get it too. Piece descriptions
   keep only their lore.
+
+## Balance check (2026-10-24)
+
+Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
+
+- **Armour** matches Fenris: 10 (+2) a piece, the robe resistant to frost like the Fenris coat. Fenris
+  also gives +3% speed a piece and a set bonus; ours trades those for the sneak bonuses.
+- **Hidden blades** equal the Flesh Rippers: 60 damage (+4 a level), x6 sneak attack. That sneak attack
+  already kills most creatures under about 400 health in vanilla, so Assassination's "always kills
+  normal creatures" adds little below the giants.
+- **Giants from 500, killed at skill 80:** Bjørn (500), Troll (600), Charred warriors (600),
+  Abomination and Stone golem (800), Goblin brute (800), Lox and Moose (1000). Fenrings (300), Dvergr
+  (350) and Seekers (200) are normal.
+- **Champions from 1200, never a kill:** Unbjørn and Hildir's skeleton (1200), Jotun warrior (1300),
+  Seeker soldier, Gjall and Fallen Valkyrie (1500), Morgen (1600), Barka (2200), Dyrnwyn's bearer
+  (2500), frost troll (3000), Hildir's other bosses (3700, 4200). The tier was added after this
+  check, first at 2000, then lowered to 1200 so the share stops scaling past the Plains.
+- **Bosses:** 10% to 20% is 50 to 100 of Eikthyr (500), 250 to 500 of the Elder, 500 to 1000 of
+  Bonemass, 750 to 1500 of Moder, 1000 to 2000 of Yagluth, 1250 to 2500 of the Queen, 2500 to 5000
+  of Fader. The Frozen King's three phases are separate creatures, so each can be assassinated once.
+  Bosses are rarely unaware after the summoning, so this is mostly an opener.
 
 ## Build order
 
@@ -144,6 +181,10 @@ game once the textures are on.
    Assassination kills normal creatures and takes 56% of a Troll at low skill (a kill at skill 80);
    no fall damage; harder to see while crouched; stealth and Eagle Vision hold through a crouch attack;
    one set icon by tier; the set tooltip.
-4. Our own textures on the vanilla meshes (see "How the look is made"), the hidden blades' own
-   model and polished-steel texture, a roll on landing from a height (Leap of Faith), then README rows and
-   balance checks.
+4. Split in three:
+   - 4a: the landing roll, README rows and the balance check above. **Done 2026-10-24.**
+   - 4b: our own textures on the vanilla meshes (see "How the look is made").
+   - 4c: the hidden blades' own model and polished-steel texture, through the Blender MCP; then the
+     PR to `develop`.
+5. Later: our own emblem for the set's status icon, in the spirit of the Assassin's Creed crest but
+   not the crest itself (Ubisoft's trademark; our art is CC BY in a public repo).

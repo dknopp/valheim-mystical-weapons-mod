@@ -48,6 +48,28 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 **Master of Death:** wand in hand, stone and cloak worn: 1.5x health regen, 1.25x stamina regen,
 resistant to poison, immune to spirit damage, and you keep everything you carry when you die (no tombstone).
 
+### The Brotherhood (Assassin's Creed)
+
+A stealth set whose bonuses grow with the pieces you wear. Each piece's tooltip lists the set and
+which bonuses you have.
+
+| Item | What it does | Crafted at |
+|---|---|---|
+| **Brotherhood Hood** | A peaked hood that shades the eyes (based on the Eitr-weave hood). Fenris armour. | Workbench 2 |
+| **Brotherhood Robe** | A belted coat with split tails (based on the Embla robe). Fenris armour, resistant to frost. | Workbench 2 |
+| **Brotherhood Legs** | Fitted trousers and tall boots (based on the Eitr-weave legs). Fenris armour. | Workbench 2 |
+| **Brotherhood Cape** | A crisp cape (based on the linen cape). | Workbench 2 |
+| **Hidden Blades** | A blade under each wrist (Unarmed skill, the Flesh Rippers' damage, mostly pierce). Unarmed levels 50% faster with them in hand. They don't count towards the set. | Forge 3 |
+
+- **2 pieces, Unseen Step:** sneak 25% faster, quieter and harder to see, for half the stamina; Sneak levels faster.
+- **3 pieces, Eagle Vision:** while crouched, hostile creatures within 30 m glow through walls on
+  your screen, red, or gold if starred.
+- **4 pieces, Creed:** *Leap of Faith*: no fall damage, and you land a long fall in a roll.
+  *Assassination*, with the hidden blades in hand: a hit on a creature that hasn't noticed you
+  kills it. 2-star creatures and big ones (trolls, Lox, Abominations...) lose half their health,
+  rising to a kill as your Unarmed and Sneak skills reach 80. The biggest (Seeker soldiers, Morgen,
+  frost trolls, Hildir's bosses) lose 25% to 50%, and bosses 10% to 20%, once per summoning.
+
 Items reforged from a vanilla weapon (Andúril, the Bat'leth, the Shardblade, Sulfuras, Thunderfury, the
 Warglaives) use up that weapon once, when you first craft them; upgrades only cost materials.
 
@@ -60,7 +82,7 @@ you have picked that trophy up. Upgrades don't take another.
 | Boss | Trophy needed for |
 |---|---|
 | Bonemass | The Resurrection Stone |
-| Moder | Each Shardplate piece |
+| Moder | Each Shardplate piece, the Hidden Blades |
 | Yagluth | Andúril, Sylspear, Shardblade |
 | Fader | The Elder Wand |
 

@@ -19,6 +19,9 @@ namespace MysticalWeapons.Armor
         internal static StatusEffect SetBonus;
         internal static ConfigEntry<float> GiantHealth;
         internal static ConfigEntry<float> HardShare;
+        internal static ConfigEntry<float> ChampionHealth;
+        internal static ConfigEntry<float> ChampionShare;
+        internal static ConfigEntry<float> ChampionShareFull;
         internal static ConfigEntry<float> BossShare;
         internal static ConfigEntry<float> BossShareFull;
         internal static ConfigEntry<float> FullSkill;
@@ -27,7 +30,7 @@ namespace MysticalWeapons.Armor
         private const float Cooldown = 300f;
         private static readonly Dictionary<ZDOID, float> LastAssassinated = new Dictionary<ZDOID, float>();
 
-        /// <summary>Share of max health a hit takes: all of a normal creature, less of 2-star, giant and boss ones.</summary>
+        /// <summary>Share of max health a hit takes: all of a normal creature, less of 2-star, giant, champion and boss ones.</summary>
         private static float Share(Character target, Player player)
         {
             var skills = player.GetSkills();
@@ -36,6 +39,7 @@ namespace MysticalWeapons.Armor
             var share = 1f;
             // Level 3 is two stars; m_health is the base health, before stars
             if (target.GetLevel() >= 3 || target.m_health >= GiantHealth.Value) share = Mathf.Lerp(HardShare.Value, 1f, t);
+            if (target.m_health >= ChampionHealth.Value) share = Mathf.Min(share, Mathf.Lerp(ChampionShare.Value, ChampionShareFull.Value, t));
             if (target.IsBoss()) share = Mathf.Min(share, Mathf.Lerp(BossShare.Value, BossShareFull.Value, t));
             return share;
         }

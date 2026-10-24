@@ -31,6 +31,8 @@ namespace MysticalWeapons.Armor
         private static SE_Stats _creed;
         private static ConfigEntry<bool> _assassinationOn;
         private static ConfigEntry<bool> _leapOfFaith;
+        private static ConfigEntry<bool> _landingRoll;
+        private static ConfigEntry<float> _landingRollHeight;
 
         // Fenris, the Mountain cloth set, is made at the workbench; the bases' Galdr table can't be built until Mistlands
         protected override string DefaultStation => "piece_workbench";
@@ -74,6 +76,14 @@ namespace MysticalWeapons.Armor
             Assassination.HardShare = cfg.Bind(SetName, "AssassinationGiantShare", 0.5f,
                 "4 pieces: share of a giant's or 2-star creature's health an assassination takes with no skill (0.5 = half). " +
                 "It rises to a kill as your Unarmed and Sneak skills grow.");
+            // The share never falls behind as biomes get harder, so the big creatures past the Plains are never a kill
+            Assassination.ChampionHealth = cfg.Bind(SetName, "AssassinationChampionHealth", 1200f,
+                "4 pieces: creatures with at least this base health that aren't bosses count as champions: Seeker soldiers, " +
+                "Morgen, frost trolls, Hildir's bosses... They take the champion share below, never a kill.");
+            Assassination.ChampionShare = cfg.Bind(SetName, "AssassinationChampionShare", 0.25f,
+                "4 pieces: share of a champion's health an assassination takes with no skill.");
+            Assassination.ChampionShareFull = cfg.Bind(SetName, "AssassinationChampionShareFullSkill", 0.5f,
+                "4 pieces: share of a champion's health an assassination takes at full skill.");
             Assassination.BossShare = cfg.Bind(SetName, "AssassinationBossShare", 0.1f,
                 "4 pieces: share of a boss's health an assassination takes with no skill, once per summoning.");
             Assassination.BossShareFull = cfg.Bind(SetName, "AssassinationBossShareFullSkill", 0.2f,
@@ -81,6 +91,12 @@ namespace MysticalWeapons.Armor
             Assassination.FullSkill = cfg.Bind(SetName, "AssassinationFullSkill", 80f,
                 "4 pieces: average of your Unarmed and Sneak skills at which the shares above reach their full value.");
             _leapOfFaith = cfg.Bind(SetName, "LeapOfFaith", true, "4 pieces: no fall damage. Restart to apply.");
+            _landingRoll = cfg.Bind(SetName, "LeapOfFaithRoll", true,
+                "4 pieces, with LeapOfFaith on: land from a long fall in a roll instead of on your feet. It costs no " +
+                "stamina, makes no noise creatures hear and gives no dodge protection.");
+            _landingRollHeight = cfg.Bind(SetName, "LeapOfFaithRollHeight", 4f,
+                "4 pieces: you land in a roll from a fall longer than this, in metres, counted from the top of your jump. " +
+                "The game's fall damage starts above 4.");
         }
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
@@ -190,6 +206,40 @@ namespace MysticalWeapons.Armor
             }
         }
 
+        private static readonly AccessTools.FieldRef<Character, bool> GroundContact =
+            AccessTools.FieldRefAccess<Character, bool>("m_groundContact");
+        private static readonly AccessTools.FieldRef<Character, float> MaxAirAltitude =
+            AccessTools.FieldRefAccess<Character, float>("m_maxAirAltitude");
+        private static readonly AccessTools.FieldRef<Player, bool> DodgeInvincible =
+            AccessTools.FieldRefAccess<Player, bool>("m_dodgeInvincible");
+
+        /// <summary>
+        /// Leap of Faith: with 4 pieces, a long fall ends in the dodge roll. The game measures the fall and resets it
+        /// in UpdateGroundContact, so the prefix reads it first. Unlike a dodge, the roll costs no stamina, makes no AI
+        /// noise and isn't invincible. Runs on the wearer's client; the animation trigger syncs to everyone.
+        /// </summary>
+        [HarmonyPatch(typeof(Character), "UpdateGroundContact")]
+        private static class LandingRollPatch
+        {
+            private static void Prefix(Character __instance, out float __state) =>
+                __state = __instance == Player.m_localPlayer && GroundContact(__instance)
+                    ? MaxAirAltitude(__instance) - __instance.transform.position.y : 0f;
+
+            private static void Postfix(Character __instance, float __state)
+            {
+                if (!_creed || !_leapOfFaith.Value || !_landingRoll.Value || __state <= _landingRollHeight.Value) return;
+                var player = (Player)__instance;
+                if (!player.GetSEMan().HaveStatusEffect(_creed.NameHash())) return;
+                if (player.IsDead() || player.InLiquid() || player.InAttack() || player.InDodge() ||
+                    player.IsStaggering() || player.IsEncumbered()) return;
+
+                // Roll the way you face: the velocity at touchdown is deflected by the ground, so it isn't a direction
+                DodgeInvincible(player) = false;  // a dodge cut short can leave this on
+                player.GetZAnim().SetTrigger("dodge");
+                player.m_dodgeEffects.Create(player.transform.position, Quaternion.identity, player.transform);
+            }
+        }
+
         /// <summary>The game's speed setting applies to all movement; this one only while crouched.</summary>
         private class SneakEffect : SE_Stats
         {
@@ -210,7 +260,7 @@ namespace MysticalWeapons.Armor
         public override string DisplayName => "Brotherhood Hood";
         public override string Description =>
             "A peaked hood that keeps your eyes in shadow. Nothing is true; everything is permitted.";
-        protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:2,LeatherScraps:5,Silver:2";
+        protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:2,LeatherScraps:5,Silver:2";
         protected override int IconTier => 3;
     }
 
@@ -221,7 +271,7 @@ namespace MysticalWeapons.Armor
         public override string DisplayName => "Brotherhood Robe";
         public override string Description =>
             "A fitted, belted coat with split tails, lined with wolf fur against the mountain cold.";
-        protected override string DefaultRecipe => "WolfHairBundle:15,WolfPelt:5,LeatherScraps:10,Silver:4";
+        protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:5,LeatherScraps:10,Silver:4";
         protected override int IconTier => 4;  // until the hidden blades take it
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
@@ -240,7 +290,7 @@ namespace MysticalWeapons.Armor
         public override string DisplayName => "Brotherhood Legs";
         public override string Description =>
             "Close-fitting trousers and tall soft boots that make no sound on stone.";
-        protected override string DefaultRecipe => "WolfHairBundle:15,WolfPelt:5,LeatherScraps:10";
+        protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:5,LeatherScraps:10";
     }
 
     internal class BrotherhoodCape : BrotherhoodPiece
@@ -252,7 +302,7 @@ namespace MysticalWeapons.Armor
             "A crisp cape that falls without a rustle.";
         protected override float DefaultArmor => 1f;  // as the linen cape
         protected override float DefaultArmorPerLevel => 1f;
-        protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:2,Silver:1";
+        protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:4,Silver:2";
         protected override int IconTier => 2;
     }
 }

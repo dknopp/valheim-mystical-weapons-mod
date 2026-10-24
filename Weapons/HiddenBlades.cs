@@ -20,8 +20,8 @@ namespace MysticalWeapons.Weapons
         // The Flesh Rippers' total (slash 60, +4 a level), mostly pierce for a stabbing blade
         protected override string DefaultDamage => "slash:20,pierce:40";
         protected override string DefaultDamagePerLevel => "slash:1,pierce:3";
-        protected override string DefaultRecipe => "Silver:8,LeatherScraps:6,WolfFang:4";
-        protected override int DefaultStationLevel => 2;
+        protected override string DefaultRecipe => "Silver:10,LeatherScraps:6,WolfFang:6";
+        protected override int DefaultStationLevel => 3;  // as the Flesh Rippers
         protected override bool DualWield => true;
         protected override bool WristMounted => true;
         protected override bool CleanMaterials => true;
