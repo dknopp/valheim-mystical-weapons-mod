@@ -45,8 +45,10 @@ The **Build** check on each pull request compiles the mod against Valheim's dedi
 
 ### Dev auto-run
 
-`tools/DevAutoRun` is a dev-only plugin (never packaged or published) with a script that does a
-test launch hands-off:
+`tools/DevAutoRun` is a dev-only plugin (never packaged or published) with a script that does
+steps 1 and 2 above hands-off. Run it after any code change and before opening a pull request, to
+catch an item that no longer loads without starting the game by hand. It doesn't replace steps 3
+and 4: looks, feel, effects, balance and multiplayer still need a person in the game.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\DevAutoRun\run.ps1
