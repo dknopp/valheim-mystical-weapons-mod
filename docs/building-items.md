@@ -7,7 +7,8 @@ Stephen's notes on how to build an item with as few game launches as possible, a
 
 What I check on a new item, or when bringing one of mine up to date:
 - [ ] Art-direction questions answered ("Before building an item")
-- [ ] Shape checked against the reference's proportions and parts
+- [ ] Shape checked against the reference's proportions and parts, and approved in grey before
+      texturing (see "Custom models: passes")
 - [ ] Looks at home next to its vanilla peer, in numbers and in the item report's pictures
       (`contributing.md`, "Item report"). Start from 0.5 to 2 times the peer's triangles, or up to 1,000 if that's more, and a
       texture at most one size above the peer's. Go past the triangle count when the item's signature
@@ -67,6 +68,30 @@ When an item gets a custom model (Thunderfury onwards), Claude Code does the han
   reference differs from Claude's, Claude checks it in the viewer rather than going with either.
   Setting up the Blender MCP, and the problems we hit: `blender-mcp.md`.
 - **Texture and export:** Claude scripts the bake and export (as for Sulfuras), so they can be re-run.
+
+## Custom models: passes
+
+The Warglaives looked right because of the focused passes after the first build, each starting with
+a fresh, close look at the reference. Build in this order, with a review after each step:
+
+1. **Blockout.** Silhouette and proportions only, in plain grey. Check the size and hold in game now,
+   while parts are cheap to move (the Warglaives went from 0.88 m to 1.6 m and had their hold turned
+   before any detail).
+2. **Construction.** List how the real thing is put together before detailing: which parts are separate
+   pieces, which sits on or passes through which, what's open. Model it that way: the Warglaives are two
+   blades coming out of a solid hub, not one plate with the hub stuck on top.
+3. **Detail, one region and one concern per pass.** For each part (a blade's cross-section, the
+   medallion, the back hooks), study close-ups of just that part, write down what you see (outline,
+   depth, steps, counts), then build it and check it against those notes. Depth matters as much as
+   outline: the Warglaive blades gained a raised plateau, a bevel down to the edge and a groove, none
+   of which a front view shows.
+4. **Compare.** Put a render of ours beside the reference at the same angle and list every difference
+   before changing anything. The Warglaives' second round came from this: the back hooks are dark
+   metal, not fel, and the medallion is a gold-rimmed shield with a star, not a round disc.
+5. **Approve the shape in grey, then texture.** A shape change after texturing costs a whole review round.
+6. **Texture from the shape.** Make the texture follow the geometry: glow on the edges, dark to bright
+   across the bevel, the groove picked out, and materials changing by region (metal at the hub kindling
+   into fel along the blade). A texture that ignores the shape flattens the depth the passes added.
 
 ## Finding vanilla prefabs
 
