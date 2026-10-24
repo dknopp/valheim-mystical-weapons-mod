@@ -26,6 +26,13 @@ bonuses (eitr regeneration, any vanilla set), which we clear, as Shardplate does
 Colours come later, after the shapes are approved in game: the pitch says white and red, the hero
 reference is dark grey with brown leather and a red sash and cape lining.
 
+**How the look is made:** a plain tint while the powers are built, then our own textures painted onto
+the vanilla meshes (the sash, trims, leather, the crest on the belt). A tint alone colours a whole
+piece one way, which can't give the hero reference's mix of colours. The mesh layouts are read from
+the game at runtime on our own machines, so no Valheim files enter the repo; `MysticalArmor` needs a
+small addition to swap a worn piece's texture. Custom models only if a shape still looks wrong in
+game once the textures are on.
+
 ## Tier and recipe
 
 - **Mountains.** Armour values match the Fenris pieces (check them in game when building); recipes
@@ -99,4 +106,5 @@ reference is dark grey with brown leather and a red sash and cape lining.
    bonus. Check that they look right in game.
 2. Eagle Vision, starting with a test of the see-through material.
 3. Hidden blades on the wrists, Assassination and Leap of Faith.
-4. Colours and textures, then README rows and balance checks.
+4. Our own textures on the vanilla meshes (see "How the look is made"), then README rows and
+   balance checks.
