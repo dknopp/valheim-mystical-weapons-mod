@@ -42,8 +42,19 @@ What we found:
   instead (our own, not the cape's, which is a bark texture). The vanilla mage hood shines like metal;
   only its clasps do now.
 - Our belt mark is a small feather in a ring, not the Assassin's Creed crest.
-- The vanilla textures are 128 pixels, so their shading is blocky under our 512-pixel paint; the
-  hood takes only a little of it.
+- The vanilla textures are 128 pixels, so their shading is blocky under our 512-pixel paint. Most of
+  the blocks came from the vanilla normal maps, not the colour: the hood, robe and boots get the
+  vanilla normal maps enlarged and softened (big folds kept, steps gone), and cloth takes none of
+  the vanilla colour shading, only our own soft folds and a faint mottle. Leather keeps the vanilla
+  shading under its grain.
+- Detail pass (4b-2), after the hero reference's coat: a darker slate; silver piping and a twisted
+  cord inside the trims of the vest, tails and hood; a faint lighter damask (our own stem-and-spiral
+  motif) over the vest, tails and hood; larger scrollwork low on the front tail; dashed stitching along
+  the leather edges. The brooch is metal like the belt buckle. The cape keeps the vanilla bark bump
+  (a smooth twill was tried and looked too clean).
+- The hood's front is two halves on separate parts of its texture, the right one turned sideways, so a
+  single forehead ornament sits on one side only. It's left out until a mirrored pair can be placed from
+  the hood mesh's own UVs.
 
 Custom models only if a shape still looks wrong in game once the textures are on.
 
@@ -207,9 +218,8 @@ Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
    - 4b: our own textures on the vanilla meshes (see "How the look is made"). **Done 2026-10-24:**
      the first look checked in game; after it, the sash moved to the undershirt and the cape got its
      lining, leather grain and linen weave, checked in in-engine renders.
-   - 4b-2: a finer detail pass on the textures: embroidery on the tails and the hood's edge, stitching
-     on the leather, smoother cloth shading than the vanilla 128-pixel textures give, a finer cloth bump
-     on the cape. The textile stays fine and smooth like the hero reference, not rough-spun.
+   - 4b-2: a finer detail pass on the textures (see "How the look is made"). **Done 2026-10-24:**
+     checked in game and in in-engine renders. Left for later: a mirrored forehead ornament on the hood.
    - 4c: the hidden blades' own model and polished-steel texture, through the Blender MCP; then the
      PR to `develop`.
 5. Later: our own emblem for the set's status icon, in the spirit of the Assassin's Creed crest but
