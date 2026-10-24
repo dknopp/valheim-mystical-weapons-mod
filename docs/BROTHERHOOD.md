@@ -85,6 +85,7 @@ game once the textures are on.
 | Knives skill gain (blades in hand) | +50% |
 | Eagle Vision range | 30 m |
 | Eagle Vision on, and its colours | on; red hostile, gold starred |
+| Eagle Vision opacity in sight, behind walls | 10%, 70% |
 | Assassination on | on |
 | Giant: base health from | 500 |
 | 2-star and giant share at no skill | 50% |
@@ -100,8 +101,18 @@ game once the textures are on.
   one bonus per set, at the full set. Later sets (Mistborn, werewolf) reuse it. Deathly Hallows and
   Shardplate keep their vanilla set bonus for now.
 - **Skill gain:** the game's own status-effect setting that raises one skill's gain.
-- **Eagle Vision:** drawn only for the wearer (others see nothing, as intended). Glowing through
-  walls needs a see-through material; test one of Unity's built-in shaders first.
+- **Eagle Vision:** drawn only for the wearer (others see nothing, as intended). Each lit creature's
+  renderers get one extra material slot, a flat colour in Unity's built-in `UI/Default` shader drawn
+  over everything, once per pixel through a stencil bit so overlapping parts don't double up
+  (`ModelUtil.SpectralMaterial`'s shaders can't draw through walls). Creatures are found twice a
+  second; ten times a second, two sight lines from the camera, to each one's eyes and middle, are
+  checked against what blocks the game's own AI sight: both blocked, it's hidden and gets a strong silhouette (70%);
+  otherwise a faint wash (10%), so its face and stance still read. A solid silhouette everywhere,
+  tried first, hid which way creatures face, at night most of all. Deciding hidden per pixel against
+  the game's depth, tried second, flickered: grass and the creature's own limbs counted as cover, and
+  the redrawn creature fought its own depth. While crouched, it rescans twice a second for creatures hostile to the wearer in
+  range; standing up puts every glow out. Training dummies glow too (the game counts them as
+  enemies), which helps testing.
 - **Assassination:** decided on the attacker's client from the synced alert state, applied by the
   creature's owner through the normal damage path, so it isn't applied twice (as Andúril's effects
   are).
@@ -112,7 +123,9 @@ game once the textures are on.
 1. The four armour pieces as recoloured clones with their stats, `ArmorSet`, and the 2-piece
    bonus. Check that they look right in game. **Done 2026-10-24:** shapes read well in game; the hood
    and cape stay red under the grey placeholder tint until our textures.
-2. Eagle Vision, starting with a test of the see-through material.
+2. Eagle Vision, starting with a test of the see-through material. **Done 2026-10-24:** tested on
+   Greydwarfs and training dummies; a slight delay remains when a creature comes out of hiding, partly
+   because the camera sits behind the shoulder.
 3. Hidden blades on the wrists, Assassination and Leap of Faith.
 4. Our own textures on the vanilla meshes (see "How the look is made"), then README rows and
    balance checks.
