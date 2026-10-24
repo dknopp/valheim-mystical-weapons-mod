@@ -14,6 +14,7 @@ day-to-day steps, see [contributing.md](contributing.md).
 | `Properties/AssemblyInfo.cs` | Lets `tools/ModelExporter` use the mod's internal types |
 | `models/` | Custom models that ship with the mod (OBJ, MTL, PNG) and their credits |
 | `tools/ModelExporter/` | Console app that exports the code-built models to OBJ, without starting the game |
+| `tools/DevAutoRun/` | Dev-only plugin and script for a hands-off test launch (see `contributing.md`); never packaged |
 | `tools/blender/` | Headless Blender scripts that produce the models in `models/` |
 | `docs/` | This documentation and Stephen's item-building notes |
 | `.github/` | CI workflows, the shared `setup-valheim` action and the pull request template |
@@ -163,7 +164,7 @@ them with `-p:ManagedDir=...` and `-p:BepInExDir=...`; nothing in the `.csproj` 
 
 | Workflow | Runs on | What it does |
 |---|---|---|
-| `build.yml` | Every PR, and pushes to `develop`/`main` | Builds the mod and ModelExporter. Once `icon.png` exists, also builds the Thunderstore zip and attaches it to the run, ready to install for testing |
+| `build.yml` | Every PR, and pushes to `develop`/`main` | Builds the mod, ModelExporter and DevAutoRun. Once `icon.png` exists, also builds the Thunderstore zip and attaches it to the run, ready to install for testing |
 | `publish.yml` | Pushes to `develop`, and `v*` tags | Develop: publishes the beta package. Tag: checks it, publishes the stable package and creates a GitHub release (see Releases) |
 | `codeql.yml`, `semgrep.yml`, `trivy.yml` | PRs (Trivy: into `main` only) | Source scanning; CodeQL covers C# and the Python Blender scripts without building |
 | `restrict-main-merges.yml` | PRs into `main` | Fails unless the PR comes from `develop` |

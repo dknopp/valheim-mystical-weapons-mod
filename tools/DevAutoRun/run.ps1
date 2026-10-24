@@ -10,7 +10,8 @@
 param(
     [switch]$SkipBuild,
     [switch]$FullLog,
-    [int]$TimeoutMinutes = 5,
+    # Longer than DevAutoRun's own two step timeouts, so it can log why it gave up
+    [int]$TimeoutMinutes = 8,
     [string]$ValheimDir = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim'
 )
 $ErrorActionPreference = 'Stop'
@@ -60,7 +61,12 @@ while (-not $game.HasExited) {
 
 if (-not (Test-Path $log) -or (Get-Item $log).LastWriteTime -lt $started) { throw "No new log at $log" }
 $lines = Get-Content $log
-$ours = $lines | Where-Object { $_ -match ':Mystical Weapons' }
+# Our entries, plus the lines that continue them (stack traces don't start with "[")
+$inOurs = $false
+$ours = $lines | Where-Object {
+    if ($_ -match '^\[') { $inOurs = $_ -match ':Mystical Weapons' }
+    $inOurs
+}
 $others = $lines | Where-Object { $_ -match '^\[(Error|Warning|Fatal)' -and $_ -notmatch ':Mystical Weapons' }
 $shown = if ($FullLog) { $ours } else {
     $ours | Where-Object { $_ -match 'DevAutoRun:|Loaded \d+ mystical items|^\[(Error|Warning|Fatal)' }
