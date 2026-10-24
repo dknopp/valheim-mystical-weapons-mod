@@ -198,8 +198,14 @@ valheim.tools and valheim.weirdgloop.org.
   and beds (Shardplate).
 
 ### Recipes and death
-- The game lists a recipe only once the player has picked up every ingredient, so a boss trophy hides
-  the recipe until the boss is beaten. Give it `m_amountPerLevel` 0, or every upgrade takes another.
+- The game lists a recipe only once the player has picked up every ingredient, but a recipe a
+  character already knows (saved with the character) stays listed even when a new ingredient is added.
+  To hide a trophy-gated recipe for everyone, filter `Player.GetAvailableRecipes` on
+  `IsMaterialKnown(trophy)` (`TrophyGatePatch`). Give the trophy `m_amountPerLevel` 0, or every upgrade
+  takes another.
+- Don't give an existing config key a new meaning: players keep their saved value. Bind a new key and
+  stop reading the old one (the Elder Wand's `BoltDamage` replaced `Damage`; `HasDamage => false` turns
+  off the shared damage keys).
 - Each upgrade level costs every ingredient's `m_amountPerLevel` again. `ParseRequirements` gives gear
   (anything with upgrade levels of its own: the Iron Sword Andúril is reforged from) 0, so it is used
   up only by the first craft; materials cost half their amount again per level.

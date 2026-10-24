@@ -6,11 +6,10 @@ using UnityEngine;
 namespace MysticalWeapons.Hallows
 {
     /// <summary>
-    /// The Elder Wand, the Deathstick. Held in one hand and jabbed like the butcher knife, its attack looses Dundr's
-    /// spray of lightning, stronger than Dundr's but slow to gather; its secondary attack summons the Staff of the
-    /// Wild's roots.
-    /// Raise it to block and the Staff of Protection's shield springs up around you. By default it runs on
-    /// stamina instead of eitr so anyone can wield it.
+    /// The Elder Wand, the Deathstick. Held in one hand, every quick jab (the butcher knife's) looses Dundr's spray of
+    /// lightning, matched to Lightning Strike's damage over 5 seconds; its secondary attack summons the Staff of the
+    /// Wild's roots. Raise it to block and the Staff of Protection's shield springs up around you. By default it runs
+    /// on stamina instead of eitr so anyone can wield it.
     /// </summary>
     internal class ElderWand : MysticalWeapon
     {
@@ -30,13 +29,18 @@ namespace MysticalWeapons.Hallows
         // Each of the lightning spray's 12 bolts, matched to Lightning Strike (Deep North: 300 lightning a cast, +20 a
         // level, a slow-to-moderate ~1.5 s cast, ~1000 in 5 s) over 5 seconds: ~9 knife jabs, about half the bolts on one
         // target at range, 9 x 6 x 18 = ~970. Up close all 12 land; Lightning Strike hits all within 3 m and staggers.
-        protected override string DefaultDamage => "lightning:18";
-        protected override string DefaultDamagePerLevel => "lightning:1.2"; // Lightning Strike's +20 of 300 a level
+        private const string DefaultBoltDamage = "lightning:18";
+        private const string DefaultBoltDamagePerLevel = "lightning:1.2"; // Lightning Strike's +20 of 300 a level
+        // The released wand's Damage was its frost bolts' damage; a saved value used for 12 lightning bolts a jab would
+        // be several times too strong, so the bolts read keys of their own and the old Damage is left unused
+        protected override bool HasDamage => false;
         // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
         protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
         protected override string DefaultStation => "piece_magetable";
         protected override int DefaultStationLevel => 5;
 
+        private ConfigEntry<string> _boltDamageConfig;
+        private ConfigEntry<string> _boltDamagePerLevelConfig;
         private ConfigEntry<float> _eitrCost;
         private ConfigEntry<float> _staminaCost;
         private static ConfigEntry<bool> _blockShield;
@@ -45,6 +49,11 @@ namespace MysticalWeapons.Hallows
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
+            _boltDamageConfig = cfg.Bind(PrefabName, "BoltDamage", DefaultBoltDamage,
+                "Damage of each of the 12 lightning bolts a jab looses, e.g. lightning:18. Types: blunt slash pierce chop " +
+                "pickaxe fire frost lightning poison spirit. (The old Damage key is no longer used.)");
+            _boltDamagePerLevelConfig = cfg.Bind(PrefabName, "BoltDamagePerLevel", DefaultBoltDamagePerLevel,
+                "Extra damage per bolt per upgrade level.");
             _eitrCost = cfg.Bind(PrefabName, "EitrCost", 0f, "Eitr used per spell (vanilla staffs use eitr).");
             // About nine jabs in 5 s: a cost a player can keep up, so the damage above is reachable
             _staminaCost = cfg.Bind(PrefabName, "StaminaCost", 10f, "Stamina used per spell.");
@@ -99,8 +108,8 @@ namespace MysticalWeapons.Hallows
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
-            _boltDamage = shared.m_damages;
-            _boltPerLevel = shared.m_damagesPerLevel;
+            _boltDamage = shared.m_damages = ParseDamage(_boltDamageConfig.Value);
+            _boltPerLevel = shared.m_damagesPerLevel = ParseDamage(_boltDamagePerLevelConfig.Value);
             LoadLightning(shared);
             LoadRoots(shared);
         }
@@ -207,9 +216,9 @@ namespace MysticalWeapons.Hallows
         private static SE_Shield Shield()
         {
             if (_shieldLookedUp) return _shield;
-            _shieldLookedUp = true;
             var db = ObjectDB.instance;
-            if (!db) return null;
+            if (!db) return null; // look again next time: nothing to cache yet
+            _shieldLookedUp = true;
 
             var staff = db.GetItemPrefab(ShieldSource);
             var attack = staff ? staff.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_attack : null;
