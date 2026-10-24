@@ -37,6 +37,12 @@ jobs:
           "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
           "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
 
+      - name: Build DevAutoRun
+        run: >-
+          dotnet build tools/DevAutoRun/DevAutoRun.csproj -c Release
+          "-p:ManagedDir=${{ steps.valheim.outputs.managed-dir }}"
+          "-p:BepInExDir=${{ steps.valheim.outputs.bepinex-dir }}"
+
       - name: Package for Thunderstore
         if: hashFiles('icon.png') != ''
         run: |

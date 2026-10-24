@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Dev-only plugin: loads the test character and world, runs probes, quits. Never packaged or published.
+       Deploys only to the profile named by the BepInExDir environment variable (the Gale test profile). -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>DevAutoRun</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(BepInExDir)\core\BepInEx.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(ManagedDir)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(ManagedDir)\assembly_utils.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(ManagedDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(ManagedDir)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="netstandard" HintPath="$(ManagedDir)\netstandard.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CheckProfile" BeforeTargets="Build" Condition="'$(BepInExDir)' == '' Or !Exists('$(BepInExDir)\core\BepInEx.dll')">
+    <Error Text="Set the BepInExDir user environment variable to your Gale test profile's BepInEx folder (see docs/contributing.md)." />
+  </Target>
+
+  <Target Name="DeployToProfile" AfterTargets="Build">
+    <MakeDir Directories="$(BepInExDir)\plugins\DevAutoRun" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)\plugins\DevAutoRun" />
+    <Message Importance="high" Text="Deployed to $(BepInExDir)\plugins\DevAutoRun" />
+  </Target>
+</Project>

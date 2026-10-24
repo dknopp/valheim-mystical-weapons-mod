@@ -43,6 +43,31 @@ The **Build** check on each pull request compiles the mod against Valheim's dedi
 4. For anything other players see (effects, models), check it on a server with a second player
    before a release.
 
+### Dev auto-run
+
+`tools/DevAutoRun` is a dev-only plugin (never packaged or published) with a script that does
+steps 1 and 2 above hands-off. Run it after any code change and before opening a pull request, to
+catch an item that no longer loads without starting the game by hand. It doesn't replace steps 3
+and 4: looks, feel, effects, balance and multiplayer still need a person in the game.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\DevAutoRun\run.ps1
+```
+
+The script builds the mod and the plugin into your `BepInExDir` profile, launches Valheim through
+Steam the way Gale does, and adds `-devautorun`. The plugin then loads the test character and
+world, waits for the player to spawn, checks that every enabled item is registered (prefab, network
+prefab, recipe) and quits without saving, in about a minute. The script prints the check results
+and every error or warning, and exits with 0 when every check passed. Steam must be running and
+Valheim closed. `-SkipBuild` launches whatever is already in the profile; `-FullLog` also prints
+all of this mod's setup lines.
+
+Before the first run, make a throwaway character and world for testing. Put their names in the
+profile's `BepInEx/config/omm.valheim.devautorun.cfg` (defaults `modtest` and `Mod-Test`); the
+file appears after the first run. If a name doesn't match, the run fails and lists the
+characters and worlds you have. Launched from Gale, without `-devautorun`, the plugin
+does nothing. Add new checks to `tools/DevAutoRun/Probes.cs`.
+
 Changing a default in code doesn't change an existing config file: BepInEx keeps the saved value.
 Edit or delete the line in the profile's `BepInEx/config/omm.valheim.mysticalweapons.cfg`.
 
