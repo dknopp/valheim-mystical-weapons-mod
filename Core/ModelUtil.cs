@@ -247,23 +247,25 @@ namespace MysticalWeapons
         /// Dual-wield items (Skoll and Hati) show both blades in hand as one skinned mesh under
         /// "attach_skin", bound to the player's hand bones. Replaces that mesh with two copies of
         /// <paramref name="model"/> (from <see cref="ReplaceModel"/>), one per hand, the left one mirrored,
-        /// each held with its grip across the fist (see <see cref="GripFrame"/>).
+        /// each held with its grip across the fist (see <see cref="GripFrame"/>). With <paramref name="wrist"/>, each copy
+        /// rides on a forearm instead, unmirrored (see <see cref="WristFrame"/>).
         /// Returns false if the cloned item has no such mesh.
         /// </summary>
-        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place, bool wrist = false)
         {
             var skin = prefab.transform.Find("attach_skin");
             var renderer = skin ? skin.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.sharedMesh) : null;
             // The vanilla mesh can't be read, so find the hands by name in the skeleton it is bound to
             var bones = renderer ? renderer.bones : new Transform[0];
+            var part = wrist ? "ForeArm" : "Hand";
             var hands = new[]
             {
-                System.Array.FindIndex(bones, t => t && t.name.EndsWith("RightHand")),
-                System.Array.FindIndex(bones, t => t && t.name.EndsWith("LeftHand"))
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("Right" + part)),
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("Left" + part))
             };
             if (hands.Any(h => h < 0))
             {
-                Plugin.Log.LogWarning($"{name}: no hand bones under attach_skin, the model only shows on the ground");
+                Plugin.Log.LogWarning($"{name}: no {part} bones under attach_skin, the model only shows on the ground");
                 return false;
             }
 
@@ -283,9 +285,9 @@ namespace MysticalWeapons
             {
                 var bone = hands[k];
                 var hand = bones[bone];
-                var mirror = k == 1;
-                if (!GripFrame(hand, out var grip, out var gripAt))
-                    Plugin.Log.LogWarning($"{name}: no finger bones under {hand.name}, the blade follows the bone's own axes");
+                var mirror = k == 1 && !wrist;
+                if (!(wrist ? WristFrame(hand, k == 1, out var grip, out var gripAt) : GripFrame(hand, out grip, out gripAt)))
+                    Plugin.Log.LogWarning($"{name}: no hand or finger bones under {hand.name}, the blade follows the bone's own axes");
                 Fit(name, ours.bounds, null, place, out var rotation, out var position, out var scale);
                 // The grip frame is the same for both hands but turned the other way round, so mirroring
                 // across it (flat side, Z) makes the left blade the mirror image of the right
@@ -373,6 +375,18 @@ namespace MysticalWeapons
             }
         }
 
+        /// <summary>
+        /// An empty "attach_back", so the item shows nothing holstered instead of its dropped model on the back
+        /// (wrist blades stay hidden in their bracers).
+        /// </summary>
+        public static void AddEmptyBackModel(GameObject prefab)
+        {
+            var back = new GameObject("attach_back");
+            back.transform.SetParent(prefab.transform, false);
+            back.transform.SetSiblingIndex(0);
+            back.SetActive(false);
+        }
+
         /// <summary>Name suffix of the body-space frame under "attach_back" (see <see cref="BackFramePatch"/>).</summary>
         private const string BackFrame = "_backframe";
 
@@ -455,6 +469,30 @@ namespace MysticalWeapons
 
         /// <summary>How far from the wrist to the knuckles the grip sits in a closed hand.</summary>
         private const float GripDepth = 0.9f;
+
+        /// <summary>
+        /// Where a wrist blade sits on a forearm, in the forearm bone's space and in metres: the origin at the wrist,
+        /// model +Y along the forearm towards the hand, +Z out of the palm side. The left arm's frame is the right one's
+        /// mirror image, so a model symmetric in X needs no mirroring. False (and the bone's own axes) if the forearm has
+        /// no hand and finger bones.
+        /// </summary>
+        private static bool WristFrame(Transform arm, bool left, out Quaternion rotation, out Vector3 position)
+        {
+            rotation = Quaternion.identity;
+            position = Vector3.zero;
+            var hand = FindDeep(arm, arm.name.Replace("ForeArm", "Hand"));
+            var index = hand ? FindDeep(hand, hand.name + "Index1") : null;
+            var pinky = hand ? FindDeep(hand, hand.name + "Pinky1") : null;
+            if (!hand || !index || !pinky) return false;
+            Vector3 Local(Transform t) => Vector3.Scale(arm.InverseTransformPoint(t.position), arm.lossyScale);
+            position = Local(hand);
+            var up = position.normalized;
+            var across = Vector3.ProjectOnPlane(Local(index) - Local(pinky), up).normalized;
+            // Mirroring flips a cross product, so the left palm needs the opposite sign to face the same way
+            var palm = Vector3.Cross(up, across) * (left ? -1f : 1f);
+            rotation = Quaternion.LookRotation(palm, up);
+            return true;
+        }
 
         private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
         {

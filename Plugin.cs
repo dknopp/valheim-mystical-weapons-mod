@@ -37,6 +37,7 @@ namespace MysticalWeapons
             new BrotherhoodRobe(),
             new BrotherhoodLegs(),
             new BrotherhoodCape(),
+            new HiddenBlades(),
 
             new ElderWand(),
             new ResurrectionStone(),

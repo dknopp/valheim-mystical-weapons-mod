@@ -16,7 +16,7 @@ a sash, tall boots and a crisp cape.
 | Robes | Embla robe (`ArmorMageChest_Ashlands`) | Fitted and belted, with split front and back tails to the knee | Deep North mage robe (has its own hood, clashes with the hood slot) |
 | Legs | Eitr-weave legs (`ArmorMageLegs`) | Fitted trousers, tall boots, a thigh strap | Troll leather legs |
 | Cape | Linen cape (`CapeLinen`) | Clean and crisp, like the hero reference; the torn hide capes read too rough | Troll hide cape |
-| Hidden blades | Skoll and Hati (`KnifeSkollAndHati`) | Dual knives; reuses the Warglaives' two-hand code, with the model on the wrists | |
+| Hidden blades | Flesh Rippers (`FistFenrirClaw`) | Mountain-tier fist weapon; punches read as a hidden-blade stab; the model rides on the forearms | Skoll and Hati (Mistlands knives) |
 
 The Fenris hood, the first idea for the cowl, reads as shaggy fur, not cloth, so it was dropped.
 Eitr-weave and Embla are one family (Embla is Eitr-weave's Ashlands version), so the pieces should
@@ -51,13 +51,15 @@ game once the textures are on.
 
 | Pieces worn | Bonus |
 |---|---|
-| 2 | Faster, quieter sneaking at a lower stamina cost; Sneak levels faster |
+| 2 | Faster, quieter, less visible sneaking at a lower stamina cost; Sneak levels faster |
 | 3 | **Eagle Vision:** while crouched, nearby creatures glow through walls: red if hostile, gold if starred; passive animals don't glow |
 | 4 | **Assassination** (with the hidden blades in hand) and **Leap of Faith** (no fall damage) |
 
 - The four armour pieces count towards the set; the blades don't. Assassination also needs the
   hidden blades in hand, so a bow sneak shot can't one-shot from range.
-- Hidden blades in hand: Knives levels faster.
+- Hidden blades in hand: Unarmed levels faster. They are cloned from the Flesh Rippers (Fenris claws), not
+  Skoll and Hati: Mountain tier like the set, and their straight punches read as a hidden-blade stab. So the
+  skill is Unarmed, not Knives.
 
 ## Assassination
 
@@ -67,11 +69,11 @@ game once the textures are on.
 - **How much it takes**, as a share of the creature's max health:
   - Normal creatures (no star or 1 star): always killed.
   - 2-star creatures and "giants" (base health 500 or more: trolls, Lox, Abominations, most of the
-    later biomes): 50%, rising with the average of your Knives and Sneak skills to a kill at 80.
+    later biomes): 50%, rising with the average of your Unarmed and Sneak skills to a kill at 80.
   - Bosses: 10%, rising to 20% at the same skill; once per summoning.
   - Where shares differ, the lowest applies (they don't stack).
   - If the blades' normal sneak-attack damage is higher, that applies instead.
-- Players can't be assassinated (config, off by default).
+- Players can't be assassinated. The vanilla sneak-attack test never applies to players (they have no alerted state), so a PvP option would need its own idea of "unaware"; dropped until someone asks.
 - These numbers are starting points: check them against vanilla creature health before release.
 
 ## Config (starting values)
@@ -82,7 +84,8 @@ game once the textures are on.
 | Sneak stamina cost (2 pieces) | -50% |
 | Sneak noise (2 pieces) | -50% |
 | Sneak skill gain (2 pieces) | +50% |
-| Knives skill gain (blades in hand) | +50% |
+| Sneak visibility (2 pieces) | -40% |
+| Unarmed skill gain (blades in hand) | +50% |
 | Eagle Vision range | 30 m |
 | Eagle Vision on, and its colours | on; red hostile, gold starred |
 | Eagle Vision opacity in sight, behind walls | 10%, 70% |
@@ -91,7 +94,6 @@ game once the textures are on.
 | 2-star and giant share at no skill | 50% |
 | Boss share at no skill and at full skill | 10%, 20% |
 | Skill average for the full share | 80 |
-| Assassinate players | off |
 | Leap of Faith on | on |
 
 ## How it's built
@@ -116,7 +118,18 @@ game once the textures are on.
 - **Assassination:** decided on the attacker's client from the synced alert state, applied by the
   creature's owner through the normal damage path, so it isn't applied twice (as Andúril's effects
   are).
-- **Leap of Faith and sneaking:** only change the wearer, on their own client.
+- **Leap of Faith and sneaking:** only change the wearer, on their own client. Being harder to see is the game's own stealth setting, which it applies only while crouched and syncs to the creatures' owners; the vanilla stealth eye shows it.
+- **Attacking from a crouch:** the game has no crouched attack; it stands you up for the swing and
+  crouches you again after. While crouch is on, with 2 pieces your stealth factor holds where it was until
+  the crouch animation is back (it would otherwise climb), and Eagle Vision stays lit.
+- **One icon:** the set shows a single status icon, named and pictured by the highest bonus worn
+  (Unseen Step with the cape, Eagle Vision with the hood, Creed with the hidden blades); the bonuses
+  below it still apply. The blades' Unarmed bonus has no icon.
+- **Set tooltip:** as Diablo shows sets, every piece ends its tooltip with the set: the pieces (grey
+  if not worn) and each bonus by the pieces it needs (orange once you have it, grey until then). The
+  hidden blades show only the set name, the pieces worn and the 4-piece bonus, since their own weapon
+  stats already make a long tooltip. `ArmorSet` builds it, so later sets get it too. Piece descriptions
+  keep only their lore.
 
 ## Build order
 
@@ -126,6 +139,11 @@ game once the textures are on.
 2. Eagle Vision, starting with a test of the see-through material. **Done 2026-10-24:** tested on
    Greydwarfs and training dummies; a slight delay remains when a creature comes out of hiding, partly
    because the camera sits behind the shoulder.
-3. Hidden blades on the wrists, Assassination and Leap of Faith.
-4. Our own textures on the vanilla meshes (see "How the look is made"), then README rows and
+3. Hidden blades on the wrists, Assassination and Leap of Faith. **Done 2026-10-24:** the blades are
+   cloned from the Flesh Rippers (Unarmed), a code-built placeholder on the forearms. Tested in game:
+   Assassination kills normal creatures and takes 56% of a Troll at low skill (a kill at skill 80);
+   no fall damage; harder to see while crouched; stealth and Eagle Vision hold through a crouch attack;
+   one set icon by tier; the set tooltip.
+4. Our own textures on the vanilla meshes (see "How the look is made"), the hidden blades' own
+   model and polished-steel texture, a roll on landing from a height (Leap of Faith), then README rows and
    balance checks.

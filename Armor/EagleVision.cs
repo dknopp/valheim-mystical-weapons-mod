@@ -122,7 +122,7 @@ namespace MysticalWeapons.Armor
             {
                 base.UpdateStatusEffect(dt);
                 if (m_character != Player.m_localPlayer) return;
-                if (!m_character.IsCrouching())
+                if (!BrotherhoodPiece.Crouched(m_character))
                 {
                     if (Lit.Count > 0) Clear();
                     _nextFind = _nextSight = 0f; // light up at once on the next crouch

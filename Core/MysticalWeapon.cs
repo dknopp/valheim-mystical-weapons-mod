@@ -92,6 +92,9 @@ namespace MysticalWeapons
         /// <summary>Cloned from a dual-wield item: also put the model in both hands (see <see cref="ModelUtil.ReplaceSkinnedModel"/>)
         /// and crossed on the back when holstered (see <see cref="ModelUtil.AddCrossedBackModel"/>).</summary>
         protected virtual bool DualWield => false;
+        /// <summary>Dual-wield only: the model rides on each forearm (a wrist blade) instead of in the hand, and nothing
+        /// shows holstered.</summary>
+        protected virtual bool WristMounted => false;
 
         /// <summary>Materials, indexed by the submesh numbers used in <see cref="BuildModel"/>.</summary>
         public abstract MaterialSpec[] Materials { get; }
@@ -155,11 +158,18 @@ namespace MysticalWeapons
             var model = ModelUtil.ReplaceModel(prefab, PrefabName, builder, specs, place);
             if (DualWield)
             {
-                ModelUtil.ReplaceSkinnedModel(prefab, PrefabName, model, place);
-                ModelUtil.AddCrossedBackModel(prefab, PrefabName, model, place);
+                ModelUtil.ReplaceSkinnedModel(prefab, PrefabName, model, place, WristMounted);
+                if (WristMounted) ModelUtil.AddEmptyBackModel(prefab);
+                else ModelUtil.AddCrossedBackModel(prefab, PrefabName, model, place);
             }
             DecorateModel(model);
         }
+
+        /// <summary>Non-zero damage types as "slash:45,pierce:45", for logging what a vanilla item deals.</summary>
+        protected static string DescribeDamage(HitData.DamageTypes damage) =>
+            string.Join(",", typeof(HitData.DamageTypes).GetFields()
+                .Where(f => f.FieldType == typeof(float) && (float)f.GetValue(damage) != 0f)
+                .Select(f => $"{f.Name.Substring(2)}:{(float)f.GetValue(damage):0.#}"));
 
         /// <summary>Gives each part that names a vanilla texture a tinted copy of it.</summary>
         private void BorrowTextures(MeshBuilder builder)
