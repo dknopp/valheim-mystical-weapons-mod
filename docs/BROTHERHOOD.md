@@ -45,6 +45,13 @@ game once the textures are on.
 - **Frost resistance on the robe,** as the Fenris coat: the set has to be wearable in the Mountains,
   and its cape takes the slot a wolf cape would.
 - **No movement bonus** (Fenris gives +3% a piece): the set's speed is for sneaking only.
+- **Strong unseen, weak once seen** (2026-10-24): the set's balance is that an assassin who stays
+  hidden is powerful and one who's revealed is at a disadvantage in a straight fight. So the armour
+  stays light: Fenris's 10 a piece, the lightest Mountain armour, and well under Padded's 26, the
+  Plains peer, where the Moder-gated blades are mostly used. There are no resistances beyond the
+  robe's frost, and every bonus but Leap of Faith needs a crouch or an unaware target. If play
+  testing shows the set holds up too well in open fights, lower the pieces' `Armor` config before
+  adding anything new.
 - **Moder's trophy for the hidden blades** (changed 2026-10-24; first decided as no gate). They unlock
   Assassination, so you earn it by finishing the Mountains and play it in the Plains, as Shardplate
   does. Bonemass, the repo's usual pick for a Mountain item, would gate nothing: anyone mining silver
