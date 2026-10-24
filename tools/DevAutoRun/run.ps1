@@ -1,13 +1,15 @@
 <#
 .SYNOPSIS
   Hands-off test run: builds the mod and DevAutoRun, launches Valheim from the Gale test profile the way
-  Gale does, waits for DevAutoRun to load the test world, probe and quit, then prints this mod's log lines.
+  Gale does, waits for DevAutoRun to load the test world, probe and quit, then prints DevAutoRun's lines
+  and every error or warning. -FullLog adds all of this mod's setup lines.
   Exit code 0 when every probe passed, 1 otherwise. Steam must be running.
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File tools\DevAutoRun\run.ps1
 #>
 param(
     [switch]$SkipBuild,
+    [switch]$FullLog,
     [int]$TimeoutMinutes = 5,
     [string]$ValheimDir = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim'
 )
@@ -60,9 +62,12 @@ if (-not (Test-Path $log) -or (Get-Item $log).LastWriteTime -lt $started) { thro
 $lines = Get-Content $log
 $ours = $lines | Where-Object { $_ -match ':Mystical Weapons' }
 $others = $lines | Where-Object { $_ -match '^\[(Error|Warning|Fatal)' -and $_ -notmatch ':Mystical Weapons' }
+$shown = if ($FullLog) { $ours } else {
+    $ours | Where-Object { $_ -match 'DevAutoRun:|Loaded \d+ mystical items|^\[(Error|Warning|Fatal)' }
+}
 
 Write-Host "`n--- Mystical Weapons and DevAutoRun ---"
-$ours | ForEach-Object { Write-Host $_ }
+$shown | ForEach-Object { Write-Host $_ }
 if ($others) {
     Write-Host "`n--- Other errors and warnings ($(@($others).Count), first 20) ---"
     $others | Select-Object -First 20 | ForEach-Object { Write-Host $_ }

@@ -44,11 +44,16 @@ namespace DevAutoRun
 
         private IEnumerator Run()
         {
-            // Main menu up and any intro cinematic finished.
+            // Main menu up. The intro cinematic takes nearly 3 minutes, so skip it as a player would.
             var deadline = Time.realtimeSinceStartup + _stepTimeout.Value;
             while (!FejdStartup.instance || !FejdStartup.instance.m_mainMenu.activeInHierarchy)
             {
                 if (Time.realtimeSinceStartup > deadline) { Fail("main menu never appeared"); yield break; }
+                if (CinematicsManager.s_instance && CinematicsManager.IsStartedPlaying())
+                {
+                    _log.LogInfo("DevAutoRun: skipping the intro cinematic");
+                    CinematicsManager.Stop();
+                }
                 yield return null;
             }
             yield return new WaitForSecondsRealtime(1f);

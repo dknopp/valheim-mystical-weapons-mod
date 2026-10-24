@@ -55,9 +55,10 @@ powershell -ExecutionPolicy Bypass -File tools\DevAutoRun\run.ps1
 The script builds the mod and the plugin into your `BepInExDir` profile, launches Valheim through
 Steam the way Gale does, and adds `-devautorun`. The plugin then loads the test character and
 world, waits for the player to spawn, checks that every enabled item is registered (prefab, network
-prefab, recipe) and quits without saving. The script prints this mod's log lines, then any other
-errors and warnings, and exits with 0 when every check passed. Steam must be running and Valheim
-closed. `-SkipBuild` launches whatever is already in the profile.
+prefab, recipe) and quits without saving, in about a minute. The script prints the check results
+and every error or warning, and exits with 0 when every check passed. Steam must be running and
+Valheim closed. `-SkipBuild` launches whatever is already in the profile; `-FullLog` also prints
+all of this mod's setup lines.
 
 The character (default `modtest`) and world (`Mod-Test`) are set in the profile's
 `BepInEx/config/omm.valheim.devautorun.cfg`. Launched from Gale, without `-devautorun`, the plugin
