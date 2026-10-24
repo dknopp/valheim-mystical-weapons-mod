@@ -125,6 +125,15 @@ adds a soft light in front of it. Placement is deliberately not configurable; co
 `ModelExporter.exe exports --verify` re-imports each exported file and checks it matches the
 original. `ModelExporter.exe --load models/ShardplateHelm.obj` shows how the mod will read a model.
 
+## Painting armour textures
+
+Armour keeps its vanilla mesh, but a piece can wear our own textures from `models/textures/` (see
+`MysticalArmor` in `architecture.md`). They are painted on the layout of the vanilla texture they
+replace, which you read from the game on your own machine and never commit: the opaque islands of the
+vanilla texture are the parts of the mesh. `tools/textures/paint_brotherhood.py` paints the Brotherhood
+set this way; its header says what it needs. Which island is which part is easiest to find in game,
+with a test texture that colours each island differently.
+
 The shipped models are made by headless Blender scripts in `tools/blender/` (each header has the
 command), so they can be regenerated:
 - `make_sulfuras_texture.py` bakes Sulfuras's procedural textures onto the code-built shape. The

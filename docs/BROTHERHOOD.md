@@ -23,15 +23,29 @@ Eitr-weave and Embla are one family (Embla is Eitr-weave's Ashlands version), so
 look like one outfit. The mesh doesn't set the tier (see below). Cloning these copies their own
 bonuses (eitr regeneration, any vanilla set), which we clear, as Shardplate does.
 
-Colours come later, after the shapes are approved in game: the pitch says white and red, the hero
-reference is dark grey with brown leather and a red sash and cape lining.
+**How the look is made** (chunk 4b, 2026-10-24): our own textures painted on the vanilla meshes, after
+the hero reference: an ash-grey hood, slate coat and cape with muted pewter edge trims, charcoal
+trousers and side tails, brown leather (belt, pouch, straps, bracers, gloves, boots) with its own grain
+and worn edges, and a red sash and cape lining. A tint alone colours a whole piece one way, which
+can't give that mix. The textures are in `models/textures/`, painted by
+`tools/textures/paint_brotherhood.py` on the vanilla textures' layouts (read from the game on our own
+machines, never committed); `MysticalArmor` swaps them in and keeps the vanilla shading under them.
+What we found:
 
-**How the look is made:** a plain tint while the powers are built, then our own textures painted onto
-the vanilla meshes (the sash, trims, leather, the crest on the belt). A tint alone colours a whole
-piece one way, which can't give the hero reference's mix of colours. The mesh layouts are read from
-the game at runtime on our own machines, so no Valheim files enter the repo; `MysticalArmor` needs a
-small addition to swap a worn piece's texture. Custom models only if a shape still looks wrong in
-game once the textures are on.
+- The sash is the undershirt the game paints on the body, which shows as a band between the vest and
+  the belt. A band painted on the vest itself showed through the cape when crouching. The
+  undershirt's neck is charcoal, a dark scarf under the hood.
+- The cape's two sides share one texture, so the lining is a second material on the same mesh that
+  draws only the inside (`LiningColour` in config). Its shoulder flaps share the hem's texture area,
+  so there is no hem.
+- The undershirt and sleeves had chainmail in their normal and metal maps; they get a fine linen weave
+  instead (our own, not the cape's, which is a bark texture). The vanilla mage hood shines like metal;
+  only its clasps do now.
+- Our belt mark is a small feather in a ring, not the Assassin's Creed crest.
+- The vanilla textures are 128 pixels, so their shading is blocky under our 512-pixel paint; the
+  hood takes only a little of it.
+
+Custom models only if a shape still looks wrong in game once the textures are on.
 
 ## Tier and recipe
 
@@ -190,7 +204,11 @@ Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
    one set icon by tier; the set tooltip.
 4. Split in three:
    - 4a: the landing roll, README rows and the balance check above. **Done 2026-10-24.**
-   - 4b: our own textures on the vanilla meshes (see "How the look is made").
+   - 4b: our own textures on the vanilla meshes (see "How the look is made"). **Done 2026-10-24:**
+     checked in game; the sash moved to the undershirt and the cape got its lining after the first look.
+   - 4b-2: a finer detail pass on the textures: embroidery on the tails and the hood's edge, stitching
+     on the leather, smoother cloth shading than the vanilla 128-pixel textures give, a finer cloth bump
+     on the cape. The textile stays fine and smooth like the hero reference, not rough-spun.
    - 4c: the hidden blades' own model and polished-steel texture, through the Blender MCP; then the
      PR to `develop`.
 5. Later: our own emblem for the set's status icon, in the spirit of the Assassin's Creed crest but

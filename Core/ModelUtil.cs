@@ -85,6 +85,16 @@ namespace MysticalWeapons
         }
 
         /// <summary>
+        /// Loads a PNG/JPG as a readable, mipmapped texture; <paramref name="linear"/> for data rather than
+        /// colour (normal and metal maps). Returns null if it fails.
+        /// </summary>
+        public static Texture2D LoadTexture(string path, bool linear = false)
+        {
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear) { name = Path.GetFileName(path) };
+            return LoadImage(tex, File.ReadAllBytes(path)) ? tex : null;
+        }
+
+        /// <summary>
         /// Gives a GameObject a mesh and materials built from a <see cref="MeshBuilder"/>: a skinned
         /// renderer when the model has bone weights (bones are bound when Valheim attaches it), else a
         /// plain one.
@@ -805,14 +815,8 @@ namespace MysticalWeapons
         {
             try
             {
-                var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
-                var previous = RenderTexture.active;
-                Graphics.Blit(source, rt);
-                RenderTexture.active = rt;
-                var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true) { name = source.name + "_recoloured" };
-                tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
+                var tex = ReadableCopy(source);
+                tex.name = source.name + "_recoloured";
                 var px = tex.GetPixels();
                 for (var i = 0; i < px.Length; i++) px[i] = recolor(px[i]);
                 tex.SetPixels(px);
@@ -824,6 +828,20 @@ namespace MysticalWeapons
                 Plugin.Log.LogWarning($"Could not recolour texture {source.name}: {e.Message}");
                 return null;
             }
+        }
+
+        /// <summary>A readable copy of any texture (even an unreadable game texture), made via the GPU.</summary>
+        public static Texture2D ReadableCopy(Texture source)
+        {
+            var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
+            var previous = RenderTexture.active;
+            Graphics.Blit(source, rt);
+            RenderTexture.active = rt;
+            var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true);
+            tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+            return tex;
         }
 
         private static void FillTriangle(Vector2 a, Vector2 b, Vector2 c, float za, float zb, float zc,

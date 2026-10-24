@@ -38,7 +38,7 @@ namespace MysticalWeapons.Armor
         protected override string DefaultStation => "piece_workbench";
         protected override int DefaultStationLevel => 2;
         protected override float DefaultArmor => 10f;  // as each Fenris piece
-        protected override Color DefaultTint => new Color(0.6f, 0.6f, 0.6f);  // placeholder until our own textures
+        protected override Color DefaultTint => Color.white;  // the colours are in our textures (models/textures)
 
         public override void BindConfig(ConfigFile cfg)
         {
@@ -304,5 +304,38 @@ namespace MysticalWeapons.Armor
         protected override float DefaultArmorPerLevel => 1f;
         protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:4,Silver:2";
         protected override int IconTier => 2;
+
+        private ConfigEntry<Color> _lining;
+
+        public override void BindConfig(ConfigFile cfg)
+        {
+            base.BindConfig(cfg);
+            _lining = cfg.Bind(PrefabName, "LiningColour", new Color(0.557f, 0.106f, 0.106f),
+                "Colour of the cape's inside (RGBA hex). Restart to apply.");
+        }
+
+        /// <summary>
+        /// Both sides of the cape share one texture, so the lining is a second material on the same mesh: the
+        /// first draws only the outside, the second only the inside, in the lining colour.
+        /// </summary>
+        protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
+            base.Setup(prefab, shared);
+            var lining = new Texture2D(2, 2) { name = PrefabName + "_lining" };
+            lining.SetPixels(new[] { _lining.Value, _lining.Value, _lining.Value, _lining.Value }, 0);
+            lining.Apply();
+            foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                if (mats.Length != 1 || !mats[0] || !mats[0].HasProperty("_Cull") || !mats[0].HasProperty("_StyleTex")) continue;
+                var outside = mats[0];
+                outside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
+                var inside = new Material(outside) { name = outside.name + "_lining" };
+                inside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Front);
+                inside.SetTexture("_StyleTex", lining);
+                r.sharedMaterials = new[] { outside, inside };
+                Plugin.Log.LogInfo($"{PrefabName}: lining on '{r.name}', shader {outside.shader.name}");
+            }
+        }
     }
 }
