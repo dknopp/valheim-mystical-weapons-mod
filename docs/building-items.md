@@ -15,7 +15,7 @@ What I check on a new item, or when bringing one of mine up to date:
       out at 510. That's Blender's count: the mod draws every face from both sides, so double it
       before comparing with the peer (the item report already does: 1,020 against Nidhögg the
       Thundering's 420)
-- [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose
+- [ ] Stats, cost and station checked against "Tier, cost and balance"; hidden power chosen on purpose; boss trophy set if it is one of the strongest
 - [ ] Its one lore effect works, triggered the lore's way, with its numbers in config
 - [ ] Inventory icon reads at a glance
 - [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod
@@ -80,6 +80,12 @@ At runtime, items come from `ObjectDB` (`FindVanilla` during setup) and everythi
 (projectiles, effects) from `ZNetScene.instance.GetPrefab(name)`. For game classes and fields, the
 build is the quickest check: write the code and let the compiler say what doesn't exist.
 
+To read how a game method works, dump its IL with Mono.Cecil (it ships with BepInEx in `core/`): a
+small console app over `assembly_valheim.dll` that prints a type's fields, methods and IL. Plain
+.NET Framework reflection can't load some game types (they use default interface methods). Stats
+for content the wiki doesn't cover yet (the Deep North) are in the item databases such as
+valheim.tools and valheim.weirdgloop.org.
+
 ## Lessons
 
 ### Cloned items and attacks
@@ -89,6 +95,24 @@ build is the quickest check: write the code and let the compiler say what doesn'
   (Sulfuras: the Demolisher's blast played on every battleaxe combo hit until it moved onto the slam.)
 - To give an item another weapon's moves, clone that weapon's `Attack` and copy its
   `m_animationState` too (Sulfuras: battleaxe combo on primary, the Demolisher's slam on secondary).
+
+- A cloned item brings its source's look as well as its moves: the Staff of Embers carries its
+  burning orb over the staff whatever model replaces it, and a staff brings its two-handed hold. Pick
+  the source for its hold and animation (the Elder Wand: the butcher knife's one-handed jab), then
+  load the spell into its attack: `m_attackType`, `m_attackProjectile` with its counts, speeds and
+  accuracy, the sounds, and the launch point (`m_attackOriginJoint`, `m_attackHeight`,
+  `m_attackRange`, `m_attackOffset`; a melee attack's range launches from a sword's reach). Set
+  `m_skillType` to the skill the item should train.
+- The game only charges (`m_bowDraw`) and reloads (`m_requiresReload`) a weapon's **primary** attack.
+  As a secondary, a charged attack fires at a 0% charge's speed (nothing comes out) and one that needs
+  reloading never starts. Turn both off on a borrowed secondary. Dundr's "loading" bar is its reload.
+- Don't turn off `m_loopingAttack` on a looping cast (the Staff of Frost's `staff_rapidfire`): the
+  game ends the loop's animation when the button is let go, so without it the player froze mid-cast
+  until they dropped the item. To limit a loop, skip bursts in an `Attack.FireProjectileBurst` prefix.
+- A weapon has one damage (`m_damages`), read when its spell flies. For two attacks with different
+  damage, swap it in a `Humanoid.StartAttack` prefix.
+- The ObjectDB can hold several effects of one type: the first `SE_Shield` is the Fuling shaman's.
+  Take the one the source item gives (the Staff of Protection's cast, `Aoe.m_statusEffect`).
 
 ### Effects on hit
 - Patch `Character.Damage` (runs on the attacker's client) and check the attacker's current weapon,
@@ -143,6 +167,51 @@ build is the quickest check: write the code and let the compiler say what doesn'
 - Borrowed glow sprites hardly show either: the Dead Raiser's `UpgraderGlow`, spread along the
   Warglaives' blades, was invisible. Raising the blade's emission strength (`FelGlowStrength`, 0.6 to
   1.5) gave a halo through the game's bloom instead, brightest where the texture is palest.
+
+### Status effects
+- Sheathing (R) unequips the weapon, which ends its `m_equipStatusEffect`. To keep it going while
+  sheathed, add a second effect on sheathe that ends itself once the item is drawn or gone (Sylspear).
+- Copying a vanilla effect's fields onto a subclass (Syl's wisp from the Wisplight) also copies its
+  live state, including its cached `m_nameHash`, which makes the game take the copy for the
+  original. Skip those fields. Clear its `m_startMessage` to keep the sound without the message.
+- The HUD lists only effects with an icon and `m_hidden` off, so a helper effect can hide behind
+  another's icon (Syl carries the sheathed Windrunner's perks).
+- A slow fall doesn't stop fall damage: it comes from the height fallen. `m_fallDamageModifier = -1`
+  removes it.
+- A weapon can carry an adrenaline bar like a trinket: `m_maxAdrenaline` adds to the player's
+  maximum, and every equipped item's `m_fullAdrenalineSE` fires when it fills (the Bat'leth). Block
+  and parry adrenaline come from the blocking item (`m_blockAdrenaline`, `m_perfectBlockAdrenaline`);
+  a plain dodge gives none, only a blow taken mid-roll (`Player.RPC_HitWhileDodging`).
+
+### Materials
+- Valheim's creature shaders are opaque, the Ghost's too (`Custom/Creature`): its look comes from its
+  texture and particles, so its material on another mesh draws nothing. For a see-through look, put a
+  copy of each part's own texture on `Sprites/Default` (`ModelUtil.SpectralMaterial`).
+
+### Multiplayer
+- Show an effect to everyone by working it out on every client from synced state: the equipment
+  hashes in `VisEquipment` (`m_currentShoulderItemHash`, `m_currentRightItemHash`...) and the crouch
+  animation (the cloak's fade, Shardplate's size, the Bat'leth's kill bonus).
+- A death runs where the victim is owned, often not the killer's client: send the killer anything
+  over a vanilla RPC (`RPC_AddAdrenaline`).
+- Scale a player's model (`VisEquipment.m_visual`), not the player, so the collider still fits doors
+  and beds (Shardplate).
+
+### Recipes and death
+- The game lists a recipe only once the player has picked up every ingredient, but a recipe a
+  character already knows (saved with the character) stays listed even when a new ingredient is added.
+  To hide a trophy-gated recipe for everyone, filter `Player.GetAvailableRecipes` on
+  `IsMaterialKnown(trophy)` (`TrophyGatePatch`). Give the trophy `m_amountPerLevel` 0, or every upgrade
+  takes another.
+- Don't give an existing config key a new meaning: players keep their saved value. Bind a new key and
+  stop reading the old one (the Elder Wand's `BoltDamage` replaced `Damage`; `HasDamage => false` turns
+  off the shared damage keys).
+- Each upgrade level costs every ingredient's `m_amountPerLevel` again. `ParseRequirements` gives gear
+  (anything with upgrade levels of its own: the Iron Sword Andúril is reforged from) 0, so it is used
+  up only by the first craft; materials cost half their amount again per level.
+- `Player.CreateTombStone` moves the inventory to the grave, and checks the world's keep-items
+  modifiers itself. Skip it to keep everything (Master of Death), or take an item out before it and
+  put it back after (the Resurrection Stone).
 
 ### Config
 - Changing a default in code doesn't change an existing config file: BepInEx keeps the value already

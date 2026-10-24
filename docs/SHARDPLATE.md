@@ -19,7 +19,10 @@ downloaded it, because Sketchfab requires a login.
 
 ## Code map
 
-- `Armor/Shardplate.cs`: the item classes. Stats, recipes, set bonus, colour defaults, and the
+- `Armor/Shardplate.cs`: the item classes. Stats, recipes, set bonus, colour defaults, the full-set
+  looks (the `Stormlit` component: the model grows to `[Shardplate] Size` and a Stormlight glow, on
+  every client from the synced armour hashes; `StormStrikePatch` cracks lightning where the wearer's
+  melee blows land), and the
   helm's placement values (`CustomModelRotation (-6,180,0)`, `CustomModelScale 0.78`,
   `CustomModelStretch (1.04,1,1)`, `CustomModelOffset (0,-0.040,0.08)`, `CustomModelLightPosition`). All pieces use
   `CustomModelMaterialSource => "ArmorFlametalChest"`, since the Drake helmet's own material is matte and looked flat.
@@ -252,8 +255,8 @@ body is what threw the proportions off; the body mask handles clipping instead.
 
 ## Repo and git state at handoff
 
-- Branch `shardplate-full-set` (based on `blender-model-import`, which has a PR waiting to be opened).
-  The breastplate and greaves are committed (`011a691`); check `git status` for later work.
+- `shardplate-full-set` was merged into `tune-and-rebalance` (#20). The set's rebalance, size,
+  glow and storm strikes followed in #30.
 - `main` has a rule requiring changes through pull requests; the user's admin account bypasses it.
   Ask before pushing to `main`, and prefer a branch plus a pull request. The `gh` CLI isn't installed,
   so give the user the "compare" URL to open the pull request.

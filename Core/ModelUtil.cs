@@ -556,6 +556,75 @@ namespace MysticalWeapons
             return light;
         }
 
+        /// <summary>
+        /// See-through shaders Unity ships with every game, first found wins. Valheim's own creature shaders are
+        /// opaque (even the ghost's: its look comes from its texture and particles), so spirits need one of these.
+        /// </summary>
+        private static readonly string[] SpectralShaders = { "Sprites/Default", "UI/Default", "Legacy Shaders/Particles/Alpha Blended" };
+        private static Shader _spectralShader;
+        private static bool _spectralLookedUp;
+
+        /// <summary>
+        /// A see-through copy of <paramref name="source"/>: its own texture, tinted by <paramref name="tint"/>
+        /// (alpha = how solid). Without a see-through shader, a glowing tinted copy of the source instead, so the
+        /// result is never invisible.
+        /// </summary>
+        public static Material SpectralMaterial(Material source, Color tint, string user)
+        {
+            if (!_spectralLookedUp)
+            {
+                _spectralLookedUp = true;
+                foreach (var name in SpectralShaders)
+                    if ((_spectralShader = Shader.Find(name))) break;
+                if (_spectralShader) Plugin.Log.LogInfo($"{user}: spirits use the '{_spectralShader.name}' shader");
+                else Plugin.Log.LogWarning($"{user}: no see-through shader ({string.Join(", ", SpectralShaders)}); spirits glow instead");
+            }
+
+            Material mat;
+            if (_spectralShader)
+            {
+                mat = new Material(_spectralShader) { color = tint, renderQueue = 3000 }; // drawn with the transparent things
+                var texture = source && source.HasProperty("_MainTex") ? source.mainTexture : null;
+                if (texture) mat.mainTexture = texture;
+            }
+            else
+            {
+                mat = source ? new Material(source) : new Material(Shader.Find("Standard"));
+                if (mat.HasProperty("_Color")) mat.SetColor("_Color", tint);
+                if (mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", tint);
+                }
+            }
+            mat.name = (source ? source.name : user) + "_spectral";
+            return mat;
+        }
+
+        /// <summary>
+        /// Turns every mesh under <paramref name="root"/> spectral (particles are left alone). One copy per source
+        /// material, kept in <paramref name="cache"/> so repeated calls make no new ones.
+        /// </summary>
+        public static void MakeSpectral(GameObject root, Color tint, string user, Dictionary<Material, Material> cache)
+        {
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+                if (!(r is ParticleSystemRenderer)) r.sharedMaterials = Spectral(r.sharedMaterials, tint, user, cache);
+        }
+
+        /// <summary>The spectral copies of <paramref name="materials"/>, made once each and kept in <paramref name="cache"/>.</summary>
+        public static Material[] Spectral(Material[] materials, Color tint, string user, Dictionary<Material, Material> cache)
+        {
+            var result = new Material[materials.Length];
+            for (var i = 0; i < materials.Length; i++)
+            {
+                var source = materials[i];
+                if (source && cache.TryGetValue(source, out var known)) { result[i] = known; continue; }
+                result[i] = SpectralMaterial(source, tint, user);
+                if (source) cache[source] = result[i];
+            }
+            return result;
+        }
+
         private static Transform FindDeep(Transform t, string name)
         {
             if (t.name == name) return t;

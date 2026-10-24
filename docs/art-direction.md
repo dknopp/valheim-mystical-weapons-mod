@@ -109,6 +109,13 @@ fantasy of the source deciding where that is.
   fireball adds very roughly 5 to 8%.
 - **Hidden power counts:** no durability, stamina instead of eitr, extra carry weight or stealth are
   real power. Choose them on purpose and weigh them against the rest.
+- **Boss trophies for the strongest:** an item that is clearly stronger than its tier, or has an
+  effect that changes how you play (summons, tools that never wear out, no skill loss, a set bonus
+  like Master of Death), also needs one trophy from the boss that opens its home biome (Yagluth for
+  the Mistlands items). The player fights that boss again to make it, and the recipe stays hidden
+  until they hold the trophy, which lets the item sit a little above its vanilla peer. Items in line
+  with their peer, with a modest proc, need none. Set it in `BossTrophies` (`Core/MysticalItem.cs`);
+  the README's "Boss trophies" table lists them.
 - **Set bonuses:** only when the lore treats the items as a set (Shardplate, the Deathly Hallows). The
   bonus plays out the set's fantasy (holding all three Hallows makes you Master of Death) and counts
   as hidden power: about the size of a vanilla set bonus, one or two effects, not a stack.
