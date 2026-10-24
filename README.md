@@ -117,6 +117,8 @@ Bug reports and ideas are welcome as GitHub issues. To build the mod or add an i
  - Incorporate Sting from LOTR that glows in the presence of graydwarves, this could be an earlier game item that
    matches an iron or silver sword but has the unique glow animation and behavior.
 
+More ideas, and the ones picked next, are in [docs/item-ideas.md](docs/item-ideas.md).
+
 ## Editing the Shardplate set
 
 See [docs/SHARDPLATE.md](docs/SHARDPLATE.md) for how the Shardplate models are fitted, skinned and
