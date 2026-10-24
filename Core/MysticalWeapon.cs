@@ -78,7 +78,10 @@ namespace MysticalWeapons
         protected virtual bool AutoAlign => true;
         protected virtual Vector3 ModelRotation => Vector3.zero;
         protected virtual Vector3 ModelOffset => Vector3.zero;
-        /// <summary>False for non-weapons with a code-built model (e.g. trinkets): no damage config.</summary>
+        /// <summary>
+        /// False for non-weapons with a code-built model (e.g. trinkets), or a weapon that binds damage keys of its own
+        /// (the Elder Wand's BoltDamage): no Damage config, and the clone's damage is left for the item to set.
+        /// </summary>
         protected virtual bool HasDamage => true;
         /// <summary>
         /// Opt in to clearing everything the cloned item's material had: every texture, its metal

@@ -55,7 +55,9 @@ namespace MysticalWeapons.Weapons
                 "\"A good day to die\". It shares the bar with a worn trinket. Restart to apply.");
             _maxAdrenaline = cfg.Bind(PrefabName, "MaxAdrenaline", 20f, "Adrenaline needed for \"A good day to die\". Restart to apply.");
             _hitAdrenaline = cfg.Bind(PrefabName, "HitAdrenaline", 3f, "Adrenaline per hit with the bat'leth. Restart to apply.");
-            _killAdrenaline = cfg.Bind(PrefabName, "KillAdrenaline", 10f, "Extra adrenaline when the bat'leth's blow kills a creature.");
+            _killAdrenaline = cfg.Bind(PrefabName, "KillAdrenaline", 10f,
+                "Extra adrenaline when the bat'leth's blow kills a creature. The kill is counted on the game that controls the " +
+                "creature, which uses its own value, so keep this the same for every player on a server.");
             _furyDuration = cfg.Bind(PrefabName, "GoodDayToDieDuration", 30f, "Seconds \"A good day to die\" lasts. Restart to apply.");
             _blockAdrenaline = cfg.Bind(PrefabName, "BlockAdrenaline", 8f, "Adrenaline when you block a blow with the bat'leth. Restart to apply.");
             _parryAdrenaline = cfg.Bind(PrefabName, "ParryAdrenaline", 12f,
@@ -112,11 +114,6 @@ namespace MysticalWeapons.Weapons
             AccessTools.FieldRefAccess<VisEquipment, int>("m_currentRightItemHash");
 
         /// <summary>
-        /// A creature killed by a player holding the bat'leth sends that player extra adrenaline. Runs where the
-        /// creature dies (its owner's client), so the weapon comes from the attacker's synced equipment and the
-        /// adrenaline goes over the same RPC the game uses for staggering an enemy.
-        /// </summary>
-        /// <summary>
         /// Dodging through a blow ("hit while dodging", vanilla's perfect dodge) with the bat'leth in hand adds its
         /// own adrenaline on top of the game's. The game sends this RPC to the dodging player's client.
         /// </summary>
@@ -132,6 +129,11 @@ namespace MysticalWeapons.Weapons
             }
         }
 
+        /// <summary>
+        /// A creature killed by a player holding the bat'leth sends that player extra adrenaline. Runs where the
+        /// creature dies (its owner's client), so the weapon comes from the attacker's synced equipment, the amount from
+        /// that client's KillAdrenaline, and the adrenaline goes over the same RPC the game uses for staggering an enemy.
+        /// </summary>
         [HarmonyPatch(typeof(Character), "OnDeath")]
         private static class KillPatch
         {

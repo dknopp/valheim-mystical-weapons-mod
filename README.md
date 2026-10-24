@@ -89,6 +89,8 @@ weight) and `DeathlyHallows` (keeping your items as Master of Death).
   Sulfuras's flametal grain) for flat colours. Restart to apply.
 - After an update changes an item's defaults, your existing config keeps the old values. Delete
   that item's section to get the new ones.
+- The Elder Wand's damage is now `BoltDamage` (each of its 12 lightning bolts). Its old `Damage` line
+  is no longer used.
 
 ## Custom models
 

@@ -119,8 +119,9 @@ in `BindConfig`. Set bonuses bind sections of their own (`Shardplate`, `DeathlyH
 and key names are part of players' saved setup and must not be renamed.
 
 `BossTrophy` defaults come from one table, `MysticalItem.BossTrophies`, for the items stronger than
-their tier. The trophy is added to the recipe once (none per upgrade). The game lists a recipe only
-once the player has picked up every ingredient, so the trophy also hides it until the boss is beaten.
+their tier. The trophy is added to the recipe once (none per upgrade). `MysticalItem.TrophyGatePatch`
+leaves the recipe out of the crafting list until the player has picked up that trophy: the game hides a
+recipe whose ingredients a player hasn't seen, but keeps listing one they already knew.
 
 ## Build and deploy
 

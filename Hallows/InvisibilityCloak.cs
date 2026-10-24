@@ -131,11 +131,22 @@ namespace MysticalWeapons.Hallows
                 }
             }
 
+            /// <summary>
+            /// Puts each renderer's own materials back. While faded, the game recolours the body, hair and beard each frame
+            /// through Renderer.materials, which makes the renderer its own copy of our shade: destroy those copies, which
+            /// would otherwise leak one per fade.
+            /// </summary>
             private void Restore()
             {
                 _faded = false;
                 foreach (var pair in _original)
-                    if (pair.Key) pair.Key.sharedMaterials = pair.Value;
+                {
+                    if (!pair.Key) continue;
+                    foreach (var current in pair.Key.sharedMaterials)
+                        if (current && System.Array.IndexOf(pair.Value, current) < 0 && !Shades.ContainsValue(current))
+                            Destroy(current);
+                    pair.Key.sharedMaterials = pair.Value;
+                }
                 _original.Clear();
             }
         }

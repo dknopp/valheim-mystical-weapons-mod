@@ -173,20 +173,43 @@ namespace MysticalWeapons
             recipe.m_craftingStation = station;
             recipe.m_repairStation = station;
             recipe.m_minStationLevel = _stationLevel.Value;
-            recipe.m_resources = WithBossTrophy(db, ParseRequirements(db, _recipe.Value));
+            recipe.m_resources = WithBossTrophy(db, ParseRequirements(db, _recipe.Value), out var trophy);
+            if (trophy) TrophyGates[PrefabName] = trophy.m_itemData.m_shared.m_name;
+            else TrophyGates.Remove(PrefabName);
             db.m_recipes.Add(recipe);
         }
 
+        /// <summary>The trophy (its shared name) each gated item's recipe waits for, by the item's prefab name.</summary>
+        private static readonly Dictionary<string, string> TrophyGates = new Dictionary<string, string>();
+
         /// <summary>
-        /// Adds the boss trophy to the recipe, needed once: none per upgrade level. The game lists a recipe only
-        /// once the player has picked up every ingredient, so this also hides it until the boss is beaten.
+        /// Leaves a trophy-gated recipe out of the crafting list until the player has picked up that trophy (the game's
+        /// own "known material" check). The game already does this for recipes a player hasn't seen yet, but once
+        /// known a recipe stays listed, so a character that knew one before it needed a trophy would still see it.
         /// </summary>
-        private Piece.Requirement[] WithBossTrophy(ObjectDB db, Piece.Requirement[] resources)
+        [HarmonyLib.HarmonyPatch(typeof(Player), nameof(Player.GetAvailableRecipes))]
+        private static class TrophyGatePatch
         {
+            private static void Postfix(Player __instance, ref List<Recipe> available)
+            {
+                if (TrophyGates.Count == 0 || available == null) return;
+                available.RemoveAll(r => r && r.m_item && TrophyGates.TryGetValue(r.m_item.name, out var trophy) &&
+                                         !__instance.IsMaterialKnown(trophy));
+            }
+        }
+
+        /// <summary>
+        /// Adds the boss trophy to the recipe, needed once: none per upgrade level. <see cref="TrophyGatePatch"/>
+        /// keeps the recipe hidden until the player has picked up that trophy.
+        /// </summary>
+        private Piece.Requirement[] WithBossTrophy(ObjectDB db, Piece.Requirement[] resources, out ItemDrop trophyDrop)
+        {
+            trophyDrop = null;
             var name = _bossTrophy.Value.Trim();
             if (name.Length == 0) return resources;
             var trophy = db.GetItemPrefab(name);
-            if (!trophy)
+            trophyDrop = trophy ? trophy.GetComponent<ItemDrop>() : null;
+            if (!trophyDrop)
             {
                 Plugin.Log.LogWarning($"{PrefabName}: boss trophy '{name}' not found; the recipe doesn't need one");
                 return resources;
@@ -195,7 +218,7 @@ namespace MysticalWeapons
             list.RemoveAll(r => r.m_resItem && r.m_resItem.name == name); // already in the recipe: the trophy setting wins
             list.Add(new Piece.Requirement
             {
-                m_resItem = trophy.GetComponent<ItemDrop>(),
+                m_resItem = trophyDrop,
                 m_amount = 1,
                 m_amountPerLevel = 0,
                 m_recover = true
