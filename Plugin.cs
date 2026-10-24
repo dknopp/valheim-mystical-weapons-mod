@@ -33,6 +33,10 @@ namespace MysticalWeapons
             new ShardplateHelm(),
             new ShardplateBreastplate(),
             new ShardplateGreaves(),
+            new BrotherhoodHood(),
+            new BrotherhoodRobe(),
+            new BrotherhoodLegs(),
+            new BrotherhoodCape(),
 
             new ElderWand(),
             new ResurrectionStone(),

@@ -35,8 +35,15 @@ game once the textures are on.
 
 ## Tier and recipe
 
-- **Mountains.** Armour values match the Fenris pieces (check them in game when building); recipes
-  use Mountain materials at the same stations as their vanilla bases.
+- **Mountains.** Armour matches the Fenris pieces: 10 each (+2 per level), read from the game on
+  2026-10-24; the cape takes the linen cape's 1 (+1).
+- **Workbench level 2 for every piece,** as Fenris. The bases' Galdr table (Eitr-weave, Embla) can't
+  be built until the Mistlands, so their stations would lock a Mountain set out of its biome.
+- **Recipes:** wolf hair bundles, wolf pelts, leather scraps and a little silver (clasp, belt, cape
+  pin), in Fenris quantities.
+- **Frost resistance on the robe,** as the Fenris coat: the set has to be wearable in the Mountains,
+  and its cape takes the slot a wolf cape would.
+- **No movement bonus** (Fenris gives +3% a piece): the set's speed is for sneaking only.
 - **No boss-trophy gate.** Assassination balances itself: it needs a slow, careful approach, groups
   are hard to sneak up on, and being seen ends it.
 
@@ -103,7 +110,8 @@ game once the textures are on.
 ## Build order
 
 1. The four armour pieces as recoloured clones with their stats, `ArmorSet`, and the 2-piece
-   bonus. Check that they look right in game.
+   bonus. Check that they look right in game. **Done 2026-10-24:** shapes read well in game; the hood
+   and cape stay red under the grey placeholder tint until our textures.
 2. Eagle Vision, starting with a test of the see-through material.
 3. Hidden blades on the wrists, Assassination and Leap of Faith.
 4. Our own textures on the vanilla meshes (see "How the look is made"), then README rows and
