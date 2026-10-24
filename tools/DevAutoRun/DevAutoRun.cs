@@ -87,11 +87,12 @@ namespace DevAutoRun
             var profiles = (List<PlayerProfile>)type.GetField("m_profiles", any).GetValue(menu);
             var index = (int)type.GetField("m_profileIndex", any).GetValue(menu);
             if (index < 0 || index >= profiles.Count || profiles[index].GetFilename() != _character.Value)
-                return $"character '{_character.Value}' not found";
+                return $"character '{_character.Value}' not found. Yours: {string.Join(", ", profiles.Select(p => p.GetFilename()))}. {SetIn()}";
             menu.OnCharacterStart();
 
             var world = (World)type.GetMethod("FindWorld", any).Invoke(menu, new object[] { _world.Value });
-            if (world == null) return $"world '{_world.Value}' not found";
+            if (world == null)
+                return $"world '{_world.Value}' not found. Yours: {string.Join(", ", SaveSystem.GetWorldList().Select(w => w.m_name))}. {SetIn()}";
             type.GetField("m_world", any).SetValue(menu, world);
             menu.m_openServerToggle.isOn = false;
             menu.m_publicServerToggle.isOn = false;
@@ -99,6 +100,8 @@ namespace DevAutoRun
             menu.OnWorldStart();
             return null;
         }
+
+        private string SetIn() => $"Set Character and World in {Config.ConfigFilePath}";
 
         private static void Fail(string reason)
         {

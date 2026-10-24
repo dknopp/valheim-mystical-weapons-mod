@@ -62,8 +62,10 @@ and every error or warning, and exits with 0 when every check passed. Steam must
 Valheim closed. `-SkipBuild` launches whatever is already in the profile; `-FullLog` also prints
 all of this mod's setup lines.
 
-The character (default `modtest`) and world (`Mod-Test`) are set in the profile's
-`BepInEx/config/omm.valheim.devautorun.cfg`. Launched from Gale, without `-devautorun`, the plugin
+Before the first run, make a throwaway character and world for testing. Put their names in the
+profile's `BepInEx/config/omm.valheim.devautorun.cfg` (defaults `modtest` and `Mod-Test`); the
+file appears after the first run. If a name doesn't match, the run fails and lists the
+characters and worlds you have. Launched from Gale, without `-devautorun`, the plugin
 does nothing. Add new checks to `tools/DevAutoRun/Probes.cs`.
 
 Changing a default in code doesn't change an existing config file: BepInEx keeps the saved value.
