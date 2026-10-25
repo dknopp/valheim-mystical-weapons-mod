@@ -24,7 +24,7 @@ look like one outfit. The mesh doesn't set the tier (see below). Cloning these c
 bonuses (eitr regeneration, any vanilla set), which we clear, as Shardplate does.
 
 **How the look is made** (chunk 4b, 2026-10-24): our own textures painted on the vanilla meshes, after
-the hero reference: an ash-grey hood, slate coat and cape with muted pewter edge trims, charcoal
+the hero reference: a hood a few shades lighter than the slate coat, slate coat and cape with muted pewter edge trims, charcoal
 trousers and side tails, brown leather (belt, pouch, straps, bracers, gloves, boots) with its own grain
 and worn edges, and a red sash and cape lining. A tint alone colours a whole piece one way, which
 can't give that mix. The textures are in `models/textures/`, painted by

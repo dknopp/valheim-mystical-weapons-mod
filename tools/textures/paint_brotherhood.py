@@ -23,7 +23,7 @@ SIZE = 512
 
 # The hero reference's colours
 SLATE = (38, 48, 62)
-ASH = (70, 74, 81)                               # the hood: mid-dark grey (the hero art is brightly lit)
+ASH = (60, 73, 92)                               # the hood: the slate, a few shades lighter
 CHARCOAL = (42, 44, 47)
 LEATHER = (92, 61, 39)
 DARK_LEATHER = (60, 40, 27)
@@ -31,7 +31,7 @@ RED = (142, 27, 27)
 SILVER = (163, 167, 171)
 # Edge trims: muted pewter, a step lighter than the cloth they edge, unshaded (vanilla edges are bright)
 TRIM = (74, 82, 94)
-HOOD_TRIM = (104, 108, 115)
+HOOD_TRIM = (96, 108, 124)
 # Silver thread: dimmer than the clasps' silver so it reads as embroidery, not metal
 THREAD = (132, 137, 144)
 
