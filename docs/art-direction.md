@@ -22,9 +22,10 @@ Questions I answer before building, in order:
 - Gather references: a 3D viewer of the source's own model you can rotate (Wowhead's for Sulfuras
   and Thunderfury), a downloadable 3D model of the item (Sketchfab and similar), or several images
   from different angles. Get front, side and top views, note a few proportions (grip to blade, head
-  width to shaft), and list the parts: how pieces step, taper and join, thickness as well as outline,
-  how many spikes or studs and where, and what's open and what's solid (tilt the viewer and see
-  whether the background shows through). Check the model against those proportions and parts.
+  width to shaft), and list the parts: which are separate pieces and which sits on which, how pieces
+  step, taper and join, thickness and cross-section as well as outline, how many spikes or studs
+  and where, and what's open and what's solid (tilt the viewer and see whether the background
+  shows through). Check the model against those proportions and parts.
 - Use both kinds of reference when you can; each covers the other's blind spot:
   - **The source's own viewer decides the design:** which parts exist, their shapes, what's open.
     Captures are flat pictures, though, so they hide depth.
