@@ -79,6 +79,8 @@ namespace MysticalWeapons.Items
             _effect.m_name = DisplayName;
             _effect.m_tooltip = "The gateway is opening.";
             _effect.m_icon = Icon;
+            _effect.m_hidden = true; // the cast shows on the action bar instead (CastBar below)
+            CastBar.Action.m_progressText = "Reading " + DisplayName;
             // The effect's countdown is the cast. Instant still lasts a second, so one press can't read two scrolls
             // (a ttl of 0 would never end).
             var cast = Mathf.Max(0f, _castSeconds.Value);
@@ -113,6 +115,30 @@ namespace MysticalWeapons.Items
                 StartCast(__instance, inventory, item);
                 __result = false;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Shows the cast on the game's own timed-action bar (the one "Equipping..." uses), when nothing real is queued.
+        /// Only the HUD reads this.
+        /// </summary>
+        [HarmonyPatch(typeof(Player), nameof(Player.GetActionProgress),
+            new[] { typeof(string), typeof(float), typeof(Player.MinorActionData) },
+            new[] { ArgumentType.Out, ArgumentType.Out, ArgumentType.Out })]
+        private static class CastBar
+        {
+            internal static readonly Player.MinorActionData Action = new Player.MinorActionData();
+
+            private static void Postfix(Player __instance, ref string name, ref float progress, ref Player.MinorActionData data)
+            {
+                if (name != null || __instance != Player.m_localPlayer || !_effect) return;
+                if (!(__instance.GetSEMan().GetStatusEffect(_effect.NameHash()) is OpenEffect cast) || cast.m_ttl <= 0f) return;
+                if (cast.OpenAt <= 0f && cast.FormSeconds <= 0f) return; // instant: nothing to wait for
+                Action.m_duration = cast.m_ttl;
+                Action.m_time = cast.GetDuration();
+                data = Action;
+                name = Action.m_progressText;
+                progress = Mathf.Clamp01(Action.m_time / Action.m_duration);
             }
         }
 

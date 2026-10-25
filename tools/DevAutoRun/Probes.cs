@@ -98,6 +98,8 @@ namespace DevAutoRun
                 player.ConsumeItem(inventory, scroll); // false by design: the scroll isn't spent on reading
                 if (!effect || !player.GetSEMan().HaveStatusEffect(effect.NameHash())) { Problem = "reading didn't start the cast"; yield break; }
                 if (inventory.CountItems(scroll.m_shared.m_name) != scrolls) { Problem = "the scroll was spent on reading"; yield break; }
+                player.GetActionProgress(out var barText, out _);
+                if (cast > 0f && string.IsNullOrEmpty(barText)) { Problem = "the cast isn't on the action bar"; yield break; }
 
                 var start = Time.time;
                 if (CancelBy != null)
