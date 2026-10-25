@@ -26,10 +26,12 @@ namespace MysticalWeapons.Armor
         private static ConfigEntry<bool> _stormlight;
         private static ConfigEntry<bool> _storm;
         private static ConfigEntry<float> _stormCooldown;
+        private static bool? _resetOldLook;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
+            ResetOldLook(cfg);
             if (_carryWeight != null) return; // the set's own settings, once for all three pieces
             _carryWeight = cfg.Bind(SetName, "CarryWeight", 50f, "Full set: extra carry weight. Restart to apply.");
             _size = cfg.Bind(SetName, "Size", 1.25f,
@@ -38,6 +40,30 @@ namespace MysticalWeapons.Armor
             _stormlight = cfg.Bind(SetName, "StormlightGlow", true, "Full set: a soft Stormlight-blue glow surrounds the wearer.");
             _storm = cfg.Bind(SetName, "StormStrikes", true, "Full set: lightning cracks where your melee blows land (looks only, no extra damage).");
             _stormCooldown = cfg.Bind(SetName, "StormStrikeCooldown", 0.4f, "Shortest time between two lightning cracks, in seconds.");
+        }
+
+        /// <summary>
+        /// Once per config: before the breastplate and greaves had custom models (#20), configs saved their
+        /// CustomModelGlow 0 and CustomModelBrightness 1, which now show dark, unlit plates. Put that exact
+        /// pair back to this version's defaults; a value a player picks later is kept.
+        /// </summary>
+        private void ResetOldLook(ConfigFile cfg)
+        {
+            if (_resetOldLook == null)
+            {
+                var done = cfg.Bind(SetName, "OldLookReset", false,
+                    "Set by the mod once it has updated colour settings saved by an older version. Leave as is.");
+                _resetOldLook = !done.Value;
+                done.Value = true;
+            }
+            if (_resetOldLook != true) return;
+            if (!cfg.TryGetEntry<float>(PrefabName, "CustomModelGlow", out var glow) ||
+                !cfg.TryGetEntry<float>(PrefabName, "CustomModelBrightness", out var brightness)) return;
+            if (glow.Value != 0f || brightness.Value != 1f) return;
+            glow.Value = DefaultCustomGlow;
+            brightness.Value = DefaultCustomBrightness;
+            Plugin.Log.LogInfo($"{PrefabName}: reset CustomModelGlow and CustomModelBrightness saved by an older " +
+                               $"version to {DefaultCustomGlow} and {DefaultCustomBrightness}");
         }
         protected override Color DefaultTint => new Color(0.62f, 0.68f, 0.78f);  // slate with a blue sheen
         protected override Color DefaultGlow => new Color(0.25f, 0.55f, 1f);     // Stormlight
