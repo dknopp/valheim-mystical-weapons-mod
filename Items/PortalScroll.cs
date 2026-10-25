@@ -60,7 +60,7 @@ namespace MysticalWeapons.Items
             base.BindConfig(cfg);
             _stackSize = cfg.Bind(PrefabName, "StackSize", 20, "How many scrolls fit in one inventory slot.");
             _castSeconds = cfg.Bind(PrefabName, "CastSeconds", 3f,
-                "Seconds between reading the scroll and the portal opening; it forms over the last second. Moving or getting hit before then cancels it and keeps the scroll. 0 = instant.");
+                "Seconds between reading the scroll and the portal opening; it forms over the last second. Moving or getting hit before it opens cancels it and keeps the scroll. 0 = instant.");
             _castAnimation = cfg.Bind(PrefabName, "CastAnimation", CastPose.Point, "What your character does while reading the scroll.");
             TimeoutMinutes = cfg.Bind(PrefabName, "TimeoutMinutes", 60f,
                 "Minutes before an unused pair of portals closes by itself. 0 = they stay until you come back through the home end or read another scroll.");
@@ -173,8 +173,9 @@ namespace MysticalWeapons.Items
 
         /// <summary>
         /// The cast. Reading the scroll applies this (only on the reader's machine; the emote and the portal are what
-        /// others see). The portal's spot is fixed when reading starts; the pair opens <see cref="FormSeconds"/> before the
-        /// end and grows in. Moving or a hit before then cancels it and keeps the scroll; so does death or logging out.
+        /// others see). The portal's spot is fixed when reading starts; it starts growing in <see cref="FormSeconds"/>
+        /// before the end. Only when the cast completes is the scroll spent, the pair linked and the old pair closed, so
+        /// moving or a hit at any point cancels it and keeps both; so does death or logging out.
         /// </summary>
         internal class OpenEffect : StatusEffect
         {
@@ -186,6 +187,7 @@ namespace MysticalWeapons.Items
             internal Inventory Inventory;
             internal ItemDrop.ItemData Scroll;
             private Vector3 _start, _facing;
+            private ZDOID _forming = ZDOID.None; // an ID, not the ZDO: the game pools and reuses removed ones
             private bool _opened, _cancelled;
 
             private static readonly Action<Character> StopEmote =
@@ -203,11 +205,34 @@ namespace MysticalWeapons.Items
             {
                 base.UpdateStatusEffect(dt);
                 if (_opened || _cancelled) return;
-                if (Moved()) Cancel("moved");
-                else if (m_time >= OpenAt) Open();
+                if (Moved()) { Cancel("moved"); return; }
+                if (_forming.IsNone() && m_time >= OpenAt) BeginForming();
+                if (!_forming.IsNone() && m_time >= OpenAt + FormSeconds) Open();
             }
 
             public override bool IsDone() => _cancelled || base.IsDone();
+
+            public override void Stop()
+            {
+                base.Stop();
+                // Removed before completing (death, or anything else): the half-formed portal goes too
+                if (!_opened) RemoveForming();
+            }
+
+            private void BeginForming()
+            {
+                if (!(m_character is Player player) || player != Player.m_localPlayer) { _cancelled = true; return; }
+                var field = TownPortal.BeginOpen(_start, _facing, FormSeconds);
+                if (field == null) _cancelled = true;
+                else _forming = field.m_uid;
+            }
+
+            private void RemoveForming()
+            {
+                var field = _forming.IsNone() ? null : ZDOMan.instance?.GetZDO(_forming);
+                if (field != null) TownPortal.Remove(field);
+                _forming = ZDOID.None;
+            }
 
             private bool Moved()
             {
@@ -215,29 +240,34 @@ namespace MysticalWeapons.Items
                        Vector3.ProjectOnPlane(m_character.transform.position - _start, Vector3.up).magnitude > MoveTolerance;
             }
 
-            /// <summary>Ends the cast without a portal, before it starts forming. SEMan removes the effect next update.</summary>
+            /// <summary>Ends the cast without a portal, removing it if it was forming. SEMan removes the effect next update.</summary>
             internal void Cancel(string why)
             {
                 if (_opened || _cancelled) return;
                 _cancelled = true;
                 Plugin.Log.LogInfo($"PortalScroll: cast cancelled ({why}) after {m_time:0.0}s");
+                RemoveForming();
                 StopEmote(m_character);
             }
 
+            /// <summary>The cast completed: spend the scroll and link the formed end to a new home end.</summary>
             private void Open()
             {
-                _opened = true;
-                if (!(m_character is Player player) || player != Player.m_localPlayer) return;
                 // The read scroll, or another one if that stack was moved or split
                 var scroll = Inventory != null && Inventory.ContainsItem(Scroll) ? Scroll : Inventory?.GetItem(Scroll?.m_shared.m_name);
                 if (scroll == null)
                 {
-                    Plugin.Log.LogInfo("PortalScroll: no scroll left to spend; the cast opens nothing");
-                    _cancelled = true;
+                    Cancel("no scroll left to spend");
                     return;
                 }
-                Inventory.RemoveOneItem(scroll);
-                TownPortal.OpenPair(player, _start, _facing, FormSeconds);
+                var field = ZDOMan.instance.GetZDO(_forming);
+                if (field == null)
+                {
+                    Cancel("the forming portal is gone");
+                    return;
+                }
+                _opened = true;
+                if (TownPortal.FinishOpen((Player)m_character, field, FormSeconds)) Inventory.RemoveOneItem(scroll);
             }
         }
     }

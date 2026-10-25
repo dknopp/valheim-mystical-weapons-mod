@@ -54,11 +54,11 @@ namespace DevAutoRun
                     Report(log, "a second scroll closes the first pair", problem, ref pass, ref fail);
                 }
 
-                foreach (var how in new[] { "hit", "step" })
+                foreach (var how in new[] { "hit", "step", "late hit" })
                 {
                     var cancel = new PortalRead { CancelBy = how };
                     yield return cancel.Run();
-                    Report(log, $"a {how} cancels the cast and keeps the scroll", cancel.Problem, ref pass, ref fail);
+                    Report(log, $"a {how} cancels the cast and keeps the scroll and the old pair", cancel.Problem, ref pass, ref fail);
                 }
             }
             log.LogInfo($"DevAutoRun: RESULT pass {pass} fail {fail}");
@@ -71,10 +71,11 @@ namespace DevAutoRun
         }
 
         /// <summary>
-        /// Reads a scroll as a player would and waits out the cast (the scroll's status effect). Normally checks two new
-        /// portal ends appear as the portal starts forming (a second before the end), each pointing at the other, and the
-        /// scroll is spent then. With <see cref="CancelBy"/>, hits or steps the player mid-cast and checks nothing opens and
-        /// the scroll is kept.
+        /// Reads a scroll as a player would and waits out the cast (the scroll's status effect). Normally checks only the
+        /// forming end exists in the last second with the scroll unspent, then that two ends, each pointing at the other,
+        /// exist when the cast completes and the scroll is spent then. With <see cref="CancelBy"/>, hits or steps the
+        /// player mid-cast ("late hit": while the portal forms) and checks nothing opens and the scroll and the older
+        /// portals are kept.
         /// </summary>
         private class PortalRead
         {
@@ -94,7 +95,7 @@ namespace DevAutoRun
                 var scrolls = inventory.CountItems(scroll.m_shared.m_name);
                 var effect = scroll.m_shared.m_consumeStatusEffect;
                 var cast = effect ? effect.m_ttl : 0f;
-                var opensAt = cast - Mathf.Min(1f, cast);
+                var formsAt = cast - Mathf.Min(1f, cast);
                 player.ConsumeItem(inventory, scroll); // false by design: the scroll isn't spent on reading
                 if (!effect || !player.GetSEMan().HaveStatusEffect(effect.NameHash())) { Problem = "reading didn't start the cast"; yield break; }
                 if (inventory.CountItems(scroll.m_shared.m_name) != scrolls) { Problem = "the scroll was spent on reading"; yield break; }
@@ -104,8 +105,8 @@ namespace DevAutoRun
                 var start = Time.time;
                 if (CancelBy != null)
                 {
-                    while (Time.time - start < opensAt / 2f) yield return null;
-                    if (CancelBy == "hit")
+                    while (Time.time - start < (CancelBy == "late hit" ? cast - 0.4f : formsAt / 2f)) yield return null;
+                    if (CancelBy != "step")
                     {
                         var hit = new HitData { m_hitType = HitData.HitType.EnemyHit, m_point = player.GetCenterPoint() };
                         hit.m_damage.m_blunt = 1f;
@@ -116,14 +117,22 @@ namespace DevAutoRun
                     if (player.GetSEMan().HaveStatusEffect(effect.NameHash())) Problem = "the cast is still running";
                     else if (Zdos(portal).Any(z => !before.Contains(z.m_uid))) Problem = "a portal opened anyway";
                     else if (inventory.CountItems(scroll.m_shared.m_name) != scrolls) Problem = "the scroll was spent";
+                    else if (before.Any(id => ZDOMan.instance.GetZDO(id) == null)) Problem = "an older portal closed";
                     inventory.RemoveItem(scroll.m_shared.m_name, 1);
                     yield break;
                 }
 
+                if (cast > 0f)
+                {
+                    while (Time.time - start < cast - 0.4f) yield return null;
+                    var forming = Zdos(portal).Count(z => !before.Contains(z.m_uid));
+                    if (forming != 1) { Problem = $"{forming} new portal ZDOs while forming, expected 1"; yield break; }
+                    if (inventory.CountItems(scroll.m_shared.m_name) != scrolls) { Problem = "the scroll was spent before the cast completed"; yield break; }
+                }
                 while (Zdos(portal).Count(z => !before.Contains(z.m_uid)) < 2 && Time.time - start < cast + 2f)
                     yield return null;
                 var took = Time.time - start;
-                if (took < opensAt - 0.5f || took > opensAt + 0.5f) { Problem = $"opened after {took:0.0}s, expected {opensAt:0.0}s"; yield break; }
+                if (took < cast - 0.3f || took > cast + 0.5f) { Problem = $"opened after {took:0.0}s, expected {cast:0.0}s"; yield break; }
                 if (inventory.CountItems(scroll.m_shared.m_name) != scrolls - 1) { Problem = "the scroll wasn't spent when the portal opened"; yield break; }
                 // A second read needs the cast over
                 while (player.GetSEMan().HaveStatusEffect(effect.NameHash())) yield return null;
@@ -142,7 +151,9 @@ namespace DevAutoRun
                 if (end.GetZDOID("mw_portal_pair") != other.m_uid) return $"{end.m_uid} isn't paired with {other.m_uid}";
                 if (Vector3.Distance(end.GetVec3("mw_portal_target", Vector3.zero), other.GetPosition()) > 0.1f)
                     return $"{end.m_uid} targets {end.GetVec3("mw_portal_target", Vector3.zero)}, the other end is at {other.GetPosition()}";
-                if (end.GetLong("mw_portal_ready") <= end.GetLong("mw_portal_opened")) return $"{end.m_uid} has no forming time";
+                // The field end formed during the cast; the home end grows in once it completes
+                if (end.GetBool("mw_portal_home") && end.GetLong("mw_portal_ready") <= end.GetLong("mw_portal_opened"))
+                    return $"home end {end.m_uid} has no forming time";
             }
             return null;
         }

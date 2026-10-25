@@ -38,6 +38,8 @@ namespace MysticalWeapons.Items
 
         /// <summary>How far in front of the reader the field end opens.</summary>
         private const float FieldDistance = 2f;
+        /// <summary>A forming end still unlinked this long after it should have formed is left over from a cast that never finished.</summary>
+        private const float AbandonedSeconds = 10f;
 
         private static GameObject _prefab;
 
@@ -116,31 +118,45 @@ namespace MysticalWeapons.Items
         }
 
         /// <summary>
-        /// Opens a field end in front of where the player stood (<paramref name="from"/>, facing <paramref name="facing"/>)
-        /// and a home end at their respawn point. Both grow in over <paramref name="formSeconds"/> on every peer.
+        /// Starts the field end growing in front of where the player stood (<paramref name="from"/>, facing
+        /// <paramref name="facing"/>), over <paramref name="formSeconds"/> on every peer. Until <see cref="FinishOpen"/> it
+        /// has no destination and no reader, so it leads nowhere and closes nothing. Null if it can't open.
         /// </summary>
-        public static void OpenPair(Player player, Vector3 from, Vector3 facing, float formSeconds)
+        public static ZDO BeginOpen(Vector3 from, Vector3 facing, float formSeconds)
         {
-            if (!_prefab || !ZNetScene.instance || ZDOMan.instance == null) return;
-            if (!HomePoint(out var home))
-            {
-                Plugin.Log.LogWarning($"{PrefabName}: no bed and no world start found; no portal opened");
-                return;
-            }
-
+            if (!_prefab || !ZNetScene.instance || ZDOMan.instance == null) return null;
             facing = facing.sqrMagnitude > 0.01f ? facing.normalized : Vector3.forward;
             var fieldPos = from + facing * FieldDistance;
             if (ZoneSystem.instance.FindFloor(fieldPos + Vector3.up * 2f, out var floor)) fieldPos.y = floor;
             // Faces the reader, so people coming from home step out towards where they stood
-            var fieldRot = Quaternion.LookRotation(-facing);
-            var homeRot = Quaternion.LookRotation(facing);
+            var field = Object.Instantiate(_prefab, fieldPos, Quaternion.LookRotation(-facing)).GetComponent<ZNetView>().GetZDO();
+            var now = ZNet.instance.GetTime().Ticks;
+            field.Set(OpenedKey, now);
+            field.Set(ReadyKey, now + (long)(formSeconds * TimeSpan.TicksPerSecond));
+            return field;
+        }
+
+        /// <summary>
+        /// The cast completed: makes the home end at the player's respawn point (growing in over
+        /// <paramref name="formSeconds"/>), links it with the formed <paramref name="field"/> end and closes the player's
+        /// older pair. False, and the field end removed, if there's nowhere to go.
+        /// </summary>
+        public static bool FinishOpen(Player player, ZDO field, float formSeconds)
+        {
+            if (!HomePoint(out var home))
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: no bed and no world start found; no portal opened");
+                Remove(field);
+                return false;
+            }
+            var fieldPos = field.GetPosition();
+            var fieldRot = field.GetRotation();
+            var homeRot = Quaternion.LookRotation(fieldRot * Vector3.back);
 
             // A new scroll closes your old pair
             var owner = player.GetPlayerID();
             var opened = ZNet.instance.GetTime().Ticks;
             Close(owner, opened);
-
-            var field = Object.Instantiate(_prefab, fieldPos, fieldRot).GetComponent<ZNetView>().GetZDO();
 
             // The home end is only a ZDO for now: the game builds it when someone is near, and it finds its floor then
             var hash = PrefabName.GetStableHashCode();
@@ -151,10 +167,10 @@ namespace MysticalWeapons.Items
             homeZdo.Set(SnapKey, true);
             homeZdo.Set(HomeKey, true);
 
-            var ready = opened + (long)(formSeconds * TimeSpan.TicksPerSecond);
-            Link(field, homeZdo, home, homeRot, owner, opened, ready);
-            Link(homeZdo, field, fieldPos, fieldRot, owner, opened, ready);
+            Link(field, homeZdo, home, homeRot, owner, opened, opened); // already formed
+            Link(homeZdo, field, fieldPos, fieldRot, owner, opened, opened + (long)(formSeconds * TimeSpan.TicksPerSecond));
             Plugin.Log.LogInfo($"{PrefabName}: opened {fieldPos} <-> {home} for {player.GetPlayerName()}");
+            return true;
         }
 
         private static void Link(ZDO end, ZDO other, Vector3 otherPos, Quaternion otherRot, long owner, long opened, long ready)
@@ -184,16 +200,25 @@ namespace MysticalWeapons.Items
         }
 
         /// <summary>Only the newest pair per reader stays open: seeing one end closes anything older of theirs.</summary>
-        internal static void Seen(ZDO zdo) => Cutoff(zdo.GetLong(OwnerKey), zdo.GetLong(OpenedKey));
+        internal static void Seen(ZDO zdo)
+        {
+            var owner = zdo.GetLong(OwnerKey);
+            if (owner != 0) Cutoff(owner, zdo.GetLong(OpenedKey)); // still forming: not anyone's pair yet
+        }
 
         private static void Cutoff(long owner, long before)
         {
             if (!Cutoffs.TryGetValue(owner, out var cutoff) || before > cutoff) Cutoffs[owner] = before;
         }
 
-        /// <summary>Closed by its reader (a later cutoff), or open longer than the timeout.</summary>
+        /// <summary>
+        /// Closed by its reader (a later cutoff), or open longer than the timeout, or a forming end whose cast never
+        /// finished (the reader logged out or crashed mid-cast).
+        /// </summary>
         internal static bool IsClosed(ZDO zdo)
         {
+            if (zdo.GetLong(OwnerKey) == 0)
+                return ZNet.instance.GetTime().Ticks - zdo.GetLong(ReadyKey) > (long)(AbandonedSeconds * TimeSpan.TicksPerSecond);
             var opened = zdo.GetLong(OpenedKey);
             if (Cutoffs.TryGetValue(zdo.GetLong(OwnerKey), out var cutoff) && opened < cutoff) return true;
             var timeout = PortalScroll.TimeoutMinutes?.Value ?? 0f;
