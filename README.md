@@ -70,8 +70,10 @@ which bonuses you have.
   rising to a kill as your Unarmed and Sneak skills reach 80. The biggest (Seeker soldiers, Morgen,
   frost trolls, Hildir's bosses) lose 25% to 50%, and bosses 10% to 20%, once per summoning.
 
+## Notes
+
 Items reforged from a vanilla weapon (Andúril, the Bat'leth, the Shardblade, Sulfuras, Thunderfury, the
-Warglaives) use up that weapon once, when you first craft them; upgrades only cost materials.
+Warglaives, etc.) use up that weapon once, when you first craft them; upgrades only cost materials.
 
 ### Boss trophies
 
