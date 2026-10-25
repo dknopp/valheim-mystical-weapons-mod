@@ -24,6 +24,8 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] README items tables updated
 - [ ] Changed defaults on an existing item: the PR says players must reset that item's config
       section (see Config below)
+- [ ] An existing item reads a setting in a new way (a new model or effect): tested with the value an
+      older config saved, not only the new default (see Config below)
 - [ ] Views in the PR: front, profile and three-quarter in one picture, from
       `tools/blender/render_views.py` (how to run it is at its top), committed as
       `docs/images/<Prefab>-views.jpg` and linked in the PR description.
@@ -212,6 +214,11 @@ valheim.tools and valheim.weirdgloop.org.
 - Valheim's creature shaders are opaque, the Ghost's too (`Custom/Creature`): its look comes from its
   texture and particles, so its material on another mesh draws nothing. For a see-through look, put a
   copy of each part's own texture on `Sprites/Default` (`ModelUtil.SpectralMaterial`).
+- Clearing a borrowed material's `_EmissionMap` without switching its emission off makes the whole
+  surface glow at the borrowed strength. The Shardplate breastplate and greaves with
+  `CustomModelGlow = 0` turned into a white silhouette: the recoloured Flametal material's Stormlight
+  glow (2.5x) lit every plate. To turn glow off, set `_EmissionColor` to black: `Custom/Creature`
+  glows even with the `_EMISSION` keyword off (the log said "emission off" for the white plates).
 
 ### Multiplayer
 - Show an effect to everyone by working it out on every client from synced state: the equipment
@@ -243,3 +250,10 @@ valheim.tools and valheim.weirdgloop.org.
   there. After changing a default, edit or delete that line in the test profile's
   `BepInEx/config/omm.valheim.mysticalweapons.cfg`. With Claude Code, ask it to make the change with
   a file edit: a shell command that rewrites the file gets blocked as destructive.
+- A setting gets saved even while it does nothing. The Shardplate breastplate and greaves saved
+  `CustomModelGlow = 0` and `CustomModelBrightness = 1` while they were recoloured vanilla armour,
+  where those settings had no effect. When #20 gave them custom models with new defaults (1 and 2.4),
+  anyone who had played the earlier beta kept 0 and 1, and saw a white silhouette (see Materials).
+  Before an existing item starts using a setting in a new way, check what older versions saved for it
+  (`git show <old commit>:<item file>`), make every value of it work (0 = off must really be off),
+  and test once with the old value in the test profile's config, not only with a fresh one.

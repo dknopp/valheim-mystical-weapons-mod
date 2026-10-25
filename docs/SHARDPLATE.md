@@ -209,6 +209,12 @@ body is what threw the proportions off; the body mask handles clipping instead.
 - **Double-sided triangles render dark.** Valheim's `Custom/Creature` shader draws both faces. An
   inward-facing copy at the same depth can win, which makes metal render flat and black. Imported
   models must be single-sided, wound to face their normals (already handled in `MeshBuilder.Tri`).
+- **Old configs turn the body plates into a white silhouette.** Configs saved before #20 hold
+  `CustomModelGlow = 0` and `CustomModelBrightness = 1` for the breastplate and greaves. With glow 0,
+  `ModelUtil.MakeMaterial` cleared the emission texture but left the recoloured Flametal glow on, so
+  every plate glowed. It now switches the glow off, so glow 0 shows plain plates. The first launch
+  with that fix also puts that exact pair back to 1 and 2.4, once per config (`ResetOldLook`, marked by
+  `[Shardplate] OldLookReset`). Details under Config and Materials in `building-items.md`.
 - **Material colour and emission are ignored** on these armor materials, so recolour the
   **textures** instead (`GradeTexture`). The body under-armor paint comes from `_ChestTex`/`_LegsTex`
   on `m_armorMaterial`; recolouring `_Color` does nothing to it.

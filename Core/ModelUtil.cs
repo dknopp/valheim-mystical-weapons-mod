@@ -500,6 +500,13 @@ namespace MysticalWeapons
                     mat.SetColor("_EmissionColor", spec.Emission);
                     if (texture && mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap", texture);
                 }
+                else if (mat.HasProperty("_EmissionColor"))
+                {
+                    // No glow wanted: without its emission map the borrowed glow would light the whole
+                    // surface (old Shardplate configs with CustomModelGlow 0 turned white)
+                    mat.DisableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", Color.black);
+                }
                 return mat;
             }
 
