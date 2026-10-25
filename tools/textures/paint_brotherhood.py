@@ -137,9 +137,16 @@ def cloth(rgb, px, py, d=None):
 DAMASK_TILE = 48
 
 
+def shifted(px, shift):
+    """`px` moved `shift` pixels left on the damask; a whole column pair back from the left edge, so the half-drop
+    keeps its order (SIZE isn't a whole number of tiles, so wrapping round it would land in a cut column)."""
+    x = px - shift
+    return x + 2 * DAMASK_TILE if x < 0 else x
+
+
 def damask(rgb, px, py, shift=0):
     """Cloth with the damask woven in: a lighter shade of itself, faint. `shift` moves the pattern sideways."""
-    return mix(rgb, tuple(min(255, int(c * 1.3 + 8)) for c in rgb), DAMASK[py][(px - shift) % SIZE] * 0.8)
+    return mix(rgb, tuple(min(255, int(c * 1.3 + 8)) for c in rgb), DAMASK[py][shifted(px, shift)] * 0.8)
 
 
 def centred(pts, scale):
@@ -320,7 +327,7 @@ def robe(vanilla):
     scroll_top, scroll_bottom = scroll_y - s * 3.1, scroll_y + s * 2.2
 
     def under_scroll(px, py):
-        drop = DAMASK_TILE // 2 if ((px - front_shift) % SIZE // DAMASK_TILE) % 2 else 0
+        drop = DAMASK_TILE // 2 if (shifted(px, front_shift) // DAMASK_TILE) % 2 else 0
         top = (py + drop) // DAMASK_TILE * DAMASK_TILE - drop
         return top < scroll_bottom and top + DAMASK_TILE > scroll_top
 

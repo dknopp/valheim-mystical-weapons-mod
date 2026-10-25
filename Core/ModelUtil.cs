@@ -848,20 +848,7 @@ namespace MysticalWeapons
         }
 
         /// <summary>Copies an icon out of its (unreadable) atlas via the GPU.</summary>
-        private static Texture2D ReadableIcon(Sprite source)
-        {
-            var src = source.texture;
-            var rect = source.textureRect;
-            var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32);
-            var previous = RenderTexture.active;
-            Graphics.Blit(src, rt);
-            RenderTexture.active = rt;
-            var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
-            tex.ReadPixels(rect, 0, 0);
-            RenderTexture.active = previous;
-            RenderTexture.ReleaseTemporary(rt);
-            return tex;
-        }
+        private static Texture2D ReadableIcon(Sprite source) => ReadableCopy(source.texture, source.textureRect, false);
 
         private struct TexturedTri
         {
@@ -894,14 +881,18 @@ namespace MysticalWeapons
         }
 
         /// <summary>A readable copy of any texture (even an unreadable game texture), made via the GPU.</summary>
-        public static Texture2D ReadableCopy(Texture source)
+        public static Texture2D ReadableCopy(Texture source) =>
+            ReadableCopy(source, new Rect(0, 0, source.width, source.height), true);
+
+        /// <summary>A readable copy of part of a texture (an icon in its atlas), made via the GPU.</summary>
+        private static Texture2D ReadableCopy(Texture source, Rect rect, bool mipmaps)
         {
             var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
             var previous = RenderTexture.active;
             Graphics.Blit(source, rt);
             RenderTexture.active = rt;
-            var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true);
-            tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, mipmaps);
+            tex.ReadPixels(rect, 0, 0);
             RenderTexture.active = previous;
             RenderTexture.ReleaseTemporary(rt);
             return tex;

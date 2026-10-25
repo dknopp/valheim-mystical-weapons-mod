@@ -336,6 +336,7 @@ namespace MysticalWeapons.Armor
         protected override ModelUtil.IconColour[] IconColours => new[] { new ModelUtil.IconColour(float.MinValue, IconSlate, 0.42f) };
 
         private ConfigEntry<Color> _lining;
+        private Texture2D _liningTexture;
 
         public override void BindConfig(ConfigFile cfg)
         {
@@ -352,7 +353,6 @@ namespace MysticalWeapons.Armor
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
-            Texture2D lining = null;
             foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -360,11 +360,12 @@ namespace MysticalWeapons.Armor
                 var outside = mats[0];
                 var prop = outside.HasProperty("_StyleTex") && outside.GetTexture("_StyleTex") ? "_StyleTex" : "_MainTex";
                 if (!outside.HasProperty(prop) || !outside.GetTexture(prop)) continue;
-                if (!lining) lining = Lining(outside.GetTexture(prop));
+                // Once per game: Setup runs again on each ObjectDB load, over the same painted texture
+                if (!_liningTexture) _liningTexture = Lining(outside.GetTexture(prop));
                 outside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
                 var inside = new Material(outside) { name = outside.name + "_lining" };
                 inside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Front);
-                inside.SetTexture(prop, lining);
+                inside.SetTexture(prop, _liningTexture);
                 if (inside.HasProperty("_MetallicGlossMap")) inside.SetTexture("_MetallicGlossMap", null);
                 if (inside.HasProperty("_Metallic")) inside.SetFloat("_Metallic", 0f);
                 r.sharedMaterials = new[] { outside, inside };

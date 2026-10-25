@@ -68,6 +68,14 @@ namespace MysticalWeapons.Armor
                 var extra = Mathf.Max(needed, total * hit.m_backstabBonus - total);
                 hit.m_backstabBonus = 1f;
                 hit.m_damage.m_damage += extra;
+                // Only bosses need an entry past the cooldown, so drop the rest as they expire
+                if (LastAssassinated.Count > 64)
+                {
+                    var expired = new List<ZDOID>();
+                    foreach (var pair in LastAssassinated)
+                        if (Time.time - pair.Value >= Cooldown && !ZNetScene.instance?.FindInstance(pair.Key)) expired.Add(pair.Key);
+                    foreach (var key in expired) LastAssassinated.Remove(key);
+                }
                 LastAssassinated[id] = Time.time;
                 __instance.m_backstabHitEffects.Create(hit.m_point, Quaternion.identity, __instance.transform);
                 Plugin.Log.LogInfo($"{HiddenBlades.Id}: assassinated {__instance.m_name} (level {__instance.GetLevel()}, base health " +

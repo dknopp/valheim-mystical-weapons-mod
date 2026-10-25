@@ -111,7 +111,8 @@ namespace MysticalWeapons
 
             if (shared.m_icons != null && shared.m_icons.Length > 0)
             {
-                Icon = (IconColours != null ? ModelUtil.RemapIcon(shared.m_icons[0], IconColours)
+                var colours = IconColours;
+                Icon = (colours != null ? ModelUtil.RemapIcon(shared.m_icons[0], colours)
                     : ModelUtil.RecolorIcon(shared.m_icons[0], Tint, Glow)) ?? shared.m_icons[0];
                 shared.m_icons = new[] { Icon };
             }
