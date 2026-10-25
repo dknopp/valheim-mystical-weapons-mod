@@ -44,6 +44,10 @@ items tables current when items change. Developer docs are in `docs/`.
   downloaded on each run, so a PR that doesn't compile fails there. Test behaviour by launching
   Valheim from the Gale test profile, then check `BepInEx/LogOutput.log` there for
   `Loaded N mystical items.` and for errors or warnings from this mod.
+- Hands-off test: `tools/DevAutoRun/run.ps1` launches the test profile, loads the test world,
+  runs the checks in `tools/DevAutoRun/Probes.cs`, quits without saving and prints the log
+  (exit 0 = pass). Run it after a code change, before asking a maintainer to test in game.
+  Dev-only plugin, never packaged. Details in `docs/contributing.md`.
 - Publishing (`publish.yml`, packaged from `thunderstore.toml`): every push to `develop` publishes
   the `MysticalWeapons_BETA` Thunderstore package for play testing; a `v<Version>` tag on `main`
   publishes the stable `MysticalWeapons` package and a GitHub release.
