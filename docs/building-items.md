@@ -188,6 +188,70 @@ valheim.tools and valheim.weirdgloop.org.
   texture and particles, so its material on another mesh draws nothing. For a see-through look, put a
   copy of each part's own texture on `Sprites/Default` (`ModelUtil.SpectralMaterial`).
 
+### Armour sets on vanilla bases (the Brotherhood)
+- **Pick bases from grey renders on the player.** Each candidate base looks different worn than in its
+  icon; grey shape renders side by side settled hood, robe, legs and cape in one pass. The mesh doesn't
+  set the tier: stats, station and recipe are ours.
+- **Clear what the clone carries:** its set bonus, eitr regeneration, speed penalty and resistances
+  (`m_setStatusEffect`, `m_eitrRegenModifier`, `m_movementModifier`, `m_damageModifiers`), or they
+  come along unseen. The Lox cape's frost resistance would have.
+- **Pieces from different vanilla families clip.** A cape is a separate mesh the game never bends around
+  the chest piece; each vanilla cape is shaped for its own family. The Embla robe's tails went through
+  the linen cape when crouching, exactly as with the vanilla pieces. A longer, wider cape (Lox) fixed
+  it; check crouched, from behind, with the candidates rendered side by side.
+- **Vanilla allows one set bonus, at the full set.** `Core/ArmorSet` grants a bonus per piece count and
+  shows one status icon (the highest tier's) plus a set block on every piece's tooltip.
+- **Tooltips:** the game's tooltip ends in blank lines; trim them before adding a block. Don't repeat in
+  an item's description what a bonus line already says.
+- **A centre-screen message** is `Character.Message(MessageHud.MessageType.Center, text)`. Anything
+  tied to crouching needs a cooldown: sneaking is crouching on and off.
+
+### Painting our own textures on vanilla meshes
+- A tint colours a whole piece one way. For a mix (cloth, leather, metal, a red lining) paint our own
+  texture on the vanilla texture's layout: its opaque islands are the mesh's parts. Read the vanilla
+  textures from the game on our own machines (`ModelUtil.ReadableCopy`), never commit them, and number
+  the islands from a colour-coded render before painting.
+- The vanilla textures are 128 px; most of their blockiness is in the **normal maps**, not the colour.
+  Enlarging and blurring a normal map smooths it, but a whole-texture blur pulls the empty space between
+  islands into their edges, which lights every UV seam as a line. Fine on big islands (robe, boots);
+  on a patchwork it isn't worth it (the hood kept the vanilla one).
+- **Check a mesh's UV layout before planning painted detail.** The Eitr-weave hood's texture is a
+  patchwork of small pieces packed into one island: painted trim ran along the gaps (a stripe over the
+  crown), and a repeating pattern broke at every join because the pieces are smaller than one motif.
+  Tone under the vanilla shading was the most that hood could take; detail there needs our own model.
+- To see which texel shows where on a non-readable mesh: render it unlit (lights off, ambient black)
+  with a texture whose colour encodes its own texel coordinates, from several sides. Neighbouring pixels
+  that jump far apart on the texture are seams; texels seen against the background are real edges. It
+  placed a mirrored ornament exactly, but couldn't fix the shading along the mesh's own crease
+  (kept on branch `brotherhood-hood-ornament`).
+- Pillow's `resize` premultiplies alpha: resize colour and alpha apart when alpha isn't transparency
+  (ours is how much vanilla shading to keep), or alpha-0 areas go black.
+- Both sides of a cape share one texture. A lining is a second material on the same mesh drawing only
+  the inside; build its texture from the outside one to keep the cut-outs (a ragged hem), and mask it
+  so fur and clasps aren't lined.
+- Inherited `_Metallic` 1 with nothing to reflect renders black: set leather and cloth to 0.
+- A repeating pattern sits wherever the texture puts it: shift it per panel to centre it, and leave it
+  out behind bold motifs.
+- **Icons:** a white tint makes the vanilla icon near-white. Recolour its parts by how red they are
+  (`ModelUtil.RemapIcon`) at load; recoloured vanilla icons can't be committed.
+
+### Small models and effort
+- A model a few centimetres on screen doesn't need Blender: the hidden blades stayed code-built. What
+  reads at that size is the silhouette, which way the flat faces the camera (stood on its edge, the
+  blade showed as a dagger from behind, not a line) and contrast: a steel housing beside the blade read
+  as one long blade; leather that blends into the glove fixed it.
+- A wrist frame isn't mirrored between the arms, so a model has to be symmetric across X there: any tilt
+  but 0 or 90 degrees turns the two blades opposite ways.
+- When detail fights the vanilla mesh, stop early and fall back to its own shading; note the attempt and
+  why it failed so the next one starts from there.
+
+### Testing without playing
+- The DevAutoRun launch (load the test world, run, quit) plus a temporary render script
+  (`references/<item>/DevRender.cs.txt`, copied to the repo root while used) gives orthographic in-engine
+  renders of the worn set from any side, crouched (`m_crouchToggled`) or with other gear swapped in.
+  Raise DevAutoRun's `SettleSeconds` while it runs, and judge colours side by side in one run: the sky's
+  light changes them between runs.
+
 ### Multiplayer
 - Show an effect to everyone by working it out on every client from synced state: the equipment
   hashes in `VisEquipment` (`m_currentShoulderItemHash`, `m_currentRightItemHash`...) and the crouch
