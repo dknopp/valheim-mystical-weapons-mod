@@ -17,7 +17,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | **Sulfuras, Hand of Ragnaros** | ![Sulfuras in hand, flames licking off its head](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-wielded.jpg) | ![Sulfuras slung on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-holstered.jpg) |
 | **Shardblade and Shardplate** | ![Shardblade held two-handed by a wearer of the full Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-wielded.jpg) | ![Shardblade on the back of the Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-holstered.jpg) |
 
-<!-- The latest big addition (a new item or set, or a major rework) that has a GIF or screenshots; not fixes or small changes. The next one replaces it, and this one's media moves to its own section below. -->
+<!-- Optional: the latest big addition (a new item or set, or a major rework) that has a GIF or screenshots; not fixes or small changes. The next one replaces it, and this one's media moves to its own section below. -->
 ## Newest: The Brotherhood (Assassin's Creed)
 
 <img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif" width="100%" alt="A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box">
