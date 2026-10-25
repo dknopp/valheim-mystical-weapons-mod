@@ -23,6 +23,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 <img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif" width="100%" alt="A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box">
 
 A stealth set with Eagle Vision, the Leap of Faith and assassinations with the Hidden Blades.
+Full set details below.
 
 ## Items
 
