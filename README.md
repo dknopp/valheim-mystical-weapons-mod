@@ -70,7 +70,7 @@ which bonuses you have.
   rising to a kill as your Unarmed and Sneak skills reach 80. The biggest (Seeker soldiers, Morgen,
   frost trolls, Hildir's bosses) lose 25% to 50%, and bosses 10% to 20%, once per summoning.
 
-| | |
+| Full set | Eagle Vision |
 |---|---|
 | ![An assassin in the full Brotherhood set crouched on a tower beam](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-hero.jpg) | ![Eagle Vision: a hidden creature glowing red through a tower post](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-eaglevision.jpg) |
 
