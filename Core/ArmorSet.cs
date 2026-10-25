@@ -18,8 +18,8 @@ namespace MysticalWeapons
         public readonly string Name;
         private readonly string[] _pieceOrder;
         private readonly HashSet<string> _pieces;
-        /// <summary>Items that aren't pieces but show the one bonus they're needed for (a weapon), and that bonus's tier.</summary>
-        private readonly Dictionary<string, int> _shownOn = new Dictionary<string, int>();
+        /// <summary>Items that aren't pieces but show the set's block, as a bonus needs them (a weapon).</summary>
+        private readonly HashSet<string> _shownOn = new HashSet<string>();
         /// <summary>Pieces needed, and the bonus they grant.</summary>
         private readonly SortedDictionary<int, StatusEffect> _tiers = new SortedDictionary<int, StatusEffect>();
 
@@ -33,8 +33,8 @@ namespace MysticalWeapons
 
         public void SetBonus(int pieces, StatusEffect effect) => _tiers[pieces] = effect;
 
-        /// <summary>Show the set's name, the pieces worn and the bonus for <paramref name="tier"/> pieces on another item.</summary>
-        public void ShowOn(string prefabName, int tier) => _shownOn[prefabName] = tier;
+        /// <summary>Show the set's block on another item too.</summary>
+        public void ShowOn(string prefabName) => _shownOn.Add(prefabName);
 
         public void Register(ObjectDB db)
         {
@@ -86,10 +86,9 @@ namespace MysticalWeapons
 
         /// <summary>
         /// The set's block for an item tooltip, as Diablo shows sets: the pieces (grey if you aren't wearing them) and
-        /// each bonus by the pieces it needs (orange once you have it, grey until then). With <paramref name="onlyTier"/>,
-        /// just the name, the pieces worn and that one bonus: for an item the bonus needs, whose own stats come first.
+        /// each bonus by the pieces it needs (orange once you have it, grey until then).
         /// </summary>
-        private string Tooltip(int onlyTier = 0)
+        private string Tooltip()
         {
             var worn = new HashSet<string>();
             var inventory = Player.m_localPlayer ? Player.m_localPlayer.GetInventory() : null;
@@ -100,7 +99,7 @@ namespace MysticalWeapons
 
             var text = new StringBuilder();
             text.Append($"\n\n<color={HeaderColour}>{Name} ({count}/{_pieceOrder.Length})</color>");
-            foreach (var piece in onlyTier > 0 ? new string[0] : _pieceOrder)
+            foreach (var piece in _pieceOrder)
             {
                 var prefab = ObjectDB.instance ? ObjectDB.instance.GetItemPrefab(piece) : null;
                 var name = prefab && prefab.GetComponent<ItemDrop>() ? prefab.GetComponent<ItemDrop>().m_itemData.m_shared.m_name : piece;
@@ -108,7 +107,7 @@ namespace MysticalWeapons
             }
             foreach (var tier in _tiers)
             {
-                if (!tier.Value || (onlyTier > 0 && tier.Key != onlyTier)) continue;
+                if (!tier.Value) continue;
                 var have = count >= tier.Key;
                 text.Append($"\n<color={(have ? HaveColour : MissingColour)}>({tier.Key}) {tier.Value.m_name}</color>");
                 text.Append(have ? $"\n  {tier.Value.m_tooltip}" : $"\n  <color={MissingColour}>{tier.Value.m_tooltip}</color>");
@@ -131,8 +130,8 @@ namespace MysticalWeapons
                 if (prefab == null) return;
                 foreach (var set in Sets)
                 {
-                    if (set._pieces.Contains(prefab)) __result += set.Tooltip();
-                    else if (set._shownOn.TryGetValue(prefab, out var tier)) __result += set.Tooltip(tier);
+                    // The game's tooltip can end in blank lines; the block brings its own one
+                    if (set._pieces.Contains(prefab) || set._shownOn.Contains(prefab)) __result = __result.TrimEnd() + set.Tooltip();
                 }
             }
         }

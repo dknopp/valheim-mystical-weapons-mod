@@ -765,17 +765,7 @@ namespace MysticalWeapons
         {
             try
             {
-                var src = source.texture;
-                var rect = source.textureRect;
-                var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32);
-                var previous = RenderTexture.active;
-                Graphics.Blit(src, rt);
-                RenderTexture.active = rt;
-                var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
-                tex.ReadPixels(rect, 0, 0);
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
-
+                var tex = ReadableIcon(source);
                 var pixels = tex.GetPixels();
                 for (var i = 0; i < pixels.Length; i++)
                 {
@@ -798,6 +788,79 @@ namespace MysticalWeapons
                 Plugin.Log.LogWarning($"Could not recolour icon {source.name}: {e.Message}");
                 return null;
             }
+        }
+
+        /// <summary>One colour of a vanilla icon and what it becomes (see <see cref="RemapIcon"/>).</summary>
+        public struct IconColour
+        {
+            /// <summary>Pixels at least this red ((r - g) over brightness) take this rule; the first match wins.</summary>
+            public float MinRedness;
+            /// <summary>The colour that pixels of <see cref="SourceBrightness"/> become; others scale with their own brightness. Clear keeps them.</summary>
+            public Color Target;
+            public float SourceBrightness;
+
+            public IconColour(float minRedness, Color target, float sourceBrightness)
+            {
+                MinRedness = minRedness;
+                Target = target;
+                SourceBrightness = sourceBrightness;
+            }
+        }
+
+        /// <summary>
+        /// Copies a vanilla icon and recolours its parts, told apart by how red they are (red cloth, brown leather, grey
+        /// cloth...): each pixel takes the first rule it is red enough for, keeping its shading. For a piece whose colours
+        /// come from our own textures, so its icon matches. Returns null if the copy fails.
+        /// </summary>
+        public static Sprite RemapIcon(Sprite source, IconColour[] rules)
+        {
+            try
+            {
+                var tex = ReadableIcon(source);
+                var pixels = tex.GetPixels();
+                for (var i = 0; i < pixels.Length; i++)
+                {
+                    var c = pixels[i];
+                    if (c.a <= 0f) continue;
+                    var brightness = 0.3f * c.r + 0.59f * c.g + 0.11f * c.b;
+                    var redness = (c.r - c.g) / (brightness + 0.004f);
+                    foreach (var rule in rules)
+                    {
+                        if (redness < rule.MinRedness) continue;
+                        if (rule.Target.a > 0f)
+                        {
+                            var k = brightness / rule.SourceBrightness;
+                            pixels[i] = new Color(Mathf.Clamp01(rule.Target.r * k), Mathf.Clamp01(rule.Target.g * k),
+                                Mathf.Clamp01(rule.Target.b * k), c.a);
+                        }
+                        break;
+                    }
+                }
+                tex.SetPixels(pixels);
+                tex.Apply();
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogWarning($"Could not remap icon {source.name}: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>Copies an icon out of its (unreadable) atlas via the GPU.</summary>
+        private static Texture2D ReadableIcon(Sprite source)
+        {
+            var src = source.texture;
+            var rect = source.textureRect;
+            var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32);
+            var previous = RenderTexture.active;
+            Graphics.Blit(src, rt);
+            RenderTexture.active = rt;
+            var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
+            tex.ReadPixels(rect, 0, 0);
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+            return tex;
         }
 
         private struct TexturedTri

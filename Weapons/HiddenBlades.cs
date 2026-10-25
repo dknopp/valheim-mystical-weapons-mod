@@ -14,8 +14,8 @@ namespace MysticalWeapons.Weapons
         public override string PrefabName => Id;
         public override string[] SourcePrefabs => new[] { "FistFenrirClaw" };
         public override string DisplayName => "Hidden Blades";
-        public override string Description =>
-            "A blade under each wrist, unseen until it strikes.\n\nUnarmed levels faster with them in hand.";
+        // The Unarmed bonus is in the tooltip already, under its equip effect
+        public override string Description => "A blade under each wrist, unseen until it strikes.";
 
         // The Flesh Rippers' total (slash 60, +4 a level), mostly pierce for a stabbing blade
         protected override string DefaultDamage => "slash:20,pierce:40";

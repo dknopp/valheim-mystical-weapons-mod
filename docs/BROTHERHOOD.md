@@ -15,7 +15,7 @@ a sash, tall boots and a crisp cape.
 | Hood | Eitr-weave hood (`HelmetMage`) | The only hood whose peak hangs over the face, with a clasp at the throat | Troll leather hood |
 | Robes | Embla robe (`ArmorMageChest_Ashlands`) | Fitted and belted, with split front and back tails to the knee | Deep North mage robe (has its own hood, clashes with the hood slot) |
 | Legs | Eitr-weave legs (`ArmorMageLegs`) | Fitted trousers, tall boots, a thigh strap | Troll leather legs |
-| Cape | Linen cape (`CapeLinen`) | Clean and crisp, like the hero reference; the torn hide capes read too rough | Troll hide cape |
+| Cape | Lox cape (`CapeLox`), changed in 4c from the linen cape | Long and wide enough to hide the robe's tails when crouching, which the linen cape let through; its fur collar is in the hero reference too. Its hem is ragged; repainted it looks fine | Linen cape (`CapeLinen`) |
 | Hidden blades | Flesh Rippers (`FistFenrirClaw`) | Mountain-tier fist weapon; punches read as a hidden-blade stab; the model rides on the forearms | Skoll and Hati (Mistlands knives) |
 
 The Fenris hood, the first idea for the cowl, reads as shaggy fur, not cloth, so it was dropped.
@@ -24,8 +24,8 @@ look like one outfit. The mesh doesn't set the tier (see below). Cloning these c
 bonuses (eitr regeneration, any vanilla set), which we clear, as Shardplate does.
 
 **How the look is made** (chunk 4b, 2026-10-24): our own textures painted on the vanilla meshes, after
-the hero reference: a slate hood that keeps the vanilla shading, slate coat and cape with muted pewter edge trims, charcoal
-trousers and side tails, brown leather (belt, pouch, straps, bracers, gloves, boots) with its own grain
+the hero reference: a dark grey hood that keeps the vanilla shading, slate coat and cape with muted pewter edge trims
+(the cape a dark fur collar), charcoal trousers and dark grey side tails, brown leather (belt, pouch, straps, bracers, gloves, boots) with its own grain
 and worn edges, and a red sash and cape lining. A tint alone colours a whole piece one way, which
 can't give that mix. The textures are in `models/textures/`, painted by
 `tools/textures/paint_brotherhood.py` on the vanilla textures' layouts (read from the game on our own
@@ -36,8 +36,9 @@ What we found:
   the belt. A band painted on the vest itself showed through the cape when crouching. The
   undershirt's neck is charcoal, a dark scarf under the hood.
 - The cape's two sides share one texture, so the lining is a second material on the same mesh that
-  draws only the inside (`LiningColour` in config). Its shoulder flaps share the hem's texture area,
-  so there is no hem.
+  draws only the inside (`LiningColour` in config). It keeps the texture's cut-outs (the Lox cape's
+  ragged hem), and a mask from the paint script keeps it to the hide, so the fur collar's tufts aren't
+  red underneath.
 - The undershirt and sleeves had chainmail in their normal and metal maps; they get a fine linen weave
   instead (our own, not the cape's, which is a bark texture). The vanilla mage hood shines like metal;
   only its clasps do now.
@@ -71,7 +72,7 @@ Custom models only if a shape still looks wrong in game once the textures are on
 ## Tier and recipe
 
 - **Mountains.** Armour matches the Fenris pieces: 10 each (+2 per level), read from the game on
-  2026-10-24; the cape takes the linen cape's 1 (+1).
+  2026-10-24; the cape takes the linen and Lox capes' 1 (+1), without the Lox cape's frost resistance.
 - **Workbench level 2 for every piece,** as Fenris. The bases' Galdr table (Eitr-weave, Embla) can't
   be built until the Mistlands, so their stations would lock a Mountain set out of its biome.
 - **Recipes:** wolf hair bundles, wolf pelts, leather scraps and a little silver (clasp, belt, cape
@@ -140,6 +141,7 @@ Custom models only if a shape still looks wrong in game once the textures are on
 | Eagle Vision range | 30 m |
 | Eagle Vision on, and its colours | on; red hostile, gold starred |
 | Eagle Vision opacity in sight, behind walls | 10%, 70% |
+| Eagle Vision message on, and how often | on; at most every 30 s |
 | Assassination on | on |
 | Giant: base health from | 500 |
 | 2-star and giant share at no skill | 50% |
@@ -185,9 +187,11 @@ Custom models only if a shape still looks wrong in game once the textures are on
   bonuses below it still apply. The blades' Unarmed bonus has no icon.
 - **Set tooltip:** as Diablo shows sets, every piece ends its tooltip with the set: the pieces (grey
   if not worn) and each bonus by the pieces it needs (orange once you have it, grey until then). The
-  hidden blades show only the set name, the pieces worn and the 4-piece bonus, since their own weapon
-  stats already make a long tooltip. `ArmorSet` builds it, so later sets get it too. Piece descriptions
-  keep only their lore.
+  hidden blades show the whole block too (a shortened one, tried first, hid the set). `ArmorSet` builds
+  it after the game's own tooltip, trimmed of its trailing blank lines, so later sets get it too. Item
+  descriptions keep only their lore; what a bonus does is in its own line.
+- **Eagle Vision message:** its name shows mid-screen (the game's centre message) as it comes on with a
+  crouch, at most every 30 seconds, since sneaking is crouching on and off.
 
 ## Balance check (2026-10-24)
 
@@ -235,6 +239,8 @@ Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
      the camera behind the player sees its flat, sliding out of a short leather sheath sunk into the bracer,
      cool steel. No weapon effect: the vanilla backstab burst already marks an assassination (bloodied blades
      after one is an idea for play testing). Holstering hides them, which reads as retracting. Also the
-     plain hood (above), the stronger damask and the hood as the set icon.
+     plain hood (above), the stronger damask and the hood as the set icon; after the first in-game look,
+     the Lox cape, a darker hood and side tails, the Eagle Vision message and the full set block on the
+     blades' tooltip.
 5. Later: our own emblem for the set's status icon, in the spirit of the Assassin's Creed crest but
    not the crest itself (Ubisoft's trademark; our art is CC BY in a public repo).

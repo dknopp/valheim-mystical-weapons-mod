@@ -58,12 +58,12 @@ which bonuses you have.
 | **Brotherhood Hood** | A peaked hood that shades the eyes (based on the Eitr-weave hood). Fenris armour. | Workbench 2 |
 | **Brotherhood Robe** | A belted coat with split tails (based on the Embla robe). Fenris armour, resistant to frost. | Workbench 2 |
 | **Brotherhood Legs** | Fitted trousers and tall boots (based on the Eitr-weave legs). Fenris armour. | Workbench 2 |
-| **Brotherhood Cape** | A crisp cape (based on the linen cape). | Workbench 2 |
+| **Brotherhood Cape** | A long cape with a fur collar and a red lining (based on the Lox cape, without its frost resistance). | Workbench 2 |
 | **Hidden Blades** | A blade under each wrist (Unarmed skill, the Flesh Rippers' damage, mostly pierce). Unarmed levels 50% faster with them in hand. They don't count towards the set. | Forge 3 |
 
 - **2 pieces, Unseen Step:** sneak 25% faster, quieter and harder to see, for half the stamina; Sneak levels faster.
 - **3 pieces, Eagle Vision:** while crouched, hostile creatures within 30 m glow through walls on
-  your screen, red, or gold if starred.
+  your screen, red, or gold if starred. Its name shows mid-screen as it comes on (at most every 30 s).
 - **4 pieces, Creed:** *Leap of Faith*: no fall damage, and you land a long fall in a roll.
   *Assassination*, with the hidden blades in hand: a hit on a creature that hasn't noticed you
   kills it. 2-star creatures and big ones (trolls, Lox, Abominations...) lose half their health,

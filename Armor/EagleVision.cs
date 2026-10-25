@@ -114,9 +114,12 @@ namespace MysticalWeapons.Armor
             public ConfigEntry<Color> HostileColour;
             public ConfigEntry<Color> StarredColour;
             public ConfigEntry<float> InSightOpacity;
+            public ConfigEntry<bool> Message;
+            public ConfigEntry<float> MessageCooldown;
             private readonly List<Character> _targets = new List<Character>();
             private readonly Dictionary<Character, Color> _show = new Dictionary<Character, Color>();
-            private float _nextFind, _nextSight;
+            private float _nextFind, _nextSight, _nextMessage;
+            private bool _crouched;
 
             public override void UpdateStatusEffect(float dt)
             {
@@ -126,8 +129,16 @@ namespace MysticalWeapons.Armor
                 {
                     if (Lit.Count > 0) Clear();
                     _nextFind = _nextSight = 0f; // light up at once on the next crouch
+                    _crouched = false;
                     return;
                 }
+                // Name it on screen as it comes on, but not every crouch: sneaking is crouching on and off
+                if (!_crouched && Message.Value && Time.time >= _nextMessage)
+                {
+                    m_character.Message(MessageHud.MessageType.Center, m_name);
+                    _nextMessage = Time.time + MessageCooldown.Value;
+                }
+                _crouched = true;
                 if (Time.time >= _nextFind)
                 {
                     _nextFind = Time.time + FindInterval;

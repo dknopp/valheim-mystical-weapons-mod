@@ -25,8 +25,10 @@ SIZE = 512
 # The hero reference's colours
 SLATE = (38, 48, 62)
 CHARCOAL = (42, 44, 47)
+DARK_GREY = (28, 30, 33)                         # the hood and side tails: darker than the coat, as the trousers read
 LEATHER = (92, 61, 39)
 DARK_LEATHER = (60, 40, 27)
+FUR = (58, 52, 47)                               # the cape's collar: dark grey-brown, as the hero reference's
 RED = (142, 27, 27)
 SILVER = (163, 167, 171)
 # Edge trims: muted pewter, a step lighter than the cloth they edge, unshaded (vanilla edges are bright)
@@ -93,7 +95,7 @@ def fold_map(seed=5):
 FOLDS = fold_map()
 
 
-def damask_map(tile=48):
+def damask_map(tile=48):  # DAMASK_TILE
     """Tone-on-tone damask over the whole texture (SIZE x SIZE, 0-1): our own scroll motif (mirrored spirals
     round a stem and a small leaf), repeated in half-drop rows as woven damask is. Drawn large and shrunk, so
     its lines stay soft."""
@@ -132,9 +134,18 @@ def cloth(rgb, px, py, d=None):
     return tuple(max(0, min(255, int(c * k))) for c in rgb)
 
 
-def damask(rgb, px, py):
-    """Cloth with the damask woven in: a lighter shade of itself, faint."""
-    return mix(rgb, tuple(min(255, int(c * 1.3 + 8)) for c in rgb), DAMASK[py][px] * 0.8)
+DAMASK_TILE = 48
+
+
+def damask(rgb, px, py, shift=0):
+    """Cloth with the damask woven in: a lighter shade of itself, faint. `shift` moves the pattern sideways."""
+    return mix(rgb, tuple(min(255, int(c * 1.3 + 8)) for c in rgb), DAMASK[py][(px - shift) % SIZE] * 0.8)
+
+
+def centred(pts, scale):
+    """The damask shift that runs a column of motifs down the middle of an island."""
+    x0, _, x1, _ = bbox(pts)
+    return int(round((x0 + x1 + 1) / 2 * scale - DAMASK_TILE / 2)) % DAMASK_TILE
 
 
 def mix(a, b, t):
@@ -274,10 +285,10 @@ def hood_and_boots(vanilla):
 
     def colour(i, pts, x, y, c, d):
         if i == 7:
-            # The hood: our slate under the vanilla shading, so its own trim shows in tone. Painting our own trim and
+            # The hood: our dark grey under the vanilla shading, so its own trim shows in tone. Painting our own trim and
             # damask didn't work: its texture is a patchwork of small pieces, so both broke along the joins (see
             # docs/BROTHERHOOD.md, "How the look is made").
-            return SLATE, 1.0
+            return DARK_GREY, 1.0
         if i in (1, 2, 3, 4):
             return DARK_LEATHER, 1.0             # rings: boot cuffs and straps
         if i != 0:
@@ -301,6 +312,17 @@ def robe(vanilla):
     """AshlandsMageArmor_d: chest front (2) and back (4), front tail (1), side tails (10), bracers (7),
     belt with pouch and cords (0), buckle (3); the rest are rings and studs."""
     scale = SIZE // vanilla.size[0]
+    # The front tail hangs down the middle, so its damask runs down its own centre, and leaves out the motifs
+    # that would sit behind the scroll at its hem
+    front = islands(vanilla)[1]
+    front_shift = centred(front, scale)
+    _, scroll_y, s = hem_spot(front, scale)
+    scroll_top, scroll_bottom = scroll_y - s * 3.1, scroll_y + s * 2.2
+
+    def under_scroll(px, py):
+        drop = DAMASK_TILE // 2 if ((px - front_shift) % SIZE // DAMASK_TILE) % 2 else 0
+        top = (py + drop) // DAMASK_TILE * DAMASK_TILE - drop
+        return top < scroll_bottom and top + DAMASK_TILE > scroll_top
 
     def colour(i, pts, x, y, c, d):
         if i in (1, 2, 4, 10):
@@ -310,8 +332,10 @@ def robe(vanilla):
             if 1.3 <= d <= 1.55 or cord(x, y, d, 1.85, 2.6):
                 return THREAD, 0.0
             px, py = int(x * scale), int(y * scale)
-            base = cloth(CHARCOAL if i == 10 else SLATE, px, py, d)
-            return (damask(base, px, py) if d > 2.9 else base), 0.0
+            base = cloth(DARK_GREY if i == 10 else SLATE, px, py, d)
+            if d <= 2.9 or (i == 1 and under_scroll(px, py)):
+                return base, 0.0
+            return damask(base, px, py, front_shift if i == 1 else 0), 0.0
         if i in (0, 7):
             return LEATHER, 1.0
         return SILVER, 0.5
@@ -336,12 +360,17 @@ def crest(img, box):
         d.line([cx, yy, cx + r * 0.45, yy - r * 0.25], fill=CHARCOAL + (255,), width=1)
 
 
-def hem_scroll(img, pts, field, scale):
-    """Our own scrollwork low on the front tail, kept inside the embroidered border."""
+def hem_spot(pts, scale):
+    """Where the front tail's scroll goes, in painted pixels: its centre and half-width (see scroll)."""
     x0, y0, x1, y1 = bbox(pts)
     row = int(y0 + (y1 - y0) * 0.72)
     xs = [x for x, y in pts if y == row]
-    scroll(img, field, (min(xs) + max(xs) + 1) / 2 * scale, row * scale, (max(xs) - min(xs) + 1) / 2 * scale * 0.42, 2.9)
+    return (min(xs) + max(xs) + 1) / 2 * scale, row * scale, (max(xs) - min(xs) + 1) / 2 * scale * 0.42
+
+
+def hem_scroll(img, pts, field, scale):
+    """Our own scrollwork low on the front tail, kept inside the embroidered border."""
+    scroll(img, field, *hem_spot(pts, scale), 2.9)
 
 
 def scroll(img, field, cx, cy, s, inside):
@@ -400,11 +429,16 @@ def legs_paint(vanilla):
     return paint(vanilla, colour, CHARCOAL, measure=(0,))[0]
 
 
-def cape_style():
-    """CapeLinen's style texture, sampled with the cape's own UVs: plain slate. Its shoulder flaps share the
-    hem's UVs, so there is no hem. Both sides share UVs too, so the red lining is a second material
-    (BrotherhoodCape in Armor/Brotherhood.cs)."""
-    return Image.new("RGBA", (SIZE, SIZE), SLATE + (255,))  # small ones tint it wrongly; keep the size
+def cape(vanilla):
+    """LoxCape_D: the hide (0) in plain slate cloth, the fur collar (1) dark and furred. The clasp (2) is the hide's
+    slate, so it blends in: it sits under the robe, and the hood's clasp is the set's brooch.
+    Both sides share the texture, so the red lining is a second material (BrotherhoodCape in Armor/Brotherhood.cs)."""
+    def colour(i, pts, x, y, c, d):
+        if i == 1:
+            return FUR, 1.0
+        return cloth(SLATE, int(x * SIZE / vanilla.size[0]), int(y * SIZE / vanilla.size[1])), 0.0
+
+    return paint(vanilla, colour, SLATE)[0]
 
 
 def normal_map(height, strength):
@@ -486,7 +520,12 @@ def main():
     robe(load("AshlandsMageArmor_d")).save(os.path.join(OUT, "BrotherhoodRobe_MainTex.png"))
     chest_paint(load("AshlandsMageArmorChest_d")).save(os.path.join(OUT, "BrotherhoodRobe_ChestTex.png"))
     legs_paint(load("MageArmorLegs_d")).save(os.path.join(OUT, "BrotherhoodLegs_LegsTex.png"))
-    cape_style().save(os.path.join(OUT, "BrotherhoodCape_StyleTex.png"))
+    lox = load("LoxCape_D")
+    cape(lox).save(os.path.join(OUT, "BrotherhoodCape_MainTex.png"))
+    metal_map(lox, set()).save(os.path.join(OUT, "BrotherhoodCape_MetallicGlossMap.png"))  # vanilla shines the hide
+    # Where the lining shows: the hide only, not the fur collar's tufts or the clasp
+    paint(lox, lambda i, pts, x, y, c, d: ((255, 255, 255) if i == 0 else (0, 0, 0), 1.0), (0, 0, 0))[0] \
+        .convert("L").save(os.path.join(OUT, "BrotherhoodCape_LiningMask.png"))
     # The boots' normal map, softened; the hood keeps the vanilla one (softening bled into the joins of its patchwork)
     smooth_normal(load("MageArmor_n")).save(os.path.join(OUT, "BrotherhoodLegs_BumpMap.png"))
     smooth_normal(load("AshlandsMageArmor_n")).save(os.path.join(OUT, "BrotherhoodRobe_BumpMap.png"))

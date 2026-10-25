@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -28,6 +29,8 @@ namespace MysticalWeapons.Armor
         private static ConfigEntry<Color> _hostileColour;
         private static ConfigEntry<Color> _starredColour;
         private static ConfigEntry<float> _inSightOpacity;
+        private static ConfigEntry<bool> _eagleVisionMessage;
+        private static ConfigEntry<float> _eagleVisionMessageCooldown;
         private static SE_Stats _creed;
         private static ConfigEntry<bool> _assassinationOn;
         private static ConfigEntry<bool> _leapOfFaith;
@@ -40,11 +43,16 @@ namespace MysticalWeapons.Armor
         protected override float DefaultArmor => 10f;  // as each Fenris piece
         protected override Color DefaultTint => Color.white;  // the colours are in our textures (models/textures)
 
+        // The icons' colours, as the textures look on an icon (brighter than painted, as the vanilla icons are lit)
+        protected static readonly Color IconSlate = new Color32(72, 87, 110, 255), IconDarkGrey = new Color32(66, 70, 78, 255),
+            IconLeather = new Color32(105, 72, 50, 255), IconCharcoal = new Color32(58, 60, 64, 255);
+        protected static readonly Color IconKeep = Color.clear;
+
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
             if (_sneakSpeed != null) return; // the set's own settings, once for all four pieces
-            Set.ShowOn(Weapons.HiddenBlades.Id, 4); // the full set's bonus needs them in hand
+            Set.ShowOn(Weapons.HiddenBlades.Id); // the full set's bonus needs them in hand
             _sneakSpeed = cfg.Bind(SetName, "SneakSpeed", 0.25f,
                 "2 pieces: extra speed while sneaking (0.25 = 25% faster). Restart to apply.");
             _sneakStamina = cfg.Bind(SetName, "SneakStaminaCost", -0.5f,
@@ -67,6 +75,10 @@ namespace MysticalWeapons.Armor
             _inSightOpacity = cfg.Bind(SetName, "EagleVisionInSightOpacity", 0.1f,
                 "3 pieces: how solid the glow is on creatures in plain sight (0 = none, 1 = solid colour), so you can " +
                 "still see which way they face. Applies the next time you crouch.");
+            _eagleVisionMessage = cfg.Bind(SetName, "EagleVisionMessage", true,
+                "3 pieces: show \"Eagle Vision\" mid-screen as it comes on when you crouch.");
+            _eagleVisionMessageCooldown = cfg.Bind(SetName, "EagleVisionMessageCooldown", 30f,
+                "3 pieces: seconds before the Eagle Vision message can show again, so sneaking doesn't repeat it.");
             _assassinationOn = cfg.Bind(SetName, "Assassination", true,
                 "4 pieces, hidden blades in hand: a hit on a creature that hasn't noticed you takes a share of its health " +
                 "(all of it for most). Restart to apply.");
@@ -138,6 +150,8 @@ namespace MysticalWeapons.Armor
                 _eagleVision.HostileColour = _hostileColour;
                 _eagleVision.StarredColour = _starredColour;
                 _eagleVision.InSightOpacity = _inSightOpacity;
+                _eagleVision.Message = _eagleVisionMessage;
+                _eagleVision.MessageCooldown = _eagleVisionMessageCooldown;
                 Set.SetBonus(3, _eagleVision);
             }
 
@@ -262,6 +276,11 @@ namespace MysticalWeapons.Armor
             "A peaked hood that keeps your eyes in shadow. Nothing is true; everything is permitted.";
         protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:2,LeatherScraps:5,Silver:2";
         protected override int[] IconTiers => new[] { 3, 4 };  // the set's face: Eagle Vision and the Creed
+        // The red hood dark grey; its clasp stays
+        protected override ModelUtil.IconColour[] IconColours => new[]
+        {
+            new ModelUtil.IconColour(0.3f, IconDarkGrey, 0.38f), new ModelUtil.IconColour(float.MinValue, IconKeep, 1f)
+        };
     }
 
     internal class BrotherhoodRobe : BrotherhoodPiece
@@ -272,6 +291,11 @@ namespace MysticalWeapons.Armor
         public override string Description =>
             "A fitted, belted coat with split tails, lined with wolf fur against the mountain cold.";
         protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:5,LeatherScraps:10,Silver:4";
+        // The brown pouch leather, the grey-blue cloth slate
+        protected override ModelUtil.IconColour[] IconColours => new[]
+        {
+            new ModelUtil.IconColour(0.25f, IconLeather, 0.31f), new ModelUtil.IconColour(float.MinValue, IconSlate, 0.37f)
+        };
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
@@ -290,19 +314,26 @@ namespace MysticalWeapons.Armor
         public override string Description =>
             "Close-fitting trousers and tall soft boots that make no sound on stone.";
         protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:5,LeatherScraps:10";
+        // The boots leather, the trousers charcoal
+        protected override ModelUtil.IconColour[] IconColours => new[]
+        {
+            new ModelUtil.IconColour(0.12f, IconLeather, 0.35f), new ModelUtil.IconColour(float.MinValue, IconCharcoal, 0.2f)
+        };
     }
 
     internal class BrotherhoodCape : BrotherhoodPiece
     {
         public override string PrefabName => "BrotherhoodCape";
-        public override string[] SourcePrefabs => new[] { "CapeLinen", "CapeDeerHide" };
+        // The Lox cape is long and wide enough to hide the robe's tails when crouching (the linen cape let them through)
+        public override string[] SourcePrefabs => new[] { "CapeLox", "CapeLinen" };
         public override string DisplayName => "Brotherhood Cape";
         public override string Description =>
-            "A crisp cape that falls without a rustle.";
-        protected override float DefaultArmor => 1f;  // as the linen cape
+            "A long cape with a fur collar that falls without a rustle.";
+        protected override float DefaultArmor => 1f;  // as the linen and Lox capes
         protected override float DefaultArmorPerLevel => 1f;
         protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:4,Silver:2";
         protected override int[] IconTiers => new[] { 2 };
+        protected override ModelUtil.IconColour[] IconColours => new[] { new ModelUtil.IconColour(float.MinValue, IconSlate, 0.42f) };
 
         private ConfigEntry<Color> _lining;
 
@@ -315,26 +346,56 @@ namespace MysticalWeapons.Armor
 
         /// <summary>
         /// Both sides of the cape share one texture, so the lining is a second material on the same mesh: the
-        /// first draws only the outside, the second only the inside, in the lining colour.
+        /// first draws only the outside, the second only the inside, in the lining colour. The lining keeps the
+        /// texture's cut-out (the Lox cape's ragged hem).
         /// </summary>
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             base.Setup(prefab, shared);
-            var lining = new Texture2D(2, 2) { name = PrefabName + "_lining" };
-            lining.SetPixels(new[] { _lining.Value, _lining.Value, _lining.Value, _lining.Value }, 0);
-            lining.Apply();
+            Texture2D lining = null;
             foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
-                if (mats.Length != 1 || !mats[0] || !mats[0].HasProperty("_Cull") || !mats[0].HasProperty("_StyleTex")) continue;
+                if (mats.Length != 1 || !mats[0] || !mats[0].HasProperty("_Cull")) continue;
                 var outside = mats[0];
+                var prop = outside.HasProperty("_StyleTex") && outside.GetTexture("_StyleTex") ? "_StyleTex" : "_MainTex";
+                if (!outside.HasProperty(prop) || !outside.GetTexture(prop)) continue;
+                if (!lining) lining = Lining(outside.GetTexture(prop));
                 outside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
                 var inside = new Material(outside) { name = outside.name + "_lining" };
                 inside.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Front);
-                inside.SetTexture("_StyleTex", lining);
+                inside.SetTexture(prop, lining);
+                if (inside.HasProperty("_MetallicGlossMap")) inside.SetTexture("_MetallicGlossMap", null);
+                if (inside.HasProperty("_Metallic")) inside.SetFloat("_Metallic", 0f);
                 r.sharedMaterials = new[] { outside, inside };
-                Plugin.Log.LogInfo($"{PrefabName}: lining on '{r.name}', shader {outside.shader.name}");
+                Plugin.Log.LogInfo($"{PrefabName}: lining on '{r.name}' through {prop}, shader {outside.shader.name}");
             }
+        }
+
+        /// <summary>
+        /// <paramref name="source"/> with the lining colour where "models/textures/BrotherhoodCape_LiningMask.png" is white
+        /// (the hide, not the fur collar or the clasp; everywhere without the mask), keeping its alpha so its cut-outs stay cut.
+        /// </summary>
+        private Texture2D Lining(Texture source)
+        {
+            var copy = ModelUtil.ReadableCopy(source);
+            var px = copy.GetPixels();
+            var maskPath = Path.Combine(ModelUtil.CustomModelDir, "textures", PrefabName + "_LiningMask.png");
+            var mask = File.Exists(maskPath) ? ModelUtil.LoadTexture(maskPath, linear: true) : null;
+            for (var y = 0; y < copy.height; y++)
+            for (var x = 0; x < copy.width; x++)
+            {
+                var i = y * copy.width + x;
+                var k = mask ? mask.GetPixelBilinear((x + 0.5f) / copy.width, (y + 0.5f) / copy.height).r : 1f;
+                var lined = Color.Lerp(px[i], _lining.Value, k);
+                px[i] = new Color(lined.r, lined.g, lined.b, px[i].a);
+            }
+            if (mask) Object.Destroy(mask);
+            var tex = new Texture2D(copy.width, copy.height, TextureFormat.RGBA32, true) { name = PrefabName + "_lining" };
+            tex.SetPixels(px);
+            tex.Apply(true);
+            Object.Destroy(copy);
+            return tex;
         }
     }
 }

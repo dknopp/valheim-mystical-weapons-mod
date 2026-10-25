@@ -23,6 +23,11 @@ namespace MysticalWeapons
         protected virtual float DefaultArmorPerLevel => 2f;
         protected abstract Color DefaultTint { get; }
         protected virtual Color DefaultGlow => Color.black;
+        /// <summary>
+        /// For a piece coloured by our own textures (white <see cref="Tint"/>): how to recolour the vanilla icon's parts
+        /// to match (see <see cref="ModelUtil.RemapIcon"/>). Null: the icon is tinted like the piece.
+        /// </summary>
+        protected virtual ModelUtil.IconColour[] IconColours => null;
         /// <summary>Rotation that turns a custom model's front towards its icon's camera.</summary>
         protected virtual Vector3 IconView => new Vector3(0f, 200f, 0f);
 
@@ -106,7 +111,8 @@ namespace MysticalWeapons
 
             if (shared.m_icons != null && shared.m_icons.Length > 0)
             {
-                Icon = ModelUtil.RecolorIcon(shared.m_icons[0], Tint, Glow) ?? shared.m_icons[0];
+                Icon = (IconColours != null ? ModelUtil.RemapIcon(shared.m_icons[0], IconColours)
+                    : ModelUtil.RecolorIcon(shared.m_icons[0], Tint, Glow)) ?? shared.m_icons[0];
                 shared.m_icons = new[] { Icon };
             }
 
