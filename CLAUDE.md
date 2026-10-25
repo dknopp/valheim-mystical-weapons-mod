@@ -56,7 +56,8 @@ items tables current when items change. Developer docs are in `docs/`.
 
 ## Adding an item
 Follow "Adding an item" in `docs/contributing.md`, add it to `Plugin.Items`, then add a row to the
-README items tables. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
+README items tables. An item with a GIF or screenshots takes the README's "Newest" section and the
+previous one's media moves down to its own section. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
 extra settings via `BindConfig`, Harmony patches nested in the item class. Lessons from earlier items
 (borrowed attacks, status effects, multiplayer) are under "Lessons" in `docs/building-items.md`.
 

@@ -113,6 +113,8 @@ Don't bump `Version` in `Plugin.cs` in a feature PR.
 2. **Armor:** subclass `MysticalArmor` in `Armor/` with a source armor piece, tint and glow colour.
 3. Add it to `Plugin.Items`.
 4. Add a row to the items tables in the [README](../README.md).
+5. If it comes with a GIF or screenshots, it takes the README's "Newest" section, just below
+   Screenshots. Move the previous newest item's media down to its own section in the items list.
 
 ### Item report
 

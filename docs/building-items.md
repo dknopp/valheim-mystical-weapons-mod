@@ -21,7 +21,7 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] Inventory icon reads at a glance
 - [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod
 - [ ] Effects show for other players on a server (at least before a release)
-- [ ] README items tables updated
+- [ ] README items tables updated; with a GIF or screenshots, it takes the "Newest" section
 - [ ] Changed defaults on an existing item: the PR says players must reset that item's config
       section (see Config below)
 - [ ] An existing item reads a setting in a new way (a new model or effect): tested with the value an
