@@ -72,8 +72,14 @@ namespace DevAutoRun
             _log.LogInfo($"DevAutoRun: spawned, settling {_settleSeconds.Value}s");
             yield return new WaitForSecondsRealtime(_settleSeconds.Value);
 
-            try { Probes.Run(_log); }
-            catch (Exception e) { Fail("probe threw " + e); yield break; }
+            // Stepped by hand: a yield can't sit inside a try
+            var probes = Probes.Run(_log);
+            while (true)
+            {
+                try { if (!probes.MoveNext()) break; }
+                catch (Exception e) { Fail("probe threw " + e); yield break; }
+                yield return probes.Current;
+            }
             Quit();
         }
 

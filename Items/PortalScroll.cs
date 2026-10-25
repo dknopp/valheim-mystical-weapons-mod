@@ -42,11 +42,17 @@ namespace MysticalWeapons.Items
         }
 
         private ConfigEntry<int> _stackSize;
+        private ConfigEntry<float> _castSeconds;
+        internal static ConfigEntry<float> TimeoutMinutes;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
             _stackSize = cfg.Bind(PrefabName, "StackSize", 20, "How many scrolls fit in one inventory slot.");
+            _castSeconds = cfg.Bind(PrefabName, "CastSeconds", 3f,
+                "Seconds between reading the scroll and the portal opening. Moving or taking damage doesn't stop it. 0 = instant.");
+            TimeoutMinutes = cfg.Bind(PrefabName, "TimeoutMinutes", 60f,
+                "Minutes before an unused pair of portals closes by itself. 0 = they stay until you come back through the home end or read another scroll.");
         }
 
         private OpenEffect _effect;
@@ -62,8 +68,10 @@ namespace MysticalWeapons.Items
             _effect.m_name = DisplayName;
             _effect.m_tooltip = "The gateway is opening.";
             _effect.m_icon = Icon;
-            // Short: it only keeps a second scroll from being read straight after the first
-            _effect.m_ttl = 3f;
+            // The effect's countdown is the cast. Instant still lasts a second, so one press can't read two scrolls
+            // (a ttl of 0 would never end).
+            _effect.m_ttl = _castSeconds.Value > 0f ? _castSeconds.Value : 1f;
+            _effect.Instant = _castSeconds.Value <= 0f;
             shared.m_consumeStatusEffect = _effect;
         }
 
@@ -79,13 +87,32 @@ namespace MysticalWeapons.Items
                 Plugin.Log.LogWarning($"{PrefabName}: another mod already registers '{portal.name}'; scrolls won't open portals");
         }
 
-        /// <summary>Reading the scroll (the game's mead path) applies this; adding it opens the pair.</summary>
+        /// <summary>
+        /// Reading the scroll (the game's mead path) applies this; the pair opens when it runs out, in front of wherever
+        /// the reader is then. Removed early (death, logging out), it opens nothing.
+        /// </summary>
         internal class OpenEffect : StatusEffect
         {
+            public bool Instant;
+            private bool _opened;
+
             public override void Setup(Character character)
             {
                 base.Setup(character);
-                if (character is Player player && player == Player.m_localPlayer) TownPortal.OpenPair(player);
+                if (Instant) Open();
+            }
+
+            public override void UpdateStatusEffect(float dt)
+            {
+                base.UpdateStatusEffect(dt);
+                if (IsDone()) Open();
+            }
+
+            private void Open()
+            {
+                if (_opened) return;
+                _opened = true;
+                if (m_character is Player player && player == Player.m_localPlayer) TownPortal.OpenPair(player);
             }
         }
     }

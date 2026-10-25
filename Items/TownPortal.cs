@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using HarmonyLib;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -9,6 +11,9 @@ namespace MysticalWeapons.Items
     /// recoloured D2 blue, with no frame. Each end keeps its destination in its ZDO, so it works when the other end
     /// isn't loaded, and sends whoever steps in there with the game's own teleport. Not a <c>TeleportWorld</c>: tag
     /// pairing could link strangers' portals to ours and it shows a "Set tag" prompt.
+    /// Closing: every end records who read the scroll and when. Closing a pair (the reader coming back through the
+    /// home end, or reading another scroll) tells every peer "this reader's ends opened before T are closed"; each
+    /// removes the ends it holds, and an end that loads later checks the same cutoff, and the timeout, before it shows.
     /// </summary>
     internal static class TownPortal
     {
@@ -22,6 +27,13 @@ namespace MysticalWeapons.Items
         internal const string PairKey = "mw_portal_pair";
         internal const string OwnerKey = "mw_portal_owner";
         internal const string SnapKey = "mw_portal_snap";
+        internal const string HomeKey = "mw_portal_home";
+        internal const string OpenedKey = "mw_portal_opened";
+
+        private const string CloseRpc = "MysticalWeapons_PortalScroll_Close";
+
+        /// <summary>Per reader: their ends opened before this (world time, ticks) are closed. Kept for this world session only.</summary>
+        private static readonly Dictionary<long, long> Cutoffs = new Dictionary<long, long>();
 
         /// <summary>How far in front of the reader the field end opens.</summary>
         private const float FieldDistance = 2f;
@@ -120,6 +132,11 @@ namespace MysticalWeapons.Items
             var fieldRot = Quaternion.LookRotation(-facing);
             var homeRot = Quaternion.LookRotation(facing);
 
+            // A new scroll closes your old pair
+            var owner = player.GetPlayerID();
+            var opened = ZNet.instance.GetTime().Ticks;
+            Close(owner, opened);
+
             var field = Object.Instantiate(_prefab, fieldPos, fieldRot).GetComponent<ZNetView>().GetZDO();
 
             // The home end is only a ZDO for now: the game builds it when someone is near, and it finds its floor then
@@ -129,18 +146,77 @@ namespace MysticalWeapons.Items
             homeZdo.Persistent = true;
             homeZdo.SetRotation(homeRot);
             homeZdo.Set(SnapKey, true);
+            homeZdo.Set(HomeKey, true);
 
-            Link(field, homeZdo, home, homeRot, player.GetPlayerID());
-            Link(homeZdo, field, fieldPos, fieldRot, player.GetPlayerID());
+            Link(field, homeZdo, home, homeRot, owner, opened);
+            Link(homeZdo, field, fieldPos, fieldRot, owner, opened);
             Plugin.Log.LogInfo($"{PrefabName}: opened {fieldPos} <-> {home} for {player.GetPlayerName()}");
         }
 
-        private static void Link(ZDO end, ZDO other, Vector3 otherPos, Quaternion otherRot, long owner)
+        private static void Link(ZDO end, ZDO other, Vector3 otherPos, Quaternion otherRot, long owner, long opened)
         {
             end.Set(TargetKey, otherPos);
             end.Set(TargetRotKey, otherRot);
             end.Set(PairKey, other.m_uid);
             end.Set(OwnerKey, owner);
+            end.Set(OpenedKey, opened);
+        }
+
+        /// <summary>Closes every end <paramref name="owner"/> opened before <paramref name="before"/>, on every peer.</summary>
+        public static void Close(long owner, long before)
+        {
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, CloseRpc, owner, before);
+        }
+
+        private static void RPC_Close(long sender, long owner, long before)
+        {
+            Cutoff(owner, before);
+            var held = new List<ZDO>();
+            var index = 0;
+            while (!ZDOMan.instance.GetAllZDOsWithPrefabIterative(PrefabName, held, ref index)) { }
+            foreach (var zdo in held)
+                if (IsClosed(zdo)) Remove(zdo);
+        }
+
+        /// <summary>Only the newest pair per reader stays open: seeing one end closes anything older of theirs.</summary>
+        internal static void Seen(ZDO zdo) => Cutoff(zdo.GetLong(OwnerKey), zdo.GetLong(OpenedKey));
+
+        private static void Cutoff(long owner, long before)
+        {
+            if (!Cutoffs.TryGetValue(owner, out var cutoff) || before > cutoff) Cutoffs[owner] = before;
+        }
+
+        /// <summary>Closed by its reader (a later cutoff), or open longer than the timeout.</summary>
+        internal static bool IsClosed(ZDO zdo)
+        {
+            var opened = zdo.GetLong(OpenedKey);
+            if (Cutoffs.TryGetValue(zdo.GetLong(OwnerKey), out var cutoff) && opened < cutoff) return true;
+            var timeout = PortalScroll.TimeoutMinutes?.Value ?? 0f;
+            return timeout > 0f && ZNet.instance.GetTime().Ticks - opened > (long)(timeout * TimeSpan.TicksPerMinute);
+        }
+
+        /// <summary>Removes an end whoever owns it: claim it first, as vanilla's <c>WearNTear.Remove</c> does.</summary>
+        internal static void Remove(ZDO zdo)
+        {
+            var view = ZNetScene.instance.FindInstance(zdo);
+            if (view)
+            {
+                view.ClaimOwnership();
+                ZNetScene.instance.Destroy(view.gameObject);
+                return;
+            }
+            zdo.SetOwner(ZDOMan.GetSessionID());
+            ZDOMan.instance.DestroyZDO(zdo);
+        }
+
+        [HarmonyPatch(typeof(Game), "Start")]
+        private static class RegisterClose
+        {
+            private static void Postfix()
+            {
+                Cutoffs.Clear(); // world times differ between worlds
+                ZRoutedRpc.instance.Register<long, long>(CloseRpc, RPC_Close);
+            }
         }
 
         /// <summary>Where the game would respawn the player: their bed, else the world start (as <c>Game.FindSpawnPoint</c>).</summary>
@@ -182,13 +258,23 @@ namespace MysticalWeapons.Items
         {
             _nview = GetComponent<ZNetView>();
             if (_nview.GetZDO() == null) enabled = false;
+            else TownPortal.Seen(_nview.GetZDO());
         }
 
         private void Update()
         {
             if (!_nview.IsValid()) return;
             var zdo = _nview.GetZDO();
-            if (_nview.IsOwner() && zdo.GetBool(TownPortal.SnapKey)) Snap(zdo);
+            if (_nview.IsOwner())
+            {
+                // Closed or timed out while this area was unloaded
+                if (TownPortal.IsClosed(zdo))
+                {
+                    TownPortal.Remove(zdo);
+                    return;
+                }
+                if (zdo.GetBool(TownPortal.SnapKey)) Snap(zdo);
+            }
 
             var player = Player.m_localPlayer;
             if (!player) return;
@@ -226,6 +312,10 @@ namespace MysticalWeapons.Items
             var rot = zdo.GetQuaternion(TownPortal.TargetRotKey, Quaternion.identity);
             player.TeleportTo(target + rot * Vector3.forward * ExitDistance + Vector3.up, rot, true);
             _graceUntil = Time.time + ArrivalGrace;
+            // The reader heading back out through the home end closes the pair (D2's rule); anyone else leaves it open
+            var owner = zdo.GetLong(TownPortal.OwnerKey);
+            if (zdo.GetBool(TownPortal.HomeKey) && owner == player.GetPlayerID())
+                TownPortal.Close(owner, zdo.GetLong(TownPortal.OpenedKey) + 1);
         }
 
         /// <summary>The home end was placed at the bed's spawn point from afar; stand it on the floor once its area loads.</summary>
