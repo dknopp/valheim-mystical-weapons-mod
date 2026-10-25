@@ -71,6 +71,9 @@ extra settings via `BindConfig`, Harmony patches nested in the item class. Lesso
 - One branch per change, merged through a pull request into `develop`. `main` only takes PRs
   from `develop` (enforced by `.github/workflows/restrict-main-merges.yml`).
 - Review PRs with Claude Code's `/review <pr>` before asking the other maintainer to approve.
+- Write the PR description from `.github/pull_request_template.md` (Summary, Testing, Checklist). Item
+  PRs also link a views picture committed as `docs/images/<Prefab>-views.jpg` (see the checklist in
+  `docs/building-items.md`). Do both before opening the PR.
 - Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
 
 ## Rules
