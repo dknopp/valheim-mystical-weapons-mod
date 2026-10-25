@@ -27,7 +27,7 @@ namespace MysticalWeapons.Weapons
         // Mistlands, beside the Carapace spear (115 pierce)
         protected override string DefaultDamage => "pierce:110,lightning:30,chop:100,pickaxe:80";
         protected override string DefaultDamagePerLevel => "pierce:6,lightning:3";
-        protected override string DefaultRecipe => "Silver:10,Eitr:10,Crystal:8,Wisp:3"; // wisps, the nearest thing to spren
+        protected override string DefaultRecipe => "Silver:10,Eitr:10,Wisp:3"; // wisps, the nearest thing to spren
         protected override string DefaultStation => "blackforge";
         protected override int DefaultStationLevel => 2;
 

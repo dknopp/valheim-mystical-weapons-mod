@@ -24,7 +24,7 @@ namespace MysticalWeapons.Weapons
         // Mistlands, beside Mistwalker (75 slash + 40 frost): the summon is the late-game power
         protected override string DefaultDamage => "slash:100,spirit:40";
         protected override string DefaultDamagePerLevel => "slash:6,spirit:5";
-        protected override string DefaultRecipe => "SwordIron:1,BlackMetal:20,Eitr:12,Crystal:6"; // the shards of Narsil
+        protected override string DefaultRecipe => "SwordIron:1,BlackMetal:20,Eitr:12"; // the shards of Narsil
         protected override string DefaultStation => "blackforge";
         protected override int DefaultStationLevel => 2;
 

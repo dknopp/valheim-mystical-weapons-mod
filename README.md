@@ -94,6 +94,11 @@ with `spawn`). There you can turn the item off or change its recipe, crafting st
 more). The set bonuses have sections of their own: `Shardplate` (size, glow, storm strikes, carry
 weight) and `DeathlyHallows` (keeping your items as Master of Death).
 
+The crafting panel shows only four ingredients, and the boss trophy counts as one. Keep a custom
+`Recipe` to four entries, or three for an item that needs a trophy: anything past the fourth is still
+needed but not shown. If Andúril, the Sylspear, the Shardblade or the Elder Wand shows "missing
+ingredient" with everything listed in hand, delete that item's `Recipe` line to get the shorter default.
+
 - `[General] TexturedModels = false` turns off the textures borrowed from vanilla items (such as
   Sulfuras's flametal grain) for flat colours. Restart to apply.
 - After an update changes an item's defaults, your existing config keeps the old values. Delete

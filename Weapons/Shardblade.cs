@@ -18,7 +18,7 @@ namespace MysticalWeapons.Weapons
         // Mistlands, beside Krom (150 slash, black forge 1), which it is reforged from
         protected override string DefaultDamage => "slash:150,spirit:30,chop:100,pickaxe:80";
         protected override string DefaultDamagePerLevel => "slash:6,spirit:4";
-        protected override string DefaultRecipe => "THSwordKrom:1,Silver:20,Crystal:15,Eitr:10";
+        protected override string DefaultRecipe => "THSwordKrom:1,Silver:20,Eitr:10";
         protected override string DefaultStation => "blackforge";
         protected override int DefaultStationLevel => 2;
 

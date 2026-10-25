@@ -35,7 +35,7 @@ namespace MysticalWeapons.Hallows
         // be several times too strong, so the bolts read keys of their own and the old Damage is left unused
         protected override bool HasDamage => false;
         // Very late game (Deep North), so Master of Death comes last: a frozen branch for the elder, Elaking hair for the core
-        protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Gold:4,Eitr:20";
+        protected override string DefaultRecipe => "BarkaBranch:2,ElakingHairBundle:3,Eitr:20";
         protected override string DefaultStation => "piece_magetable";
         protected override int DefaultStationLevel => 5;
 
