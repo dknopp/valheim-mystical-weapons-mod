@@ -54,16 +54,25 @@ namespace MysticalWeapons.Armor
                 var done = cfg.Bind(SetName, "OldLookReset", false,
                     "Set by the mod once it has updated colour settings saved by an older version. Leave as is.");
                 _resetOldLook = !done.Value;
-                done.Value = true;
+                try { done.Value = true; }
+                catch (System.Exception e) { Plugin.Log.LogWarning($"Shardplate: could not save OldLookReset. {e.Message}"); }
             }
             if (_resetOldLook != true) return;
             if (!cfg.TryGetEntry<float>(PrefabName, "CustomModelGlow", out var glow) ||
                 !cfg.TryGetEntry<float>(PrefabName, "CustomModelBrightness", out var brightness)) return;
             if (glow.Value != 0f || brightness.Value != 1f) return;
-            glow.Value = DefaultCustomGlow;
-            brightness.Value = DefaultCustomBrightness;
-            Plugin.Log.LogInfo($"{PrefabName}: reset CustomModelGlow and CustomModelBrightness saved by an older " +
-                               $"version to {DefaultCustomGlow} and {DefaultCustomBrightness}");
+            try
+            {
+                glow.Value = DefaultCustomGlow;
+                brightness.Value = DefaultCustomBrightness;
+                Plugin.Log.LogInfo($"{PrefabName}: reset CustomModelGlow and CustomModelBrightness saved by an older " +
+                                   $"version to {DefaultCustomGlow} and {DefaultCustomBrightness}");
+            }
+            catch (System.Exception e)
+            {
+                // Setting a value saves the config file; runs outside Guard, so a failed save mustn't stop the mod
+                Plugin.Log.LogWarning($"{PrefabName}: could not reset the old glow settings. {e.Message}");
+            }
         }
         protected override Color DefaultTint => new Color(0.62f, 0.68f, 0.78f);  // slate with a blue sheen
         protected override Color DefaultGlow => new Color(0.25f, 0.55f, 1f);     // Stormlight
