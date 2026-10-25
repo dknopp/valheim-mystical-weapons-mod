@@ -29,6 +29,8 @@ What I check on a new item, or when bringing one of mine up to date:
       Code-built items: export them with ModelExporter first. A model not flat in XY needs the turn
       argument to face the camera (the Warglaives: 270, to show the medallion rather than the grip).
       Optional: in-hand shots from the game (F12)
+      Armour sets: the full character instead, from in-engine renders (`references/<item>/DevRender.cs.txt`
+      with DevAutoRun): standing from four sides, close-ups, crouched (the Brotherhood).
 
 ## Process
 
