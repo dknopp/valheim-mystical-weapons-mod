@@ -17,6 +17,14 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | **Sulfuras, Hand of Ragnaros** | ![Sulfuras in hand, flames licking off its head](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-wielded.jpg) | ![Sulfuras slung on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-holstered.jpg) |
 | **Shardblade and Shardplate** | ![Shardblade held two-handed by a wearer of the full Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-wielded.jpg) | ![Shardblade on the back of the Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-holstered.jpg) |
 
+<!-- Optional: the latest big addition (a new item or set, or a major rework) that has a GIF or screenshots; not fixes or small changes. The next one replaces it, and this one's media moves to its own section below. -->
+## Newest: The Brotherhood (Assassin's Creed)
+
+<img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif" width="100%" alt="A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box">
+
+A stealth set with Eagle Vision, the Leap of Faith and assassinations with the Hidden Blades.
+[See the set](#the-brotherhood-assassins-creed).
+
 ## Items
 
 ### Weapons
@@ -69,6 +77,10 @@ which bonuses you have.
   kills it. 2-star creatures and big ones (trolls, Lox, Abominations...) lose half their health,
   rising to a kill as your Unarmed and Sneak skills reach 80. The biggest (Seeker soldiers, Morgen,
   frost trolls, Hildir's bosses) lose 25% to 50%, and bosses 10% to 20%, once per summoning.
+
+| Full set | Eagle Vision (crouched) |
+|---|---|
+| ![An assassin in the full Brotherhood set crouched on a tower beam](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-hero.jpg) | ![Eagle Vision: a hidden creature glowing red through a tower post](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-eaglevision.jpg) |
 
 ## Notes
 
