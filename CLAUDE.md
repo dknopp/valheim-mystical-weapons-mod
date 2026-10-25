@@ -28,7 +28,8 @@ items tables current when items change. Developer docs are in `docs/`.
 - `tools/ModelExporter`: console app that exports the code-built models to OBJ without the game.
   `tools/blender/`: headless Blender scripts that produce the shipped models (see each header).
 - `docs/`: `contributing.md` (setup, workflow, adding items, editing models in Blender) and
-  `architecture.md` (how the mod, build, CI, packaging and releases work). Stephen's notes on how
+  `architecture.md` (how the mod, build, CI, packaging and releases work). `item-ideas.md` is our
+  shared list of items we might add. Stephen's notes on how
   he builds items: `art-direction.md` (look, effects and balance), `building-items.md` (process
   and lessons) and `blender-mcp.md` (letting Claude drive Blender). Use what helps; they aren't
   rules for the repo.
