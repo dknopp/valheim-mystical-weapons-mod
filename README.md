@@ -74,7 +74,7 @@ which bonuses you have.
 |---|---|
 | ![An assassin in the full Brotherhood set crouched on a tower beam](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-hero.jpg) | ![Eagle Vision: a hidden creature glowing red through a tower post](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-eaglevision.jpg) |
 
-![A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif)
+<img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif" width="100%" alt="A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box">
 
 ## Notes
 
