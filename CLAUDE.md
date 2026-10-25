@@ -18,7 +18,8 @@ items tables current when items change. Developer docs are in `docs/`.
   A `models/<PrefabName>.obj` next to the DLL replaces the code-built model at load.
 - `Core/MysticalArmor.cs`: recoloured vanilla armor, or our own painted textures from `models/textures/`
   (painted by `tools/textures/`); rigid pieces (helmets) can take a custom OBJ.
-- `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
+- `Weapons/`, `Armor/`, `Hallows/`, `Items/` (everything else): one file per item (the Hallows set bonus is
+  `DeathlyHallows.cs`; the portal a `PortalScroll` opens is `Items/TownPortal.cs`).
 - Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
   dual-wield hands and back holster, materials, see-through `SpectralMaterial`, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
   vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
