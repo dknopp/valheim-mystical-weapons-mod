@@ -103,7 +103,8 @@ Don't bump `Version` in `Plugin.cs` in a feature PR.
    slabs, ribbons). Hand at the origin, grip along +Y. Extra settings go in `BindConfig`; Harmony
    patches are nested in the item's class. If it is much stronger than its vanilla tier or has a
    unique effect, give it a boss trophy in `BossTrophies` (`Core/MysticalItem.cs`), as "Tier, cost
-   and balance" in `art-direction.md` describes.
+   and balance" in `art-direction.md` describes. The game shows four ingredients, and the trophy
+   is one of them: give a gated item at most three in its recipe.
    Texture a part with `.Borrow(VanillaTextures.Iron, tiling, gloss)` on its `MaterialSpec`: the
    texture is taken from that vanilla item while the game runs and tinted with the part's colour.
    The clone's material keeps the source item's settings; if the model still looks tinted, check the

@@ -301,6 +301,9 @@ valheim.tools and valheim.weirdgloop.org.
   To hide a trophy-gated recipe for everyone, filter `Player.GetAvailableRecipes` on
   `IsMaterialKnown(trophy)` (`TrophyGatePatch`). Give the trophy `m_amountPerLevel` 0, or every upgrade
   takes another.
+- The crafting panel shows four ingredients. A fifth is still required but never shown, so the craft
+  button says an ingredient is missing without saying which. Keep `DefaultRecipe` to three
+  ingredients when the item has a boss trophy, four without; registration logs a warning otherwise.
 - Don't give an existing config key a new meaning: players keep their saved value. Bind a new key and
   stop reading the old one (the Elder Wand's `BoltDamage` replaced `Damage`; `HasDamage => false` turns
   off the shared damage keys).

@@ -177,8 +177,15 @@ namespace MysticalWeapons
             recipe.m_resources = WithBossTrophy(db, ParseRequirements(db, _recipe.Value), out var trophy);
             if (trophy) TrophyGates[PrefabName] = trophy.m_itemData.m_shared.m_name;
             else TrophyGates.Remove(PrefabName);
+            // The crafting panel has four ingredient slots: a fifth is still required but never shown
+            if (recipe.m_resources.Length > MaxIngredients)
+                Plugin.Log.LogWarning($"{PrefabName}: recipe needs {recipe.m_resources.Length} ingredients (boss trophy " +
+                                      $"included) but the crafting panel shows only {MaxIngredients}; shorten its Recipe");
             db.m_recipes.Add(recipe);
         }
+
+        /// <summary>Ingredient slots in the game's crafting panel.</summary>
+        private const int MaxIngredients = 4;
 
         /// <summary>The trophy (its shared name) each gated item's recipe waits for, by the item's prefab name.</summary>
         private static readonly Dictionary<string, string> TrophyGates = new Dictionary<string, string>();
