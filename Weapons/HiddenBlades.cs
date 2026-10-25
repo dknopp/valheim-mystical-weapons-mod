@@ -42,8 +42,8 @@ namespace MysticalWeapons.Weapons
         public override MaterialSpec[] Materials => new[]
         {
             // Bright, glossy and a faint glint, or the metal goes dark in shade and the blade is lost against the glove
-            new MaterialSpec(new Color(0.88f, 0.87f, 0.85f), 0.97f, new Color(0.1f, 0.1f, 0.1f)),   // blade and its housing
-            new MaterialSpec(new Color(0.28f, 0.18f, 0.11f), 0.3f),   // leather bracer
+            new MaterialSpec(new Color(0.9f, 0.89f, 0.87f), 0.97f, new Color(0.1f, 0.1f, 0.1f)),   // blade
+            new MaterialSpec(new Color(0.28f, 0.18f, 0.11f), 0.3f),   // leather sheath and straps
         };
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
@@ -75,32 +75,53 @@ namespace MysticalWeapons.Weapons
         }
 
         /// <summary>
-        /// Placeholder until a Blender model: a leather bracer round the forearm and a slim blade along its palm side,
-        /// reaching well past the fist, as in the hero reference. Wrist space: the wrist at the origin, +Y towards the hand, +Z out of the palm.
+        /// A short leather sheath on the palm side of the forearm, held by two straps, and a ridged dagger blade sliding
+        /// out of it to well past the fist, as in the hero reference. The sheath is leather so it blends into the glove
+        /// and the bright steel starts at the wrist (a steel housing read as one very long blade). No full bracer: the
+        /// robe paints its own. Code-built, not a Blender model: the blades are a few centimetres on screen.
+        /// Wrist space: the wrist at the origin, +Y towards the hand, +Z out of the palm.
         /// </summary>
         public override void BuildModel(MeshBuilder b)
         {
-            b.Taper(Leather, -0.2f, -0.03f, 0.05f, 0.043f);
+            // Straps wide enough to sit over the robe's own bracer
+            b.Taper(Leather, -0.16f, -0.135f, 0.059f, 0.058f, 12);
+            b.Taper(Leather, -0.08f, -0.055f, 0.057f, 0.056f, 12);
             var first = b.Verts.Count;
-            b.Box(Steel, new Rect(-0.016f, -0.17f, 0.032f, 0.14f), 0.008f);
+            // Sheath: just big enough to hide the blade's base, sunk into the bracer so only its mouth shows at the wrist
+            b.Box(Leather, new Rect(-0.008f, -0.1f, 0.016f, 0.085f), 0.0095f);
+            // Blade: a slight leaf before the long taper to the point, stood on its edge (edges out of and into the palm),
+            // so the camera behind the player sees its flat, not a line. Turning it any less would need the two arms
+            // mirrored, which the wrist frame doesn't do.
+            var blade = b.Verts.Count;
             b.Blade(Steel,
-                new MeshBuilder.Station(-0.04f, 0.014f, 0.005f),
-                new MeshBuilder.Station(0.31f, 0.012f, 0.005f),
-                new MeshBuilder.Station(0.38f, 0f, 0.001f));
-            // Lay the housing and blade along the palm side of the bracer
-            for (var i = first; i < b.Verts.Count; i++) b.Verts[i] += new Vector3(0f, 0f, 0.055f);
+                new MeshBuilder.Station(-0.04f, 0.009f, 0.004f),
+                new MeshBuilder.Station(0.01f, 0.012f, 0.0045f),
+                new MeshBuilder.Station(0.06f, 0.0125f, 0.0045f),
+                new MeshBuilder.Station(0.26f, 0.0095f, 0.004f),
+                new MeshBuilder.Station(0.33f, 0.0045f, 0.0025f),
+                new MeshBuilder.Station(0.37f, 0f, 0.001f));
+            var edgeOn = Quaternion.AngleAxis(90f, Vector3.up);
+            for (var i = blade; i < b.Verts.Count; i++)
+            {
+                b.Verts[i] = edgeOn * b.Verts[i];
+                b.Normals[i] = edgeOn * b.Normals[i];
+            }
+            // Lay the sheath and blade along the palm side, half inside the bracer
+            for (var i = first; i < b.Verts.Count; i++) b.Verts[i] += new Vector3(0f, 0f, 0.052f);
         }
 
         /// <summary>
         /// The Flesh Rippers' material is fully metallic, which mirrors the dark surroundings (no reflections to catch):
-        /// less metal lets the steel's own colour and highlights show. The hands share these materials.
+        /// less metal lets the steel's own colour and highlights show, and none lets the leather look like leather.
+        /// The hands share these materials.
         /// </summary>
         public override void DecorateModel(GameObject model)
         {
-            var steel = model.GetComponent<MeshRenderer>().sharedMaterials[Steel];
-            if (!steel || !steel.HasProperty("_Metallic")) return;
-            steel.SetFloat("_Metallic", 0.5f);
-            Plugin.Log.LogInfo($"{PrefabName}: steel metallic lowered to 0.5 so it reads polished");
+            var materials = model.GetComponent<MeshRenderer>().sharedMaterials;
+            if (!materials[Steel] || !materials[Steel].HasProperty("_Metallic")) return;
+            materials[Steel].SetFloat("_Metallic", 0.5f);
+            if (materials[Leather]) materials[Leather].SetFloat("_Metallic", 0f);
+            Plugin.Log.LogInfo($"{PrefabName}: steel metallic lowered to 0.5 so it reads polished, leather to 0 so it isn't black in shade");
         }
     }
 }
