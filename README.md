@@ -15,7 +15,7 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 |---|---|---|
 | **Warglaives of Azzinoth** | ![Warglaives of Azzinoth, one in each hand](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/warglaives-wielded.jpg) | ![Warglaives of Azzinoth crossed on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/warglaives-holstered.jpg) |
 | **Sulfuras, Hand of Ragnaros** | ![Sulfuras in hand, flames licking off its head](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-wielded.jpg) | ![Sulfuras slung on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-holstered.jpg) |
-| **Shardblade** | ![Shardblade held two-handed](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardblade-wielded.jpg) | ![Shardblade on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardblade-holstered.jpg) |
+| **Shardblade and Shardplate** | ![Shardblade held two-handed by a wearer of the full Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-wielded.jpg) | ![Shardblade on the back of the Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-holstered.jpg) |
 
 ## Items
 

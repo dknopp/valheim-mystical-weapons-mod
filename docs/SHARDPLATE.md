@@ -211,9 +211,9 @@ body is what threw the proportions off; the body mask handles clipping instead.
   models must be single-sided, wound to face their normals (already handled in `MeshBuilder.Tri`).
 - **Old configs turn the body plates into a white silhouette.** Configs saved before #20 hold
   `CustomModelGlow = 0` and `CustomModelBrightness = 1` for the breastplate and greaves. With glow 0,
-  `ModelUtil.MakeMaterial` clears the emission texture but leaves the recoloured Flametal glow on, so
-  every plate glows. Reset those two lines (1 and 2.4) to see the intended look; details under
-  Config and Materials in `building-items.md`.
+  `ModelUtil.MakeMaterial` cleared the emission texture but left the recoloured Flametal glow on, so
+  every plate glowed. It now switches the glow off, so glow 0 shows plain plates; reset those two
+  lines (1 and 2.4) to see the intended look. Details under Config and Materials in `building-items.md`.
 - **Material colour and emission are ignored** on these armor materials, so recolour the
   **textures** instead (`GradeTexture`). The body under-armor paint comes from `_ChestTex`/`_LegsTex`
   on `m_armorMaterial`; recolouring `_Color` does nothing to it.

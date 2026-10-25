@@ -192,8 +192,8 @@ valheim.tools and valheim.weirdgloop.org.
 - Clearing a borrowed material's `_EmissionMap` without switching its emission off makes the whole
   surface glow at the borrowed strength. The Shardplate breastplate and greaves with
   `CustomModelGlow = 0` turned into a white silhouette: the recoloured Flametal material's Stormlight
-  glow (2.5x) lit every plate. To turn glow off, also set `_EmissionColor` to black and disable the
-  `_EMISSION` keyword.
+  glow (2.5x) lit every plate. To turn glow off, set `_EmissionColor` to black: `Custom/Creature`
+  glows even with the `_EMISSION` keyword off (the log said "emission off" for the white plates).
 
 ### Multiplayer
 - Show an effect to everyone by working it out on every client from synced state: the equipment
