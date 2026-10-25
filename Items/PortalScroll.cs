@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MysticalWeapons.Items
 {
     /// <summary>
-    /// Scroll of Town Portal (Diablo II). Reading it opens a pair of portals: one in front of you, one at your bed
+    /// Diablo's Scroll of Town Portal, named Hearth Portal here: it goes to your bed, and Valheim has no towns. Reading it opens a pair of portals: one in front of you, one at your bed
     /// (the world start if you have none). Anyone can step through either end. Mechanics decisions are in
     /// references/town-portal.md.
     /// </summary>
@@ -14,7 +14,7 @@ namespace MysticalWeapons.Items
     {
         public override string PrefabName => "PortalScroll";
         public override string[] SourcePrefabs => new[] { "MeadHealthMinor", "MeadStaminaMinor" };
-        public override string DisplayName => "Scroll of Town Portal";
+        public override string DisplayName => "Scroll of Hearth Portal";
         public override string Description =>
             "Read it to open a gateway home, and another back to where you stood. Ore and metal still refuse the road.";
 
