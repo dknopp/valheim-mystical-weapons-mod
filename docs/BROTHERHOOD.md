@@ -24,7 +24,7 @@ look like one outfit. The mesh doesn't set the tier (see below). Cloning these c
 bonuses (eitr regeneration, any vanilla set), which we clear, as Shardplate does.
 
 **How the look is made** (chunk 4b, 2026-10-24): our own textures painted on the vanilla meshes, after
-the hero reference: a hood a few shades lighter than the slate coat, slate coat and cape with muted pewter edge trims, charcoal
+the hero reference: a slate hood that keeps the vanilla shading, slate coat and cape with muted pewter edge trims, charcoal
 trousers and side tails, brown leather (belt, pouch, straps, bracers, gloves, boots) with its own grain
 and worn edges, and a red sash and cape lining. A tint alone colours a whole piece one way, which
 can't give that mix. The textures are in `models/textures/`, painted by
@@ -49,12 +49,19 @@ What we found:
   shading under its grain.
 - Detail pass (4b-2), after the hero reference's coat: a darker slate; silver piping and a twisted
   cord inside the trims of the vest, tails and hood; a faint lighter damask (our own stem-and-spiral
-  motif) over the vest, tails and hood; larger scrollwork low on the front tail; dashed stitching along
+  motif) over the vest, tails and hood (the hood's later dropped, below); larger scrollwork low on the front tail; dashed stitching along
   the leather edges. The brooch is metal like the belt buckle. The cape keeps the vanilla bark bump
   (a smooth twill was tried and looked too clean).
-- The hood's front is two halves on separate parts of its texture, the right one turned sideways, so a
-  single forehead ornament sits on one side only. It's left out until a mirrored pair can be placed from
-  the hood mesh's own UVs.
+- The damask was made a step more visible after the first in-game look (4c).
+- **The hood is plain** (4c, 2026-10-25): the coat's slate under the vanilla shading, so the vanilla hood's own
+  trim shows in tone. Its texture is a patchwork of small pieces packed into one area, so our painted trim ran
+  along the gaps between pieces (a stripe over the crown and down the back) and the damask broke at every join;
+  the pieces are smaller than a motif, so no placement avoids it. An attempt that placed a mirrored ornament on
+  the peak and kept the trim to the real edges (face opening, hem) worked in the paint, but a shading line along
+  the mesh's centre crease still read as a seam, so it was dropped. It's on branch `brotherhood-hood-ornament`:
+  the hood's texel layout was read from in-game renders of the hood with a texture that encodes each texel's own
+  coordinates (unlit, lights off; `references/brotherhood/DevRender.cs.txt` writes them). A detailed hood needs
+  our own model with clean UVs (helmets can take a custom OBJ).
 
 Custom models only if a shape still looks wrong in game once the textures are on.
 
@@ -171,8 +178,8 @@ Custom models only if a shape still looks wrong in game once the textures are on
   crouches you again after. While crouch is on, with 2 pieces your stealth factor holds where it was until
   the crouch animation is back (it would otherwise climb), and Eagle Vision stays lit.
 - **One icon:** the set shows a single status icon, named and pictured by the highest bonus worn
-  (Unseen Step with the cape, Eagle Vision with the hood, Creed with the hidden blades); the bonuses
-  below it still apply. The blades' Unarmed bonus has no icon.
+  (the cape for Unseen Step, the hood for Eagle Vision and the Creed: the hood is the set's face); the
+  bonuses below it still apply. The blades' Unarmed bonus has no icon.
 - **Set tooltip:** as Diablo shows sets, every piece ends its tooltip with the set: the pieces (grey
   if not worn) and each bonus by the pieces it needs (orange once you have it, grey until then). The
   hidden blades show only the set name, the pieces worn and the 4-piece bonus, since their own weapon
@@ -219,8 +226,12 @@ Read from the game (Valheim 1.0.20) with a scratch DevAutoRun probe.
      the first look checked in game; after it, the sash moved to the undershirt and the cape got its
      lining, leather grain and linen weave, checked in in-engine renders.
    - 4b-2: a finer detail pass on the textures (see "How the look is made"). **Done 2026-10-24:**
-     checked in game and in in-engine renders. Left for later: a mirrored forehead ornament on the hood.
-   - 4c: the hidden blades' own model and polished-steel texture, through the Blender MCP; then the
-     PR to `develop`.
+     checked in game and in in-engine renders. The hood's part of it was dropped in 4c (see above).
+   - 4c: the hidden blades' own model, then the PR to `develop`. **Done 2026-10-25:** the blades stay
+     code-built (a few centimetres on screen; Blender wasn't worth it): a ridged dagger stood on its edge so
+     the camera behind the player sees its flat, sliding out of a short leather sheath sunk into the bracer,
+     cool steel. No weapon effect: the vanilla backstab burst already marks an assassination (bloodied blades
+     after one is an idea for play testing). Holstering hides them, which reads as retracting. Also the
+     plain hood (above), the stronger damask and the hood as the set icon.
 5. Later: our own emblem for the set's status icon, in the spirit of the Assassin's Creed crest but
    not the crest itself (Ubisoft's trademark; our art is CC BY in a public repo).
