@@ -85,6 +85,16 @@ namespace MysticalWeapons
         }
 
         /// <summary>
+        /// Loads a PNG/JPG as a readable, mipmapped texture; <paramref name="linear"/> for data rather than
+        /// colour (normal and metal maps). Returns null if it fails.
+        /// </summary>
+        public static Texture2D LoadTexture(string path, bool linear = false)
+        {
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear) { name = Path.GetFileName(path) };
+            return LoadImage(tex, File.ReadAllBytes(path)) ? tex : null;
+        }
+
+        /// <summary>
         /// Gives a GameObject a mesh and materials built from a <see cref="MeshBuilder"/>: a skinned
         /// renderer when the model has bone weights (bones are bound when Valheim attaches it), else a
         /// plain one.
@@ -247,23 +257,25 @@ namespace MysticalWeapons
         /// Dual-wield items (Skoll and Hati) show both blades in hand as one skinned mesh under
         /// "attach_skin", bound to the player's hand bones. Replaces that mesh with two copies of
         /// <paramref name="model"/> (from <see cref="ReplaceModel"/>), one per hand, the left one mirrored,
-        /// each held with its grip across the fist (see <see cref="GripFrame"/>).
+        /// each held with its grip across the fist (see <see cref="GripFrame"/>). With <paramref name="wrist"/>, each copy
+        /// rides on a forearm instead, unmirrored (see <see cref="WristFrame"/>).
         /// Returns false if the cloned item has no such mesh.
         /// </summary>
-        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place)
+        public static bool ReplaceSkinnedModel(GameObject prefab, string name, GameObject model, ModelPlacement place, bool wrist = false)
         {
             var skin = prefab.transform.Find("attach_skin");
             var renderer = skin ? skin.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.sharedMesh) : null;
             // The vanilla mesh can't be read, so find the hands by name in the skeleton it is bound to
             var bones = renderer ? renderer.bones : new Transform[0];
+            var part = wrist ? "ForeArm" : "Hand";
             var hands = new[]
             {
-                System.Array.FindIndex(bones, t => t && t.name.EndsWith("RightHand")),
-                System.Array.FindIndex(bones, t => t && t.name.EndsWith("LeftHand"))
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("Right" + part)),
+                System.Array.FindIndex(bones, t => t && t.name.EndsWith("Left" + part))
             };
             if (hands.Any(h => h < 0))
             {
-                Plugin.Log.LogWarning($"{name}: no hand bones under attach_skin, the model only shows on the ground");
+                Plugin.Log.LogWarning($"{name}: no {part} bones under attach_skin, the model only shows on the ground");
                 return false;
             }
 
@@ -283,9 +295,9 @@ namespace MysticalWeapons
             {
                 var bone = hands[k];
                 var hand = bones[bone];
-                var mirror = k == 1;
-                if (!GripFrame(hand, out var grip, out var gripAt))
-                    Plugin.Log.LogWarning($"{name}: no finger bones under {hand.name}, the blade follows the bone's own axes");
+                var mirror = k == 1 && !wrist;
+                if (!(wrist ? WristFrame(hand, k == 1, out var grip, out var gripAt) : GripFrame(hand, out grip, out gripAt)))
+                    Plugin.Log.LogWarning($"{name}: no hand or finger bones under {hand.name}, the blade follows the bone's own axes");
                 Fit(name, ours.bounds, null, place, out var rotation, out var position, out var scale);
                 // The grip frame is the same for both hands but turned the other way round, so mirroring
                 // across it (flat side, Z) makes the left blade the mirror image of the right
@@ -373,6 +385,18 @@ namespace MysticalWeapons
             }
         }
 
+        /// <summary>
+        /// An empty "attach_back", so the item shows nothing holstered instead of its dropped model on the back
+        /// (wrist blades stay hidden in their bracers).
+        /// </summary>
+        public static void AddEmptyBackModel(GameObject prefab)
+        {
+            var back = new GameObject("attach_back");
+            back.transform.SetParent(prefab.transform, false);
+            back.transform.SetSiblingIndex(0);
+            back.SetActive(false);
+        }
+
         /// <summary>Name suffix of the body-space frame under "attach_back" (see <see cref="BackFramePatch"/>).</summary>
         private const string BackFrame = "_backframe";
 
@@ -455,6 +479,30 @@ namespace MysticalWeapons
 
         /// <summary>How far from the wrist to the knuckles the grip sits in a closed hand.</summary>
         private const float GripDepth = 0.9f;
+
+        /// <summary>
+        /// Where a wrist blade sits on a forearm, in the forearm bone's space and in metres: the origin at the wrist,
+        /// model +Y along the forearm towards the hand, +Z out of the palm side. The left arm's frame is the right one's
+        /// mirror image, so a model symmetric in X needs no mirroring. False (and the bone's own axes) if the forearm has
+        /// no hand and finger bones.
+        /// </summary>
+        private static bool WristFrame(Transform arm, bool left, out Quaternion rotation, out Vector3 position)
+        {
+            rotation = Quaternion.identity;
+            position = Vector3.zero;
+            var hand = FindDeep(arm, arm.name.Replace("ForeArm", "Hand"));
+            var index = hand ? FindDeep(hand, hand.name + "Index1") : null;
+            var pinky = hand ? FindDeep(hand, hand.name + "Pinky1") : null;
+            if (!hand || !index || !pinky) return false;
+            Vector3 Local(Transform t) => Vector3.Scale(arm.InverseTransformPoint(t.position), arm.lossyScale);
+            position = Local(hand);
+            var up = position.normalized;
+            var across = Vector3.ProjectOnPlane(Local(index) - Local(pinky), up).normalized;
+            // Mirroring flips a cross product, so the left palm needs the opposite sign to face the same way
+            var palm = Vector3.Cross(up, across) * (left ? -1f : 1f);
+            rotation = Quaternion.LookRotation(palm, up);
+            return true;
+        }
 
         private static Bounds RotatedBounds(Bounds b, Quaternion rotation)
         {
@@ -724,17 +772,7 @@ namespace MysticalWeapons
         {
             try
             {
-                var src = source.texture;
-                var rect = source.textureRect;
-                var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32);
-                var previous = RenderTexture.active;
-                Graphics.Blit(src, rt);
-                RenderTexture.active = rt;
-                var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
-                tex.ReadPixels(rect, 0, 0);
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
-
+                var tex = ReadableIcon(source);
                 var pixels = tex.GetPixels();
                 for (var i = 0; i < pixels.Length; i++)
                 {
@@ -759,6 +797,66 @@ namespace MysticalWeapons
             }
         }
 
+        /// <summary>One colour of a vanilla icon and what it becomes (see <see cref="RemapIcon"/>).</summary>
+        public struct IconColour
+        {
+            /// <summary>Pixels at least this red ((r - g) over brightness) take this rule; the first match wins.</summary>
+            public float MinRedness;
+            /// <summary>The colour that pixels of <see cref="SourceBrightness"/> become; others scale with their own brightness. Clear keeps them.</summary>
+            public Color Target;
+            public float SourceBrightness;
+
+            public IconColour(float minRedness, Color target, float sourceBrightness)
+            {
+                MinRedness = minRedness;
+                Target = target;
+                SourceBrightness = sourceBrightness;
+            }
+        }
+
+        /// <summary>
+        /// Copies a vanilla icon and recolours its parts, told apart by how red they are (red cloth, brown leather, grey
+        /// cloth...): each pixel takes the first rule it is red enough for, keeping its shading. For a piece whose colours
+        /// come from our own textures, so its icon matches. Returns null if the copy fails.
+        /// </summary>
+        public static Sprite RemapIcon(Sprite source, IconColour[] rules)
+        {
+            try
+            {
+                var tex = ReadableIcon(source);
+                var pixels = tex.GetPixels();
+                for (var i = 0; i < pixels.Length; i++)
+                {
+                    var c = pixels[i];
+                    if (c.a <= 0f) continue;
+                    var brightness = 0.3f * c.r + 0.59f * c.g + 0.11f * c.b;
+                    var redness = (c.r - c.g) / (brightness + 0.004f);
+                    foreach (var rule in rules)
+                    {
+                        if (redness < rule.MinRedness) continue;
+                        if (rule.Target.a > 0f)
+                        {
+                            var k = brightness / rule.SourceBrightness;
+                            pixels[i] = new Color(Mathf.Clamp01(rule.Target.r * k), Mathf.Clamp01(rule.Target.g * k),
+                                Mathf.Clamp01(rule.Target.b * k), c.a);
+                        }
+                        break;
+                    }
+                }
+                tex.SetPixels(pixels);
+                tex.Apply();
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogWarning($"Could not remap icon {source.name}: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>Copies an icon out of its (unreadable) atlas via the GPU.</summary>
+        private static Texture2D ReadableIcon(Sprite source) => ReadableCopy(source.texture, source.textureRect, false);
+
         private struct TexturedTri
         {
             public Texture2D Texture;
@@ -774,14 +872,8 @@ namespace MysticalWeapons
         {
             try
             {
-                var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
-                var previous = RenderTexture.active;
-                Graphics.Blit(source, rt);
-                RenderTexture.active = rt;
-                var tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true) { name = source.name + "_recoloured" };
-                tex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
+                var tex = ReadableCopy(source);
+                tex.name = source.name + "_recoloured";
                 var px = tex.GetPixels();
                 for (var i = 0; i < px.Length; i++) px[i] = recolor(px[i]);
                 tex.SetPixels(px);
@@ -793,6 +885,24 @@ namespace MysticalWeapons
                 Plugin.Log.LogWarning($"Could not recolour texture {source.name}: {e.Message}");
                 return null;
             }
+        }
+
+        /// <summary>A readable copy of any texture (even an unreadable game texture), made via the GPU.</summary>
+        public static Texture2D ReadableCopy(Texture source) =>
+            ReadableCopy(source, new Rect(0, 0, source.width, source.height), true);
+
+        /// <summary>A readable copy of part of a texture (an icon in its atlas), made via the GPU.</summary>
+        private static Texture2D ReadableCopy(Texture source, Rect rect, bool mipmaps)
+        {
+            var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
+            var previous = RenderTexture.active;
+            Graphics.Blit(source, rt);
+            RenderTexture.active = rt;
+            var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, mipmaps);
+            tex.ReadPixels(rect, 0, 0);
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+            return tex;
         }
 
         private static void FillTriangle(Vector2 a, Vector2 b, Vector2 c, float za, float zb, float zc,

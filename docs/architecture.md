@@ -12,9 +12,10 @@ day-to-day steps, see [contributing.md](contributing.md).
 | `Core/` | The framework every item builds on: base classes, mesh building, model loading, textures, debug report |
 | `Weapons/`, `Armor/`, `Hallows/` | One class per item (the Hallows' set bonus is `DeathlyHallows.cs`) |
 | `Properties/AssemblyInfo.cs` | Lets `tools/ModelExporter` use the mod's internal types |
-| `models/` | Custom models that ship with the mod (OBJ, MTL, PNG) and their credits |
+| `models/` | Custom models that ship with the mod (OBJ, MTL, PNG) and their credits; `models/textures/` holds painted armour textures |
 | `tools/ModelExporter/` | Console app that exports the code-built models to OBJ, without starting the game |
 | `tools/blender/` | Headless Blender scripts that produce the models in `models/` |
+| `tools/textures/` | Python scripts that paint the textures in `models/textures/` |
 | `docs/` | This documentation and Stephen's item-building notes |
 | `.github/` | CI workflows, the shared `setup-valheim` action and the pull request template |
 | `thunderstore.toml` | Thunderstore package definition (see Packaging) |
@@ -67,8 +68,13 @@ Two base classes implement `Setup`:
   moves that onto the chest bone and lays it out from the bone's rest pose: the back joints' axes and
   the rig's import scale differ between the player prefab and a live player.
 - **`MysticalArmor`**: body armor is skinned to the player's skeleton, so it keeps the vanilla model
-  and recolours it (tint and glow from config). Rigid pieces such as helmets can use a custom OBJ
-  instead, scaled to fill the vanilla piece.
+  and recolours it (tint and glow from config). A piece can instead wear our own painted textures:
+  `models/textures/<PrefabName><property>.png` (e.g. `BrotherhoodRobe_ChestTex.png`) replaces the
+  texture in that material property. A colour texture (`_MainTex`, or the `_ChestTex`/`_LegsTex` the
+  game paints on the body) is painted on the vanilla texture's layout and multiplied at load by the
+  vanilla shading (folds, stitching), as much as its alpha says; the vanilla alpha is kept. Other
+  properties (normal and metal maps, a cape's `_StyleTex`) are used as painted. Rigid pieces such as
+  helmets can use a custom OBJ instead, scaled to fill the vanilla piece.
 
 Item-specific behaviour lives in the item's own class as nested Harmony patches. For example,
 `Anduril.UndeadBanePatch` prefixes `Character.Damage` and boosts hits from Andúril against undead.

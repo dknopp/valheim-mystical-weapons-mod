@@ -23,6 +23,11 @@ namespace MysticalWeapons
         protected virtual float DefaultArmorPerLevel => 2f;
         protected abstract Color DefaultTint { get; }
         protected virtual Color DefaultGlow => Color.black;
+        /// <summary>
+        /// For a piece coloured by our own textures (white <see cref="Tint"/>): how to recolour the vanilla icon's parts
+        /// to match (see <see cref="ModelUtil.RemapIcon"/>). Null: the icon is tinted like the piece.
+        /// </summary>
+        protected virtual ModelUtil.IconColour[] IconColours => null;
         /// <summary>Rotation that turns a custom model's front towards its icon's camera.</summary>
         protected virtual Vector3 IconView => new Vector3(0f, 200f, 0f);
 
@@ -106,7 +111,9 @@ namespace MysticalWeapons
 
             if (shared.m_icons != null && shared.m_icons.Length > 0)
             {
-                Icon = ModelUtil.RecolorIcon(shared.m_icons[0], Tint, Glow) ?? shared.m_icons[0];
+                var colours = IconColours;
+                Icon = (colours != null ? ModelUtil.RemapIcon(shared.m_icons[0], colours)
+                    : ModelUtil.RecolorIcon(shared.m_icons[0], Tint, Glow)) ?? shared.m_icons[0];
                 shared.m_icons = new[] { Icon };
             }
 
@@ -234,6 +241,7 @@ namespace MysticalWeapons
             foreach (var prop in new[] { "_ChestTex", "_LegsTex" })
             {
                 if (!mat.HasProperty(prop) || !mat.GetTexture(prop)) continue;
+                if (_painted.TryGetValue(prop, out var painted) && painted) continue;  // already ours
                 var tex = ModelUtil.RecolorTexture(mat.GetTexture(prop), c =>
                 {
                     var g = c.grayscale;
@@ -258,10 +266,122 @@ namespace MysticalWeapons
             return source.GetComponentInChildren<Renderer>(true)?.sharedMaterial;
         }
 
+        /// <summary>Colour textures: painted over the vanilla shading. Others (normal and metal maps, a cape's _StyleTex) are used as painted.</summary>
+        private static readonly HashSet<string> ShadedProps = new HashSet<string> { "_MainTex", "_ChestTex", "_LegsTex" };
+
+        /// <summary>Our painted textures by material property (null = none), combined once per piece.</summary>
+        private readonly Dictionary<string, Texture2D> _painted = new Dictionary<string, Texture2D>();
+
+        /// <summary>
+        /// Our own painted texture for a material property, "models/textures/{PrefabName}{property}.png"
+        /// (e.g. BrotherhoodRobe_ChestTex.png), or null if there is none. It is painted on the vanilla
+        /// texture's layout, read from the game on our own machines. For a colour texture its colours are
+        /// used as painted and its alpha says how much of the vanilla texture's shading (folds, stitching)
+        /// shows through; the vanilla alpha (cut-out edges) is kept. Other textures are used as painted.
+        /// </summary>
+        private Texture2D Painted(string prop, Texture vanilla)
+        {
+            if (_painted.TryGetValue(prop, out var tex)) return tex;
+            var path = Path.Combine(ModelUtil.CustomModelDir, "textures", PrefabName + prop + ".png");
+            if (File.Exists(path))
+            {
+                try
+                {
+                    tex = ModelUtil.LoadTexture(path, linear: prop.Contains("Bump") || prop.Contains("Metal"));
+                    if (tex && ShadedProps.Contains(prop))
+                        tex = OverVanillaShading(tex, vanilla ? ModelUtil.ReadableCopy(vanilla) : null);
+                    if (tex) Plugin.Log.LogInfo($"{PrefabName}: {prop} from {Path.GetFileName(path)}, replacing vanilla '{(vanilla ? vanilla.name : "none")}'");
+                    else Plugin.Log.LogWarning($"{PrefabName}: could not read {path}");
+                }
+                catch (System.Exception e)
+                {
+                    Plugin.Log.LogWarning($"{PrefabName}: could not use {path}: {e.Message}");
+                    tex = null;
+                }
+            }
+            _painted[prop] = tex;
+            return tex;
+        }
+
+        /// <summary>
+        /// Multiplies the paint by the vanilla texture's shading: its brightness against the local average
+        /// (so the vanilla colours themselves drop out), as much as the paint's alpha says.
+        /// </summary>
+        private static Texture2D OverVanillaShading(Texture2D paint, Texture2D vanilla)
+        {
+            var px = paint.GetPixels();
+            int w = paint.width, h = paint.height;
+            float[] shade = null;
+            Color[] vpx = null;
+            int vw = 0, vh = 0;
+            if (vanilla)
+            {
+                vw = vanilla.width; vh = vanilla.height;
+                vpx = vanilla.GetPixels();
+                shade = LocalShading(vpx, vw, vh, Mathf.Max(2, vw / 16));
+            }
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var i = y * w + x;
+                var c = px[i];
+                if (vanilla == null) { px[i] = new Color(c.r, c.g, c.b, 1f); continue; }
+                // Bilinear, so a small vanilla texture's shading doesn't show its texels on a larger paint
+                var fx = Mathf.Clamp((x + 0.5f) * vw / w - 0.5f, 0f, vw - 1f);
+                var fy = Mathf.Clamp((y + 0.5f) * vh / h - 0.5f, 0f, vh - 1f);
+                int x0 = (int)fx, y0 = (int)fy, x1 = Mathf.Min(x0 + 1, vw - 1), y1 = Mathf.Min(y0 + 1, vh - 1);
+                float tx = fx - x0, ty = fy - y0;
+                float Lerp2(float a, float b, float cc, float d) => Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(cc, d, tx), ty);
+                var s = Mathf.Lerp(1f, Lerp2(shade[y0 * vw + x0], shade[y0 * vw + x1], shade[y1 * vw + x0], shade[y1 * vw + x1]), c.a);
+                var alpha = Lerp2(vpx[y0 * vw + x0].a, vpx[y0 * vw + x1].a, vpx[y1 * vw + x0].a, vpx[y1 * vw + x1].a);
+                px[i] = new Color(Mathf.Clamp01(c.r * s), Mathf.Clamp01(c.g * s), Mathf.Clamp01(c.b * s), alpha);
+            }
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = paint.name };
+            tex.SetPixels(px);
+            tex.Apply(true);
+            Object.Destroy(paint);
+            Object.Destroy(vanilla);
+            return tex;
+        }
+
+        /// <summary>Each pixel's brightness over the average brightness of the opaque pixels around it.</summary>
+        private static float[] LocalShading(Color[] px, int w, int h, int radius)
+        {
+            // Summed-area tables of brightness and opaque-pixel count give each box average in O(1)
+            var sum = new double[(w + 1) * (h + 1)];
+            var count = new int[(w + 1) * (h + 1)];
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var c = px[y * w + x];
+                var opaque = c.a > 0.5f;
+                var i = (y + 1) * (w + 1) + x + 1;
+                sum[i] = (opaque ? c.grayscale : 0f) + sum[i - 1] + sum[i - w - 1] - sum[i - w - 2];
+                count[i] = (opaque ? 1 : 0) + count[i - 1] + count[i - w - 1] - count[i - w - 2];
+            }
+            var shade = new float[w * h];
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                int x0 = Mathf.Max(0, x - radius), x1 = Mathf.Min(w, x + radius + 1);
+                int y0 = Mathf.Max(0, y - radius), y1 = Mathf.Min(h, y + radius + 1);
+                int a = y0 * (w + 1) + x0, b = y0 * (w + 1) + x1, c = y1 * (w + 1) + x0, d = y1 * (w + 1) + x1;
+                var n = count[d] - count[b] - count[c] + count[a];
+                var mean = n > 0 ? (sum[d] - sum[b] - sum[c] + sum[a]) / n : 0.5;
+                shade[y * w + x] = Mathf.Clamp((float)(px[y * w + x].grayscale / (mean + 0.02)), 0.4f, 1.6f);
+            }
+            return shade;
+        }
+
         private Material Recolor(Material source)
         {
             if (!source) return source;
             var mat = new Material(source) { name = source.name + "_" + PrefabName };
+            foreach (var prop in mat.GetTexturePropertyNames())
+            {
+                var painted = Painted(prop, mat.GetTexture(prop));
+                if (painted) mat.SetTexture(prop, painted);
+            }
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", source.GetColor("_Color") * Tint);
             if (mat.HasProperty("_EmissionColor") && source.GetColor("_EmissionColor").maxColorComponent > 0.01f)
                 mat.SetColor("_EmissionColor", Glow * _glowIntensity.Value);

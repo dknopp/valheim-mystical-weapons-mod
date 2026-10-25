@@ -16,7 +16,8 @@ items tables current when items change. Developer docs are in `docs/`.
   `RegisterNetExtras` copy and register prefabs an item spawns (creatures, projectiles).
 - `Core/MysticalWeapon.cs`: items with a code-built model (`BuildModel`, `Materials`) and damage config.
   A `models/<PrefabName>.obj` next to the DLL replaces the code-built model at load.
-- `Core/MysticalArmor.cs`: recoloured vanilla armor; rigid pieces (helmets) can take a custom OBJ.
+- `Core/MysticalArmor.cs`: recoloured vanilla armor, or our own painted textures from `models/textures/`
+  (painted by `tools/textures/`); rigid pieces (helmets) can take a custom OBJ.
 - `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
 - Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
   dual-wield hands and back holster, materials, see-through `SpectralMaterial`, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
@@ -71,6 +72,9 @@ extra settings via `BindConfig`, Harmony patches nested in the item class. Lesso
 - One branch per change, merged through a pull request into `develop`. `main` only takes PRs
   from `develop` (enforced by `.github/workflows/restrict-main-merges.yml`).
 - Review PRs with Claude Code's `/review <pr>` before asking the other maintainer to approve.
+- Write the PR description from `.github/pull_request_template.md` (Summary, Testing, Checklist). Item
+  PRs also link a views picture committed as `docs/images/<Prefab>-views.jpg` (see the checklist in
+  `docs/building-items.md`). Do both before opening the PR.
 - Bump `Version` in Plugin.cs only when cutting a release, not in feature PRs.
 
 ## Rules

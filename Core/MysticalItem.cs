@@ -61,6 +61,7 @@ namespace MysticalWeapons
             { "ShardplateHelm", "TrophyDragonQueen" },        // Moder: armour above its tier, and the set bonus
             { "ShardplateBreastplate", "TrophyDragonQueen" },
             { "ShardplateGreaves", "TrophyDragonQueen" },
+            { "BrotherhoodHiddenBlades", "TrophyDragonQueen" }, // Moder, past the Mountains: Assassination; Bonemass would gate nothing
             { "Anduril", "TrophyGoblinKing" },                // Yagluth: spirits that fight for you
             { "Sylspear", "TrophyGoblinKing" },               // fells trees and breaks rock, never wears out
             { "Shardblade", "TrophyGoblinKing" },

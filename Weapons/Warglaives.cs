@@ -58,15 +58,10 @@ namespace MysticalWeapons.Weapons
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
-            Plugin.Log.LogInfo($"{PrefabName}: Skoll and Hati deal {Describe(shared.m_damages)}, per level {Describe(shared.m_damagesPerLevel)}");
+            Plugin.Log.LogInfo($"{PrefabName}: Skoll and Hati deal {DescribeDamage(shared.m_damages)}, per level {DescribeDamage(shared.m_damagesPerLevel)}");
             base.Setup(prefab, shared);
             if (_aura.Value) AddAura(prefab);
         }
-
-        private static string Describe(HitData.DamageTypes damage) =>
-            string.Join(",", typeof(HitData.DamageTypes).GetFields()
-                .Where(f => f.FieldType == typeof(float) && (float)f.GetValue(damage) != 0f)
-                .Select(f => $"{f.Name.Substring(2)}:{(float)f.GetValue(damage):0.#}"));
 
         /// <summary>
         /// Borrows the Dead Raiser's (StaffSkeleton) aura, the flames and embers it shows while equipped,
