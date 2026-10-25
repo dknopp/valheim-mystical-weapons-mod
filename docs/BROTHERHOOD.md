@@ -43,8 +43,9 @@ What we found:
   only its clasps do now.
 - Our belt mark is a small feather in a ring, not the Assassin's Creed crest.
 - The vanilla textures are 128 pixels, so their shading is blocky under our 512-pixel paint. Most of
-  the blocks came from the vanilla normal maps, not the colour: the hood, robe and boots get the
-  vanilla normal maps enlarged and softened (big folds kept, steps gone), and cloth takes none of
+  the blocks came from the vanilla normal maps, not the colour: the robe and boots get the
+  vanilla normal maps enlarged and softened (big folds kept, steps gone; the hood did too until 4c, see
+  below), and cloth takes none of
   the vanilla colour shading, only our own soft folds and a faint mottle. Leather keeps the vanilla
   shading under its grain.
 - Detail pass (4b-2), after the hero reference's coat: a darker slate; silver piping and a twisted
@@ -54,7 +55,9 @@ What we found:
   (a smooth twill was tried and looked too clean).
 - The damask was made a step more visible after the first in-game look (4c).
 - **The hood is plain** (4c, 2026-10-25): the coat's slate under the vanilla shading, so the vanilla hood's own
-  trim shows in tone. Its texture is a patchwork of small pieces packed into one area, so our painted trim ran
+  trim shows in tone, and the vanilla normal map: our softened one blurred the empty texture between its pieces
+  into their edges, which lit the joins (the centre seam most) as lines. Its blocky lighting is back, as on
+  the vanilla hood. Its texture is a patchwork of small pieces packed into one area, so our painted trim ran
   along the gaps between pieces (a stripe over the crown and down the back) and the damask broke at every join;
   the pieces are smaller than a motif, so no placement avoids it. An attempt that placed a mirrored ornament on
   the peak and kept the trim to the real edges (face opening, hem) worked in the paint, but a shading line along

@@ -487,9 +487,8 @@ def main():
     chest_paint(load("AshlandsMageArmorChest_d")).save(os.path.join(OUT, "BrotherhoodRobe_ChestTex.png"))
     legs_paint(load("MageArmorLegs_d")).save(os.path.join(OUT, "BrotherhoodLegs_LegsTex.png"))
     cape_style().save(os.path.join(OUT, "BrotherhoodCape_StyleTex.png"))
-    hood_normal = smooth_normal(load("MageArmor_n"))
-    hood_normal.save(os.path.join(OUT, "BrotherhoodHood_BumpMap.png"))
-    hood_normal.save(os.path.join(OUT, "BrotherhoodLegs_BumpMap.png"))
+    # The boots' normal map, softened; the hood keeps the vanilla one (softening bled into the joins of its patchwork)
+    smooth_normal(load("MageArmor_n")).save(os.path.join(OUT, "BrotherhoodLegs_BumpMap.png"))
     smooth_normal(load("AshlandsMageArmor_n")).save(os.path.join(OUT, "BrotherhoodRobe_BumpMap.png"))
     # The body paint's chainmail is in its normal and metal maps: the undershirt and sleeves are linen instead
     chest = load("AshlandsMageArmorChest_d")
