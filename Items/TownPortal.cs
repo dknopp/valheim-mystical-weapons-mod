@@ -29,6 +29,7 @@ namespace MysticalWeapons.Items
         internal const string SnapKey = "mw_portal_snap";
         internal const string HomeKey = "mw_portal_home";
         internal const string OpenedKey = "mw_portal_opened";
+        internal const string ReadyKey = "mw_portal_ready";
 
         private const string CloseRpc = "MysticalWeapons_PortalScroll_Close";
 
@@ -114,8 +115,11 @@ namespace MysticalWeapons.Items
             }
         }
 
-        /// <summary>Opens a field end in front of the player and a home end at their respawn point.</summary>
-        public static void OpenPair(Player player)
+        /// <summary>
+        /// Opens a field end in front of where the player stood (<paramref name="from"/>, facing <paramref name="facing"/>)
+        /// and a home end at their respawn point. Both grow in over <paramref name="formSeconds"/> on every peer.
+        /// </summary>
+        public static void OpenPair(Player player, Vector3 from, Vector3 facing, float formSeconds)
         {
             if (!_prefab || !ZNetScene.instance || ZDOMan.instance == null) return;
             if (!HomePoint(out var home))
@@ -124,9 +128,8 @@ namespace MysticalWeapons.Items
                 return;
             }
 
-            var facing = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up);
             facing = facing.sqrMagnitude > 0.01f ? facing.normalized : Vector3.forward;
-            var fieldPos = player.transform.position + facing * FieldDistance;
+            var fieldPos = from + facing * FieldDistance;
             if (ZoneSystem.instance.FindFloor(fieldPos + Vector3.up * 2f, out var floor)) fieldPos.y = floor;
             // Faces the reader, so people coming from home step out towards where they stood
             var fieldRot = Quaternion.LookRotation(-facing);
@@ -148,18 +151,20 @@ namespace MysticalWeapons.Items
             homeZdo.Set(SnapKey, true);
             homeZdo.Set(HomeKey, true);
 
-            Link(field, homeZdo, home, homeRot, owner, opened);
-            Link(homeZdo, field, fieldPos, fieldRot, owner, opened);
+            var ready = opened + (long)(formSeconds * TimeSpan.TicksPerSecond);
+            Link(field, homeZdo, home, homeRot, owner, opened, ready);
+            Link(homeZdo, field, fieldPos, fieldRot, owner, opened, ready);
             Plugin.Log.LogInfo($"{PrefabName}: opened {fieldPos} <-> {home} for {player.GetPlayerName()}");
         }
 
-        private static void Link(ZDO end, ZDO other, Vector3 otherPos, Quaternion otherRot, long owner, long opened)
+        private static void Link(ZDO end, ZDO other, Vector3 otherPos, Quaternion otherRot, long owner, long opened, long ready)
         {
             end.Set(TargetKey, otherPos);
             end.Set(TargetRotKey, otherRot);
             end.Set(PairKey, other.m_uid);
             end.Set(OwnerKey, owner);
             end.Set(OpenedKey, opened);
+            end.Set(ReadyKey, ready);
         }
 
         /// <summary>Closes every end <paramref name="owner"/> opened before <paramref name="before"/>, on every peer.</summary>
@@ -254,6 +259,17 @@ namespace MysticalWeapons.Items
         private bool _seen;
         private bool _inside;
 
+        // Growing in: the swirl's full scale, emission, light and hum, scaled up from nothing until the ready time
+        private bool _formed;
+        private Transform _swirl;
+        private Vector3 _swirlScale;
+        private ParticleSystem[] _systems;
+        private float[] _rates;
+        private Light[] _lights;
+        private float[] _intensities;
+        private AudioSource[] _hums;
+        private float[] _volumes;
+
         private void Awake()
         {
             _nview = GetComponent<ZNetView>();
@@ -265,6 +281,7 @@ namespace MysticalWeapons.Items
         {
             if (!_nview.IsValid()) return;
             var zdo = _nview.GetZDO();
+            if (!_formed) Form(zdo);
             if (_nview.IsOwner())
             {
                 // Closed or timed out while this area was unloaded
@@ -278,13 +295,48 @@ namespace MysticalWeapons.Items
 
             var player = Player.m_localPlayer;
             if (!player) return;
-            var inside = Inside(player.transform.position);
+            var inside = _formed && Inside(player.transform.position);
             var entered = _seen && inside && !_inside;
             _seen = true;
             _inside = inside;
             if (player.IsTeleporting()) _graceUntil = Time.time + ArrivalGrace;
             if (!entered || Time.time < _graceUntil || player.IsDead()) return;
             Send(player, zdo);
+        }
+
+        /// <summary>
+        /// Grows the swirl in from a spark to full size between the open and ready times in the ZDO (world time, so every
+        /// peer shows the same stage). Ends from before this existed have no ready time and show at once.
+        /// </summary>
+        private void Form(ZDO zdo)
+        {
+            if (!_swirl)
+            {
+                // Read on the first frame, not in Awake: the hum's own setup may set its volume in its Awake
+                _swirl = transform.Find("swirl");
+                if (!_swirl) { _formed = true; return; }
+                _swirlScale = _swirl.localScale;
+                _systems = _swirl.GetComponentsInChildren<ParticleSystem>(true);
+                _rates = Array.ConvertAll(_systems, s => s.emission.rateOverTimeMultiplier);
+                _lights = _swirl.GetComponentsInChildren<Light>(true);
+                _intensities = Array.ConvertAll(_lights, l => l.intensity);
+                _hums = _swirl.GetComponentsInChildren<AudioSource>(true);
+                _volumes = Array.ConvertAll(_hums, a => a.volume);
+            }
+
+            var opened = zdo.GetLong(TownPortal.OpenedKey);
+            var ready = zdo.GetLong(TownPortal.ReadyKey);
+            var t = ready > opened ? Mathf.Clamp01((float)(ZNet.instance.GetTime().Ticks - opened) / (ready - opened)) : 1f;
+            _formed = t >= 1f;
+            var k = t * t * (3f - 2f * t); // ease in and out
+            _swirl.localScale = Vector3.Lerp(_swirlScale * 0.07f, _swirlScale, k);
+            for (var i = 0; i < _systems.Length; i++)
+            {
+                var emission = _systems[i].emission;
+                emission.rateOverTimeMultiplier = _rates[i] * Mathf.Max(0.15f, k);
+            }
+            for (var i = 0; i < _lights.Length; i++) _lights[i].intensity = _intensities[i] * k;
+            for (var i = 0; i < _hums.Length; i++) _hums[i].volume = _volumes[i] * k;
         }
 
         /// <summary>Inside the ring: the oval's width, a step either side of it, from the ground to above head height.</summary>
