@@ -156,16 +156,16 @@ namespace MysticalWeapons.Armor
                 if (_assassinationOn.Value) Assassination.SetBonus = _creed;
                 Set.SetBonus(4, _creed);
             }
-            SetTierIcon(IconTier, Icon);
+            foreach (var tier in IconTiers) SetTierIcon(tier, Icon);
         }
 
         public override void RegisterExtras(ObjectDB db) => Set.Register(db);
 
-        /// <summary>The bonus that shows this piece's picture as the set's one icon (0 = none).</summary>
-        protected virtual int IconTier => 0;
+        /// <summary>The bonuses that show this piece's picture as the set's one icon.</summary>
+        protected virtual int[] IconTiers => new int[0];
 
         /// <summary>Gives the bonus for <paramref name="tier"/> pieces worn this picture.</summary>
-        internal static void SetTierIcon(int tier, Sprite icon)
+        private static void SetTierIcon(int tier, Sprite icon)
         {
             var effect = tier == 2 ? _sneakEffect : tier == 3 ? _eagleVision : tier == 4 ? (StatusEffect)_creed : null;
             if (effect && icon) effect.m_icon = icon;
@@ -261,7 +261,7 @@ namespace MysticalWeapons.Armor
         public override string Description =>
             "A peaked hood that keeps your eyes in shadow. Nothing is true; everything is permitted.";
         protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:2,LeatherScraps:5,Silver:2";
-        protected override int IconTier => 3;
+        protected override int[] IconTiers => new[] { 3, 4 };  // the set's face: Eagle Vision and the Creed
     }
 
     internal class BrotherhoodRobe : BrotherhoodPiece
@@ -272,7 +272,6 @@ namespace MysticalWeapons.Armor
         public override string Description =>
             "A fitted, belted coat with split tails, lined with wolf fur against the mountain cold.";
         protected override string DefaultRecipe => "WolfHairBundle:20,WolfPelt:5,LeatherScraps:10,Silver:4";
-        protected override int IconTier => 4;  // until the hidden blades take it
 
         protected override void Customize(ItemDrop.ItemData.SharedData shared)
         {
@@ -303,7 +302,7 @@ namespace MysticalWeapons.Armor
         protected override float DefaultArmor => 1f;  // as the linen cape
         protected override float DefaultArmorPerLevel => 1f;
         protected override string DefaultRecipe => "WolfHairBundle:10,WolfPelt:4,Silver:2";
-        protected override int IconTier => 2;
+        protected override int[] IconTiers => new[] { 2 };
 
         private ConfigEntry<Color> _lining;
 

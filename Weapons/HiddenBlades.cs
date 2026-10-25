@@ -41,8 +41,9 @@ namespace MysticalWeapons.Weapons
 
         public override MaterialSpec[] Materials => new[]
         {
-            // Bright, glossy and a faint glint, or the metal goes dark in shade and the blade is lost against the glove
-            new MaterialSpec(new Color(0.9f, 0.89f, 0.87f), 0.97f, new Color(0.1f, 0.1f, 0.1f)),   // blade
+            // Bright, cool steel with a faint glint, or the metal goes dark in shade and the blade is lost against the glove;
+            // a little less than mirror gloss, which reflected the sky and turned it blue
+            new MaterialSpec(new Color(0.82f, 0.84f, 0.86f), 0.85f, new Color(0.1f, 0.1f, 0.1f)),   // blade
             new MaterialSpec(new Color(0.28f, 0.18f, 0.11f), 0.3f),   // leather sheath and straps
         };
 
@@ -66,7 +67,6 @@ namespace MysticalWeapons.Weapons
             _equipEffect.m_raiseSkill = Skills.SkillType.Unarmed;
             _equipEffect.m_raiseSkillModifier = _unarmedSkill.Value;
             shared.m_equipStatusEffect = _equipEffect;
-            Armor.BrotherhoodPiece.SetTierIcon(4, Icon); // the full set's icon: the blades it unlocks
         }
 
         public override void RegisterExtras(ObjectDB db)

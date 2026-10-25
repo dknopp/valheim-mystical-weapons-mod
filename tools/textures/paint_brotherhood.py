@@ -7,7 +7,10 @@ Cloth takes none of it (the vanilla cloth is blocky 128-pixel mottling): it gets
 
 Input: the vanilla textures, read from the game on your own machine (never committed), as
 tex_<name>.png in the folder given as the first argument. A temporary probe in the mod can write them:
-ModelUtil.ReadableCopy(texture).EncodeToPNG() for each texture of the bases' materials. Run with Python 3 and Pillow:
+ModelUtil.ReadableCopy(texture).EncodeToPNG() for each texture of the bases' materials. The hood's ornament also
+and trim need hood_uv_<view>.png in that folder: front (close, on the peak) and front_w, back, top, left, right,
+frontup, backup (the whole hood): the hood seen from each side, unlit, with a texture whose colours are its own texel coordinates (see hood_ornament), as a
+temporary render in game can write them. Run with Python 3 and Pillow:
     python tools/textures/paint_brotherhood.py <folder with tex_*.png>
 """
 import math
@@ -23,7 +26,6 @@ SIZE = 512
 
 # The hero reference's colours
 SLATE = (38, 48, 62)
-ASH = (60, 73, 92)                               # the hood: the slate, a few shades lighter
 CHARCOAL = (42, 44, 47)
 LEATHER = (92, 61, 39)
 DARK_LEATHER = (60, 40, 27)
@@ -31,7 +33,6 @@ RED = (142, 27, 27)
 SILVER = (163, 167, 171)
 # Edge trims: muted pewter, a step lighter than the cloth they edge, unshaded (vanilla edges are bright)
 TRIM = (74, 82, 94)
-HOOD_TRIM = (96, 108, 124)
 # Silver thread: dimmer than the clasps' silver so it reads as embroidery, not metal
 THREAD = (132, 137, 144)
 
@@ -135,7 +136,7 @@ def cloth(rgb, px, py, d=None):
 
 def damask(rgb, px, py):
     """Cloth with the damask woven in: a lighter shade of itself, faint."""
-    return mix(rgb, tuple(min(255, int(c * 1.22 + 6)) for c in rgb), DAMASK[py][px] * 0.55)
+    return mix(rgb, tuple(min(255, int(c * 1.3 + 8)) for c in rgb), DAMASK[py][px] * 0.8)
 
 
 def mix(a, b, t):
@@ -269,22 +270,24 @@ def bbox(pts):
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def hood_and_boots(vanilla):
+def hood_and_boots(vanilla, edge_distance):
     """MageArmorRed_d: the hood, boots and clasps. Shared by the hood and the legs.
-    Island numbers are in scan order of the vanilla texture (Valheim 1.0.20), checked in game."""
+    Island numbers are in scan order of the vanilla texture (Valheim 1.0.20), checked in game.
+    `edge_distance`: texels to the hood's real edges (see hood_edges)."""
     scale = SIZE // vanilla.size[0]
 
     def colour(i, pts, x, y, c, d):
-        if i == 7:                               # the hood: trim, a silver line and a fine cord inside it
-            if d < 0.9:
-                return HOOD_TRIM, 0.0
-            if 1.3 <= d <= 1.55:
-                return THREAD, 0.0
+        if i == 7:
+            # The trim, a silver line and a fine cord inside it, along the real edges only: where the nearest border is
+            # a seam, plain cloth. No damask: the hood's pieces are smaller than its motif, which broke at every seam.
             px, py = int(x * scale), int(y * scale)
-            if cord(x, y, d, 1.85, 2.45):
+            if edge_distance[min(int(y), 127)][min(int(x), 127)] > d + 2:
+                return cloth(SLATE, px, py), 0.0
+            if d < 0.9:
+                return TRIM, 0.0
+            if 1.3 <= d <= 1.55 or cord(x, y, d, 1.85, 2.45):
                 return THREAD, 0.0
-            base = cloth(ASH, px, py, d)
-            return (damask(base, px, py) if d > 2.8 else base), 0.0
+            return cloth(SLATE, px, py, d), 0.0
         if i in (1, 2, 3, 4):
             return DARK_LEATHER, 1.0             # rings: boot cuffs and straps
         if i != 0:
@@ -296,7 +299,112 @@ def hood_and_boots(vanilla):
             return CHARCOAL, 1.0
         return LEATHER, 1.0
 
-    return paint(vanilla, colour, LEATHER, measure=(0, 1, 2, 3, 4, 7))[0]
+    img, _, _, fields = paint(vanilla, colour, LEATHER, measure=(0, 1, 2, 3, 4, 7))
+    return img, fields[7]
+
+
+def read_code(code):
+    """A hood view (see hood_ornament) as {(view x, y): texel (x, y from the top) at 1024}."""
+    W, H = code.size
+    cpx = code.load()
+    texels = {}
+    for y in range(H):
+        for x in range(W):
+            r, g, b = cpx[x, y][:3]
+            if b >= 4:
+                k = round((b - 8) / 15)
+                texels[x, y] = (r + 256 * (k // 4), 1023 - (g + 256 * (k % 4)))
+    return texels
+
+
+def hood_edges(views, field):
+    """The hood's real edges (face opening, hem) as vanilla texels. The hood's texture is a patchwork of small pieces
+    packed into one island, so most of the island's border, and the gaps inside it, are seams where the cloth runs on
+    (the one down the crown among them); only real edges should get the trim. A real edge is seen against the
+    background in views of the hood (see hood_ornament); a seam has more hood beyond it, on a texel far away on the
+    texture. Seen side on, the seam down the back is the hood's outline too, so one view that sees hood beyond a
+    texel makes it a seam. `field`: the hood island's distance field, so only texels at its border count."""
+    opened, seamed = set(), set()
+    for texels in views:
+        for (x, y), t in texels.items():
+            if distance_at(field, t[0] // 2, t[1] // 2) >= 2.5:
+                continue
+            near = [texels.get(n) for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))]
+            v = (t[0] // 8, t[1] // 8)
+            if None in near:
+                opened.add(v)
+            elif any(abs(t[0] - n[0]) + abs(t[1] - n[1]) > 12 for n in near):
+                seamed.add(v)
+    return opened - seamed
+
+
+def texel_distance(sources, size):
+    """Distance in texels from each texel of a size x size grid to the nearest of `sources` (chamfer, two passes)."""
+    d = [[0.0 if (x, y) in sources else 1e9 for x in range(size)] for y in range(size)]
+    r2 = math.sqrt(2)
+    for y in range(size):
+        for x in range(size):
+            for dx, dy, w in ((-1, 0, 1), (0, -1, 1), (-1, -1, r2), (1, -1, r2)):
+                if 0 <= x + dx < size and 0 <= y + dy < size:
+                    d[y][x] = min(d[y][x], d[y + dy][x + dx] + w)
+    for y in range(size - 1, -1, -1):
+        for x in range(size - 1, -1, -1):
+            for dx, dy, w in ((1, 0, 1), (0, 1, 1), (1, 1, r2), (-1, 1, r2)):
+                if 0 <= x + dx < size and 0 <= y + dy < size:
+                    d[y][x] = min(d[y][x], d[y + dy][x + dx] + w)
+    return d
+
+
+def hood_ornament(img, code, field):
+    """Our scroll ornament in silver thread on the hood's peak, mirrored about its front seam. The peak's two halves
+    lie apart on the texture, one turned sideways, so the ornament is drawn on a front view of the hood and each
+    pixel of it carried to the texel it shows. `code` is that view (read_code of a 1024-pixel render: the hood unlit,
+    with a texture whose colour is its own texel: R, G the low 8 bits of x and y from the bottom,
+    B = 8 + 15 * (4 * (x >> 8) + (y >> 8)), for 1024 texels; black where there's no hood). The peak gets few texels,
+    so the lines are bold. `img` is the hood texture at 1024; `field` the hood's distance field at SIZE."""
+    W = H = 1024
+    # The front seam, read from the view: a little off vertical as the head sits
+    def seam(y):
+        return 472 + (y - 60) * 0.06
+
+    s = 40
+    cy = 140
+    mask = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(mask)
+    cx = seam(cy)
+    d.line([seam(cy - s * 1.3), cy - s * 1.3, seam(cy + s * 1.5), cy + s * 1.5], fill=255, width=8)
+    for side in (-1, 1):
+        for oy, r in ((-s * 0.4, s * 2.0), (s * 0.8, s * 1.4)):
+            spiral = []
+            for k in range(80):
+                t = k / 79 * 2.2 * math.pi
+                rr = r * (1 - t / (2.6 * math.pi))
+                spiral.append((cx + side * (r - rr * math.cos(t)), cy + oy - rr * math.sin(t) * 0.9))
+            d.line(spiral, fill=255, width=8, joint="curve")
+    top = cy - s * 1.3
+    d.polygon([(seam(top - 30), top - 30), (seam(top) + 18, top - 8), (seam(top), top + 14), (seam(top) - 18, top - 8)], fill=255)
+    # Keep clear of the face opening's embroidered border (read off the view: its top edge rises from the seam).
+    # Not by the distance field: the seam is an edge of the texture's island too, and the stem runs along it.
+    for y in range(H):
+        for x in range(W):
+            if y > 215 + 0.35 * abs(x - seam(y)) - 22:
+                mask.putpixel((x, y), 0)
+    mpx = mask.load()
+
+    # Carry each covered view pixel to its texel; a texel's coverage is the share of its pixels in the ornament
+    hits, inked = {}, {}
+    for (x, y), t in code.items():
+        hits[t] = hits.get(t, 0) + 1
+        if mpx[x, y]:
+            inked[t] = inked.get(t, 0) + mpx[x, y] / 255
+    ipx = img.load()
+    k = img.size[0] // SIZE
+    for (tx, ty), ink in inked.items():
+        if distance_at(field, tx // k, ty // k) <= 0.6:  # the seam's own edge texels
+            continue
+        cover = min(1.0, ink / hits[tx, ty] * 1.3)
+        base = ipx[tx, ty]
+        ipx[tx, ty] = mix(base[:3], THREAD, cover) + (int(base[3] * (1 - cover)),)
 
 
 def is_clasp(c):
@@ -487,9 +595,19 @@ def main():
     def load(name):
         return Image.open(os.path.join(src, f"tex_{name}.png")).convert("RGBA")
 
-    hb = hood_and_boots(load("MageArmorRed_d"))
-    hb.save(os.path.join(OUT, "BrotherhoodHood_MainTex.png"))
+    hood_vanilla = load("MageArmorRed_d")
+    views = {n: read_code(Image.open(os.path.join(src, f"hood_uv_{n}.png")).convert("RGB"))
+             for n in ("front", "front_w", "back", "top", "left", "right", "frontup", "backup")}
+    edges = hood_edges([v for n, v in views.items() if n != "front"],distance_field(islands(hood_vanilla)[7], SIZE // hood_vanilla.size[0]))
+    hb, hood_field = hood_and_boots(hood_vanilla, texel_distance(edges, hood_vanilla.size[0]))
     hb.save(os.path.join(OUT, "BrotherhoodLegs_MainTex.png"))
+    # The hood at twice the size, so the ornament on its peak (few texels) gets some detail; the rest is unchanged
+    # Colour and alpha apart: our alpha is how much vanilla shading to take, and resizing RGBA premultiplies by it
+    rgb, alpha = hb.convert("RGB"), hb.getchannel("A")
+    hood = rgb.resize((SIZE * 2, SIZE * 2), Image.BICUBIC).convert("RGBA")
+    hood.putalpha(alpha.resize((SIZE * 2, SIZE * 2), Image.BICUBIC))
+    hood_ornament(hood, views["front"], hood_field)
+    hood.save(os.path.join(OUT, "BrotherhoodHood_MainTex.png"))
     robe(load("AshlandsMageArmor_d")).save(os.path.join(OUT, "BrotherhoodRobe_MainTex.png"))
     chest_paint(load("AshlandsMageArmorChest_d")).save(os.path.join(OUT, "BrotherhoodRobe_ChestTex.png"))
     legs_paint(load("MageArmorLegs_d")).save(os.path.join(OUT, "BrotherhoodLegs_LegsTex.png"))
