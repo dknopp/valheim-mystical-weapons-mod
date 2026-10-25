@@ -70,6 +70,12 @@ which bonuses you have.
   rising to a kill as your Unarmed and Sneak skills reach 80. The biggest (Seeker soldiers, Morgen,
   frost trolls, Hildir's bosses) lose 25% to 50%, and bosses 10% to 20%, once per summoning.
 
+| | |
+|---|---|
+| ![An assassin in the full Brotherhood set crouched on a tower beam](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-hero.jpg) | ![Eagle Vision: a hidden creature glowing red through a tower post](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-eaglevision.jpg) |
+
+![A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.gif)
+
 ## Notes
 
 Items reforged from a vanilla weapon (Andúril, the Bat'leth, the Shardblade, Sulfuras, Thunderfury, the
