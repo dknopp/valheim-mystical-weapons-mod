@@ -110,7 +110,10 @@ blockout, so the first grey render already looks like the refined one:
    if it doesn't read there, it won't read in a hand or on the ground.
 2. **One focal point, detail stacked there.** Put the eye-catching parts in one cluster and leave the rest
    as clean large forms. That cluster is where the identity colour goes (the scroll's blue band, from
-   Diablo II's icon). Small details spread over the model compete and all vanish.
+   Diablo II's icon). Small details spread over the model compete and all vanish. Within the cluster,
+   the identity colour gets the largest area and accents stay smaller: the scroll's seal grew until it
+   read in the icon, then outgrew the band, so the band had to grow too. Judge this in a 128 px
+   render at the angle the mod draws the icon from.
 3. **Group thin details into masses.** At game size anything thinner than about 1/50 of the item's
    length disappears unless it's part of the outline. Many wraps of cord read as one chunky band; two
    thin loops read as nothing.
