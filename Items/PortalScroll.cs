@@ -20,6 +20,7 @@ namespace MysticalWeapons.Items
 
         protected override bool HasDamage => false;
         protected override bool CleanMaterials => true;
+        protected override float ModelScale => 1.75f; // a real-size scroll vanishes on the ground; it's never held
         protected override bool AutoAlign => false;
         // Haldor sells it from the Black Forest on (see SellAtHaldor); crafting waits for the Mistlands
         protected override string DefaultRecipe => "Eitr:2,LinenThread:2,GreydwarfEye:4";
