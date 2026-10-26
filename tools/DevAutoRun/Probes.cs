@@ -66,6 +66,10 @@ namespace DevAutoRun
                     Report(log, "a second scroll closes the first pair", problem, ref pass, ref fail);
                 }
 
+                var drop = new ScrollDrop();
+                yield return drop.Run();
+                Report(log, "a dropped scroll lies flat on the floor", drop.Problem, ref pass, ref fail);
+
                 foreach (var how in new[] { "hit", "step", "late hit" })
                 {
                     var cancel = new PortalRead { CancelBy = how };
@@ -80,6 +84,30 @@ namespace DevAutoRun
         {
             if (problem == null) { pass++; log.LogInfo($"DevAutoRun: PROBE PortalScroll {check} OK"); }
             else { fail++; log.LogError($"DevAutoRun: PROBE PortalScroll {check} FAIL ({problem})"); }
+        }
+
+        /// <summary>Drops a scroll beside the player and checks it settles lying down, resting on the floor rather than in it.</summary>
+        private class ScrollDrop
+        {
+            public string Problem;
+
+            public IEnumerator Run()
+            {
+                var player = Player.m_localPlayer;
+                var at = player.transform.position + player.transform.right * 3f + Vector3.up * 1.5f;
+                var item = Object.Instantiate(ObjectDB.instance.GetItemPrefab("PortalScroll"), at, Quaternion.Euler(0f, 30f, 0f));
+                item.GetComponent<ItemDrop>().m_autoPickup = false; // else the player picks it up as it lands
+                yield return new WaitForSeconds(4f);
+                if (!item) { Problem = "the dropped scroll is gone"; yield break; }
+                var bounds = item.GetComponentsInChildren<MeshRenderer>().Where(r => r.enabled)
+                    .Select(r => r.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
+                var flat = bounds.size.y < Mathf.Max(bounds.size.x, bounds.size.z) * 0.5f;
+                var floorFound = ZoneSystem.instance.FindFloor(new Vector3(bounds.center.x, at.y, bounds.center.z), out var floor);
+                if (!flat) Problem = $"not lying flat (bounds {bounds.size})";
+                // A few cm is slope and terrain mesh; standing on end put half the scroll (~0.2 m) under the floor
+                else if (floorFound && bounds.min.y < floor - 0.08f) Problem = $"{floor - bounds.min.y:0.000} m into the floor";
+                ZNetScene.instance.Destroy(item);
+            }
         }
 
         /// <summary>

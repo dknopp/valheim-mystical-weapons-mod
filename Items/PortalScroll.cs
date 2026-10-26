@@ -28,7 +28,7 @@ namespace MysticalWeapons.Items
         protected override int DefaultStationLevel => 1;
 
         // Submeshes of models/PortalScroll.obj (tools/blender/make_portal_scroll_texture.py)
-        private const int Parchment = 0, Wax = 1, Cord = 2;
+        private const int Parchment = 0, Cord = 2; // 1 is the wax seal
 
         public override MaterialSpec[] Materials => new[]
         {
@@ -81,6 +81,9 @@ namespace MysticalWeapons.Items
             }
             box.center = fit.center;
             box.size = fit.size;
+            // Floating measures the item by a collider it holds, which may have been one of those just removed
+            var floating = root.GetComponent<Floating>();
+            if (floating) AccessTools.Field(typeof(Floating), "m_collider")?.SetValue(floating, box);
             Plugin.Log.LogInfo($"{PrefabName}: collider fitted to the scroll, centre {fit.center}, size {fit.size}");
         }
 

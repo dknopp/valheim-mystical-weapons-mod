@@ -109,8 +109,8 @@ grey render already looks like the refined one:
 
 1. **Exaggerate the signature shape.** Find the one outline that says what the object is and push it past
    life: game art pushes it 1.5 to 2 times. A real rolled scroll is a near-straight tube; a game scroll
-   is a bowtie, pinched hard at the tie. Check it with the grey render shrunk to icon size (about 64 px):
-   if it doesn't read there, it won't read in a hand or on the ground.
+   is a bowtie, pinched hard at the tie. Check it with the grey render at icon size (128 px, from the
+   angle the mod draws icons): if it doesn't read there, it won't read in a hand or on the ground.
 2. **One focal point, detail stacked there.** Put the eye-catching parts in one cluster and leave the rest
    as clean large forms. That cluster is where the identity colour goes (the scroll's blue band, from
    Diablo II's icon). Small details spread over the model compete and all vanish. Within the cluster,
