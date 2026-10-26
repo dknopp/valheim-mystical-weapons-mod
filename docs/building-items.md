@@ -112,7 +112,7 @@ blockout, so the first grey render already looks like the refined one:
    as clean large forms. That cluster is where the identity colour goes (the scroll's blue band, from
    Diablo II's icon). Small details spread over the model compete and all vanish. Within the cluster,
    the identity colour gets the largest area and accents stay smaller: the scroll's seal grew until it
-   read in the icon, then outgrew the band, so the band had to grow too. Judge this in a 128 px
+   read in the icon, then outgrew the band, so the band grew longer along the roll. Judge this in a 128 px
    render at the angle the mod draws the icon from.
 3. **Group thin details into masses.** At game size anything thinner than about 1/50 of the item's
    length disappears unless it's part of the outline. Many wraps of cord read as one chunky band; two

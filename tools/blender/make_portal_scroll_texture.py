@@ -162,8 +162,8 @@ cord = z_ == 2
 pc = p[cord]
 twist = 0.5 + 0.5 * np.sin(ang[cord] * 8 + z[cord] * 2500)
 c = ramp(twist, [(0.0, (0.13, 0.23, 0.62)), (1.0, (0.22, 0.37, 0.84))])
-on_band = (np.abs(z[cord]) <= ps.BAND + 0.0015) & (r[cord] < ps.R_BAND + ps.CORD_R * 1.2)
-ridge = np.clip((r[cord] - ps.R_BAND - ps.CORD_R * 0.35) / (ps.CORD_R * 0.65), 0, 1)
+on_band = (np.abs(z[cord]) <= ps.BAND + 0.0015) & (r[cord] < ps.R_WAIST + ps.CORD_R * 1.2)
+ridge = np.clip((r[cord] - ps.R_WAIST - ps.CORD_R * 0.35) / (ps.CORD_R * 0.65), 0, 1)
 c = np.where(on_band[:, None], c * (0.55 + 0.55 * ridge)[:, None], c)
 col[cord] = c * (0.93 + 0.1 * fbm(pc * 500, 41))[:, None]
 

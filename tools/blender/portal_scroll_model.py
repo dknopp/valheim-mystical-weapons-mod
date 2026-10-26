@@ -14,7 +14,6 @@ COLLECTION = "PS_Model"
 HALF = 0.105          # half the roll's length
 R_WAIST, R_END = 0.012, 0.019   # outer radius under the band and at the ends
 BAND = 0.032          # half the cord band's length
-R_BAND = 0.015        # the band's sleeve stands proud of the waist (R_WAIST), so the blue reads thick
 TURNS = 2.0           # turns of the spiral before the flap
 INNER = 0.35          # innermost turn's radius as a fraction of the outer
 FLAP_TURN = 0.22      # last part of a turn that lifts off as the loose flap
@@ -122,7 +121,7 @@ def build_parchment(grey):
 # --- Cord -----------------------------------------------------------------------------------------
 # The band is one sleeve with a ridge per wrap (a pitch on the wraps left a sawtooth seam at this low count).
 # Over it, two cords cross in an X on the front; the knot sits at the band's lower edge with two tails.
-CORD_R = 0.0033
+CORD_R = 0.0028
 WRAPS = 9
 SLEEVE_SIDES = 10
 FRONT = math.radians(-90)   # the side the X, seal and knot face (Blender -Y)
@@ -138,7 +137,7 @@ def build_cord(grey):
         for k in range(SLEEVE_SIDES):
             a = k * 2 * math.pi / SLEEVE_SIDES
             z = base
-            r = R_BAND + ridge if 0 < j < rows - 1 else R_WAIST + CORD_R * 0.3   # edges tuck onto the roll
+            r = R_WAIST + ridge
             ring.append(bm.verts.new((r * math.cos(a), r * math.sin(a), z)))
         rings.append(ring)
     for r0, r1 in zip(rings, rings[1:]):
@@ -151,7 +150,7 @@ def build_cord(grey):
         for k in range(7):
             t = k / 6
             a = FRONT + math.radians(-80 + 160 * t)
-            rr = R_BAND + CORD_R * (0.6 + 1.6 * math.sin(t * math.pi))   # ends tuck under the wraps
+            rr = R_WAIST + CORD_R * (0.6 + 1.6 * math.sin(t * math.pi))   # ends tuck under the wraps
             pts.append(Vector((rr * math.cos(a), rr * math.sin(a), sgn * BAND * 0.95 * (1 - 2 * t))))
         tube(bm, pts, CORD_R * 1.1, 4)
 
@@ -159,7 +158,7 @@ def build_cord(grey):
     a = FRONT + math.radians(28)
     out = Vector((math.cos(a), math.sin(a), 0))
     side = Vector((0, 0, 1)).cross(out)
-    knot = out * (R_BAND + CORD_R * 2.6) + Vector((0, 0, -BAND - 0.002))
+    knot = out * (R_WAIST + CORD_R * 2.6) + Vector((0, 0, -BAND - 0.002))
     tube(bm, [knot - side * 0.005 + Vector((0, 0, 0.002)), knot + out * 0.002, knot + side * 0.005 - Vector((0, 0, 0.002))],
          [0.0026, 0.004, 0.0026], 6)
     for sgn, ln in ((1, 0.05), (-1, 0.038)):
@@ -179,7 +178,7 @@ def build_cord(grey):
 # band so its edge sits down on the cord. A raised, uneven rim around a flat stamped face; the rune
 # (Othala, "home") is pressed into the face by the texture.
 SEAL_R = 0.0135        # radius of the wax round: oversized so it reads in the 128 px inventory icon
-SEAL_BASE = R_BAND + CORD_R * 2.6   # radius it's bent around (over the X cords)
+SEAL_BASE = R_WAIST + CORD_R * 2.6   # radius it's bent around (over the X cords)
 SEAL_H = 0.0022        # height of its rim above the base
 STAMP = 0.66           # the stamped face's radius as a fraction of SEAL_R
 
