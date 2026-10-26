@@ -194,9 +194,11 @@ namespace MysticalWeapons.Items
                 Plugin.Log.LogWarning($"{PrefabName}: Haldor not found; he won't sell scrolls");
                 return;
             }
+            // The shop reads m_tooltip.Length and the buy effects without null checks; Unity fills them on vanilla entries
             _tradeItem = new Trader.TradeItem
             {
-                m_prefab = Prefab.GetComponent<ItemDrop>(), m_stack = 1, m_price = _traderPrice.Value, m_requiredGlobalKey = _traderKey.Value.Trim()
+                m_prefab = Prefab.GetComponent<ItemDrop>(), m_stack = 1, m_price = _traderPrice.Value, m_requiredGlobalKey = _traderKey.Value.Trim(),
+                m_name = "", m_tooltip = "", m_buyKey = "", m_buyPlayerEffects = new EffectList()
             };
             if (!AddToStock(trader)) return;
             Plugin.Log.LogInfo($"{PrefabName}: sold by Haldor for {_traderPrice.Value} coins" +
