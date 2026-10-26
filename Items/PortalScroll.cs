@@ -19,28 +19,28 @@ namespace MysticalWeapons.Items
             "Read it to open a gateway home, and another back to where you stood. Ore and metal still refuse the road.";
 
         protected override bool HasDamage => false;
+        protected override bool CleanMaterials => true;
         protected override bool AutoAlign => false;
         // Haldor sells it from the Black Forest on (see SellAtHaldor); crafting waits for the Mistlands
         protected override string DefaultRecipe => "Eitr:2,LinenThread:2,GreydwarfEye:4";
         protected override string DefaultStation => "piece_magetable";
         protected override int DefaultStationLevel => 1;
 
-        private const int Parchment = 0, Rod = 1, Ribbon = 2;
+        // Submeshes of models/PortalScroll.obj (tools/blender/make_portal_scroll_texture.py)
+        private const int Parchment = 0, Wax = 1, Cord = 2;
 
         public override MaterialSpec[] Materials => new[]
         {
             new MaterialSpec(new Color(0.86f, 0.78f, 0.6f), 0.2f),  // parchment
-            new MaterialSpec(new Color(0.3f, 0.19f, 0.1f), 0.4f),   // wooden rods
-            new MaterialSpec(new Color(0.2f, 0.3f, 0.85f), 0.5f),   // ribbon
+            new MaterialSpec(new Color(0.62f, 0.1f, 0.1f), 0.6f),   // wax seal
+            new MaterialSpec(new Color(0.2f, 0.3f, 0.85f), 0.3f),   // cord, Diablo II blue
         };
 
+        /// <summary>Fallback when models/PortalScroll.obj is missing: a plain roll with the cord band.</summary>
         public override void BuildModel(MeshBuilder b)
         {
-            // A rolled scroll along Y: parchment, rod ends poking out, a ribbon round the middle
-            b.Prism(Parchment, -0.1f, 0.1f, 0.025f, 12);
-            b.Prism(Rod, -0.125f, -0.1f, 0.012f);
-            b.Prism(Rod, 0.1f, 0.125f, 0.012f);
-            b.Prism(Ribbon, -0.012f, 0.012f, 0.027f, 12);
+            b.Prism(Parchment, -0.105f, 0.105f, 0.017f, 12);
+            b.Prism(Cord, -0.023f, 0.023f, 0.019f, 12);
         }
 
         internal enum CastPose { Point, Kneel }

@@ -78,7 +78,8 @@ When an item gets a custom model (Thunderfury onwards), Claude Code does the han
 The Warglaives looked right because of the focused passes after the first build, each starting with
 a fresh, close look at the reference. Build in this order, with a review after each step:
 
-1. **Blockout.** Silhouette and proportions only, in plain grey. Check the size and hold in game now,
+1. **Blockout.** Silhouette and proportions only, in plain grey, following "Custom models: before the
+   first pass" below. Check the size and hold in game now,
    while parts are cheap to move (the Warglaives went from 0.88 m to 1.6 m and had their hold turned
    before any detail).
 2. **Construction.** List how the real thing is put together before detailing: which parts are separate
@@ -96,6 +97,28 @@ a fresh, close look at the reference. Build in this order, with a review after e
 6. **Texture from the shape.** Make the texture follow the geometry: glow on the edges, dark to bright
    across the bevel, the groove picked out, and materials changing by region (metal at the hub kindling
    into fel along the blade). A texture that ignores the shape flattens the depth the passes added.
+
+## Custom models: before the first pass
+
+What separated our first Blender pass from a game artist's version of the same object (the Scroll of
+Hearth Portal against a downloaded Sketchfab scroll; see Lessons). Check these before building the
+blockout, so the first grey render already looks like the refined one:
+
+1. **Exaggerate the signature shape.** Find the one outline that says what the object is and push it past
+   life: game art pushes it 1.5 to 2 times. A real rolled scroll is a near-straight tube; a game scroll
+   is a bowtie, pinched hard at the tie. Check it with the grey render shrunk to icon size (about 64 px):
+   if it doesn't read there, it won't read in a hand or on the ground.
+2. **One focal point, detail stacked there.** Put the eye-catching parts in one cluster and leave the rest
+   as clean large forms. That cluster is where the identity colour goes (the scroll's blue band, from
+   Diablo II's icon). Small details spread over the model compete and all vanish.
+3. **Group thin details into masses.** At game size anything thinner than about 1/50 of the item's
+   length disappears unless it's part of the outline. Many wraps of cord read as one chunky band; two
+   thin loops read as nothing.
+4. **Show the construction where it can be seen.** Open ends, edges and seams carry the "how it's made"
+   story: the scroll's ends curl outward to show the spiral, instead of the layers hiding inside a tube.
+5. **Match the source game's style, not the real object.** Model the stylised version the source game
+   would draw (proportions, chunkiness), then add only the realistic touches that survive point 3.
+   Physically right detail at the wrong scale was the first pass's main mistake.
 
 ## Finding vanilla prefabs
 
@@ -190,6 +213,15 @@ valheim.tools and valheim.weirdgloop.org.
   textures found, UVs) before the first launch.
 - The OBJ import mirrors X, so a model that isn't symmetric across X can face the wrong way in game
   (the Warglaive's hub first sat behind the fist). Check the hold in game before baking the texture.
+- **The scroll's three stages** (the source of "Custom models: before the first pass"). The code-built
+  placeholder was a stack of cylinders: it read as a rod. Our first Blender pass modelled a real scroll
+  faithfully (a spiral sheet, a peeling flap, a cord in two thin loops, a knot, tails, a seal off to one
+  side), about 1,100 triangles, yet its outline was still a straight tube and every detail was too thin
+  or too scattered to read. Pixel Life's Sketchfab scroll (CC BY 4.0, looked at only) fixed that with
+  a bowtie pinch, one wide cross-wrapped band with the seal on it, curled ends, and a slimmer roll
+  (about 7 times as long as it is wide, against our 5). Reworking ours that way took one round at the
+  same triangle count. The lesson: the gap was in how much each form was exaggerated, grouped and
+  focused, not in how many triangles or how much detail it had.
 
 ### Glow
 - A point light on an item hardly shows in daylight; emissive textures carry the glow.
