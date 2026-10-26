@@ -151,8 +151,8 @@ for a0, b0 in segs:
     a0, b0 = np.array(a0), np.array(b0); ab = b0 - a0
     tt = np.clip(((q - a0) @ ab) / (ab @ ab), 0, 1)
     gd = np.minimum(gd, np.linalg.norm(q - a0 - tt[:, None] * ab, axis=1))
-groove = np.clip(1 - (gd - 0.07) / 0.05, 0, 1) * (d < ps.STAMP)
-lip = np.clip(1 - np.abs(gd - 0.13) / 0.04, 0, 1) * (d < ps.STAMP)
+groove = np.clip(1 - (gd - 0.09) / 0.05, 0, 1) * (d < ps.STAMP)
+lip = np.clip(1 - np.abs(gd - 0.15) / 0.04, 0, 1) * (d < ps.STAMP)
 c = c * (1 - 0.6 * groove)[:, None] + np.array([0.80, 0.22, 0.16]) * (0.5 * lip * (1 - groove))[:, None]
 col[wax] = c * (0.94 + 0.08 * fbm(pw * 400, 31))[:, None]
 
@@ -218,11 +218,15 @@ if preview:
                                   ("seal", Vector((0, 1, 0)), 0.06),
                                   ("back", Vector((0.5, -1, -0.3)), 0.26),
                                   ("end", Vector((0.35, 0.5, -1)), 0.2),
-                                  ("icon", Vector((0.3, 1, -0.5)), 0.26)):
+                                  ("icon", Vector((0, 1, 0)), 0.2)):
         cam.data.ortho_scale = scale
         cam.location = -direction.normalized() * 3
-        cam.rotation_euler = (-cam.location).to_track_quat("-Z", "X" if tag != "end" else "Y").to_euler()
-        if tag == "icon":
-            scene.render.resolution_x = scene.render.resolution_y = 64
+        q = (-cam.location).to_track_quat("-Z", "X" if tag != "end" else "Y")
+        if tag == "icon":  # as the mod draws it: seal side, turned 45 degrees, 128 px
+            from mathutils import Quaternion
+            q = q @ Quaternion((0, 0, 1), math.radians(45))
+            scene.render.resolution_x = scene.render.resolution_y = 128
+            world.node_tree.nodes["Background"].inputs[0].default_value = (0.05, 0.05, 0.05, 1)
+        cam.rotation_euler = q.to_euler()
         scene.render.filepath = f"{base_path}_{tag}{ext}"
         bpy.ops.render.render(write_still=True)

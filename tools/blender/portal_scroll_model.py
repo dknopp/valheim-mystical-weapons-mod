@@ -177,7 +177,7 @@ def build_cord(grey):
 # A flat round of wax pressed over the X's crossing, in the middle of the band's front, bent round the
 # band so its edge sits down on the cord. A raised, uneven rim around a flat stamped face; the rune
 # (Othala, "home") is pressed into the face by the texture.
-SEAL_R = 0.0095        # radius of the wax round
+SEAL_R = 0.0135        # radius of the wax round: oversized so it reads in the 128 px inventory icon
 SEAL_BASE = R_WAIST + CORD_R * 2.6   # radius it's bent around (over the X cords)
 SEAL_H = 0.0022        # height of its rim above the base
 STAMP = 0.66           # the stamped face's radius as a fraction of SEAL_R
