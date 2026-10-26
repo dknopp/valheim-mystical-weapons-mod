@@ -114,9 +114,10 @@ Don't bump `Version` in `Plugin.cs` in a feature PR.
 3. Add it to `Plugin.Items`.
 4. Add a row to the items tables in the [README](../README.md).
 5. Optional, to promote the mod: a GIF or screenshots aren't required, but when a big addition (a
-   new item or set, or a major rework of one) has them, it takes the README's "Newest" section,
-   just below Screenshots. Move the previous newest item's media down to its own section in the
-   items list. Fixes and small changes don't take it.
+   new item or set, or a major rework of one) has them, it gets an entry at the top of the README's
+   "What's new" section, just below Screenshots, dated by when it reached the beta. Keep up to three
+   entries; when a fourth comes, move the oldest one's media down to its own section in the items
+   list. Fixes and small changes don't get one.
 
 ### Item report
 
