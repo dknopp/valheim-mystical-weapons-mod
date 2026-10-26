@@ -56,6 +56,7 @@ namespace MysticalWeapons.Items
         private ConfigEntry<float> _castSeconds;
         private ConfigEntry<CastPose> _castAnimation;
         internal static ConfigEntry<float> TimeoutMinutes;
+        internal static ConfigEntry<float> MistClearRadius;
         private ConfigEntry<int> _traderPrice;
         private ConfigEntry<string> _traderKey;
 
@@ -71,6 +72,8 @@ namespace MysticalWeapons.Items
             _castAnimation = cfg.Bind(PrefabName, "CastAnimation", CastPose.Point, "What your character does while reading the scroll.");
             TimeoutMinutes = cfg.Bind(PrefabName, "TimeoutMinutes", 60f,
                 "Minutes before an unused pair of portals closes by itself. 0 = they stay until you come back through the home end or read another scroll.");
+            MistClearRadius = cfg.Bind(PrefabName, "MistClearRadius", 15f,
+                "Metres of Mistlands mist each portal clears around itself (a Wisplight clears 15). 0 = none. Restart to apply.");
         }
 
         private static OpenEffect _effect;

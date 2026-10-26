@@ -68,10 +68,38 @@ namespace MysticalWeapons.Items
             swirl.transform.localRotation = Quaternion.identity;
             swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.75f); // every ring is a circle: stretch to an oval
             Recolour(swirl);
+            AddDemister(root, findVanilla);
 
             _prefab = root;
             Plugin.Log.LogInfo($"{PrefabName}: swirl from {SourcePrefab}/{SourceEffect}, recoloured blue");
             return _prefab;
+        }
+
+        private const string WispSource = "Demister"; // the Wisplight
+
+        /// <summary>Copies the Wisplight ball's mist-clearing part (its Demister and force field), so the Mistlands mist parts round each end.</summary>
+        private static void AddDemister(GameObject root, Func<string, GameObject> findVanilla)
+        {
+            var radius = PortalScroll.MistClearRadius.Value;
+            if (radius <= 0f) return;
+            var wisplight = findVanilla(WispSource);
+            var se = wisplight ? wisplight.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_equipStatusEffect as SE_Demister : null;
+            // The Demister finds its force field on waking; on the prefab, look on the same object
+            var demister = se && se.m_ballPrefab ? se.m_ballPrefab.GetComponentInChildren<Demister>(true) : null;
+            if (!demister || !demister.GetComponent<ParticleSystemForceField>())
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: no '{WispSource}' demister to copy; portals won't clear mist");
+                return;
+            }
+            // That object holds only the Demister and its force field: the ball's look and motion stay behind
+            var copy = Object.Instantiate(demister.gameObject, root.transform);
+            copy.name = "demister";
+            copy.transform.localPosition = Vector3.up;
+            copy.transform.localRotation = Quaternion.identity;
+            var field = copy.GetComponent<ParticleSystemForceField>();
+            var wispRange = field.endRange;
+            field.endRange = radius;
+            Plugin.Log.LogInfo($"{PrefabName}: clears mist like '{wisplight.name}' ({demister.name}, its radius {wispRange:0.#} m, ours {radius:0.#} m)");
         }
 
         /// <summary>D2's white-hot blue to blue-violet, from the look test (references/town-portal.md).</summary>

@@ -48,6 +48,9 @@ namespace DevAutoRun
                 Report(log, "Haldor sells it", !trader ? "no Haldor prefab" :
                     trader.m_items.Any(t => t.m_prefab && t.m_prefab.name == "PortalScroll") ? null : "not in his stock",
                     ref pass, ref fail);
+                var portalPrefab = ZNetScene.instance.GetPrefab("PortalScroll_Portal");
+                Report(log, "portal clears mist", portalPrefab && portalPrefab.GetComponentInChildren<Demister>(true) ? null : "no Demister",
+                    ref pass, ref fail);
 
                 var first = new PortalRead();
                 yield return first.Run();

@@ -49,7 +49,7 @@ Full set details below.
 
 | Item | From | What it does | Where to get it |
 |---|---|---|---|
-| **Scroll of Hearth Portal** | Diablo (Town Portal) | Read it, stand still for 3 s, and a portal opens in front of you with its twin at your bed (the world start if you have none). Anyone can use either end; ore and metal still can't go through. Both close when you come back through the home end, when you read another scroll, or after an hour. Moving or getting hit while reading cancels it and keeps the scroll. Stacks to 20. | Haldor, 250 coins (after The Elder); Galdr table 1 |
+| **Scroll of Hearth Portal** | Diablo (Town Portal) | Read it, stand still for 3 s, and a portal opens in front of you with its twin at your bed (the world start if you have none). Anyone can use either end; ore and metal still can't go through. Each end clears the Mistlands mist around it like a Wisplight. Both close when you come back through the home end, when you read another scroll, or after an hour. Moving or getting hit while reading cancels it and keeps the scroll. Stacks to 20. | Haldor, 250 coins (after The Elder); Galdr table 1 |
 
 ### The Deathly Hallows (Harry Potter)
 
