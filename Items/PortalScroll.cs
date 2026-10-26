@@ -47,6 +47,8 @@ namespace MysticalWeapons.Items
 
         /// <summary>The portal grows in over the last this-many seconds of the cast.</summary>
         private const float FormSeconds = 1f;
+        /// <summary>Seconds from the pose starting to the point's arm reaching out; the pose starts this long before the portal forms.</summary>
+        private const float PoseLead = 1.5f;
         /// <summary>Walking further than this from where you started reading cancels the cast.</summary>
         private const float MoveTolerance = 0.3f;
 
@@ -188,7 +190,7 @@ namespace MysticalWeapons.Items
             internal ItemDrop.ItemData Scroll;
             private Vector3 _start, _facing;
             private ZDOID _forming = ZDOID.None; // an ID, not the ZDO: the game pools and reuses removed ones
-            private bool _opened, _cancelled;
+            private bool _posed, _opened, _cancelled;
 
             private static readonly Action<Character> StopEmote =
                 AccessTools.MethodDelegate<Action<Character>>(AccessTools.Method(typeof(Character), "StopEmote"));
@@ -198,7 +200,6 @@ namespace MysticalWeapons.Items
                 base.Setup(character);
                 _start = character.transform.position;
                 _facing = Vector3.ProjectOnPlane(character.transform.forward, Vector3.up);
-                if (character is Player player) player.StartEmote(Pose.ToString().ToLowerInvariant());
             }
 
             public override void UpdateStatusEffect(float dt)
@@ -206,6 +207,12 @@ namespace MysticalWeapons.Items
                 base.UpdateStatusEffect(dt);
                 if (_opened || _cancelled) return;
                 if (Moved()) { Cancel("moved"); return; }
+                // Timed so the arm reaches out as the portal starts forming
+                if (!_posed && m_time >= OpenAt - PoseLead)
+                {
+                    _posed = true;
+                    if (m_character is Player player) player.StartEmote(Pose.ToString().ToLowerInvariant());
+                }
                 if (_forming.IsNone() && m_time >= OpenAt) BeginForming();
                 if (!_forming.IsNone() && m_time >= OpenAt + FormSeconds) Open();
             }
