@@ -20,9 +20,9 @@ namespace MysticalWeapons.Items
 
         protected override bool HasDamage => false;
         protected override bool AutoAlign => false;
-        // Placeholder until chunk (d): Haldor sells it, then the Galdr table
-        protected override string DefaultRecipe => "LeatherScraps:2,GreydwarfEye:2";
-        protected override string DefaultStation => "piece_workbench";
+        // Haldor sells it from the Black Forest on (see SellAtHaldor); crafting waits for the Mistlands
+        protected override string DefaultRecipe => "Eitr:2,LinenThread:2,GreydwarfEye:4";
+        protected override string DefaultStation => "piece_magetable";
         protected override int DefaultStationLevel => 1;
 
         private const int Parchment = 0, Rod = 1, Ribbon = 2;
@@ -56,10 +56,15 @@ namespace MysticalWeapons.Items
         private ConfigEntry<float> _castSeconds;
         private ConfigEntry<CastPose> _castAnimation;
         internal static ConfigEntry<float> TimeoutMinutes;
+        private ConfigEntry<int> _traderPrice;
+        private ConfigEntry<string> _traderKey;
 
         public override void BindConfig(ConfigFile cfg)
         {
             base.BindConfig(cfg);
+            _traderPrice = cfg.Bind(PrefabName, "HaldorPrice", 250, "Coins Haldor asks for one scroll. 0 = he doesn't sell it.");
+            _traderKey = cfg.Bind(PrefabName, "HaldorRequiredKey", "defeated_gdking",
+                "World key needed before Haldor offers it (defeated_gdking = after The Elder). Empty = from the start.");
             _stackSize = cfg.Bind(PrefabName, "StackSize", 20, "How many scrolls fit in one inventory slot.");
             _castSeconds = cfg.Bind(PrefabName, "CastSeconds", 3f,
                 "Seconds between reading the scroll and the portal opening; it forms over the last second. Moving or getting hit before it opens cancels it and keeps the scroll. 0 = instant.");
@@ -171,6 +176,27 @@ namespace MysticalWeapons.Items
             var portal = TownPortal.GetOrCreatePrefab(name => scene.m_prefabs.Find(go => go && go.name == name));
             if (portal && !RegisterNetPrefab(scene, portal))
                 Plugin.Log.LogWarning($"{PrefabName}: another mod already registers '{portal.name}'; scrolls won't open portals");
+            SellAtHaldor(scene);
+        }
+
+        /// <summary>Adds the scroll to Haldor's stock on his prefab, so every Haldor spawned after this sells it.</summary>
+        private void SellAtHaldor(ZNetScene scene)
+        {
+            if (_traderPrice.Value <= 0 || !Prefab) return;
+            var trader = scene.m_prefabs.Find(go => go && go.name == "Haldor")?.GetComponent<Trader>();
+            if (!trader)
+            {
+                Plugin.Log.LogWarning($"{PrefabName}: Haldor not found; he won't sell scrolls");
+                return;
+            }
+            var drop = Prefab.GetComponent<ItemDrop>();
+            if (trader.m_items.Exists(t => t.m_prefab == drop)) return;
+            trader.m_items.Add(new Trader.TradeItem
+            {
+                m_prefab = drop, m_stack = 1, m_price = _traderPrice.Value, m_requiredGlobalKey = _traderKey.Value.Trim()
+            });
+            Plugin.Log.LogInfo($"{PrefabName}: sold by Haldor for {_traderPrice.Value} coins" +
+                               (_traderKey.Value.Trim().Length > 0 ? $" once '{_traderKey.Value.Trim()}' is set" : ""));
         }
 
         /// <summary>

@@ -45,6 +45,12 @@ Full set details below.
 |---|---|---|---|
 | **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: you stand 25% taller in a soft Stormlight glow, lightning cracks where your blows land, +50 carry weight, faster stamina regen and resistant to blunt damage. | Forge 5 |
 
+### Other
+
+| Item | From | What it does | Where to get it |
+|---|---|---|---|
+| **Scroll of Hearth Portal** | Diablo (Town Portal) | Read it, stand still for 3 s, and a portal opens in front of you with its twin at your bed (the world start if you have none). Anyone can use either end; ore and metal still can't go through. Both close when you come back through the home end, when you read another scroll, or after an hour. Moving or getting hit while reading cancels it and keeps the scroll. Stacks to 20. | Haldor, 250 coins (after The Elder); Galdr table 1 |
+
 ### The Deathly Hallows (Harry Potter)
 
 | Item | What it does | Crafted at |

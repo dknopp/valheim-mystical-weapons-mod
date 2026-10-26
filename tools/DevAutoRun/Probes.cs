@@ -40,6 +40,15 @@ namespace DevAutoRun
             }
             if (ObjectDB.instance.GetItemPrefab("PortalScroll"))
             {
+                var trader = ZNetScene.instance.GetPrefab("Haldor")?.GetComponent<Trader>();
+                if (trader)
+                    log.LogInfo("DevAutoRun: Haldor sells " + string.Join(", ", trader.m_items.Select(t =>
+                        $"{(t.m_prefab ? t.m_prefab.name : "?")} x{t.m_stack} {t.m_price}" +
+                        (string.IsNullOrEmpty(t.m_requiredGlobalKey) ? "" : $" [{t.m_requiredGlobalKey}]"))));
+                Report(log, "Haldor sells it", !trader ? "no Haldor prefab" :
+                    trader.m_items.Any(t => t.m_prefab && t.m_prefab.name == "PortalScroll") ? null : "not in his stock",
+                    ref pass, ref fail);
+
                 var first = new PortalRead();
                 yield return first.Run();
                 Report(log, "opens a pair after the cast", first.Problem, ref pass, ref fail);
