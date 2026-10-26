@@ -124,7 +124,14 @@ namespace DevAutoRun
                         hit.m_damage.m_blunt = 1f;
                         player.ApplyDamage(hit, false, false);
                     }
-                    else player.transform.position += player.transform.right * 1f;
+                    else
+                    {
+                        // The body too: moving only the transform is sometimes undone by physics before the cast sees it
+                        var step = player.transform.right * 1f;
+                        player.transform.position += step;
+                        var body = player.GetComponent<Rigidbody>();
+                        if (body) body.position = player.transform.position;
+                    }
                     while (Time.time - start < cast + 0.5f) yield return null;
                     if (player.GetSEMan().HaveStatusEffect(effect.NameHash())) Problem = "the cast is still running";
                     else if (Zdos(portal).Any(z => !before.Contains(z.m_uid))) Problem = "a portal opened anyway";

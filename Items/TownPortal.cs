@@ -64,9 +64,11 @@ namespace MysticalWeapons.Items
             swirl.SetActive(true);
             // EffectFade fades the swirl in only once a vanilla portal is linked; ours always shows
             Object.DestroyImmediate(swirl.GetComponent<EffectFade>());
-            swirl.transform.localPosition = Vector3.up * 0.5f;
+            // Every ring is a circle (r 1.26, centred 1.37 m up in the effect): stretch to an oval 2.5 m tall, its
+            // bottom 0.63 m off the ground
+            swirl.transform.localPosition = Vector3.up * 0.52f;
             swirl.transform.localRotation = Quaternion.identity;
-            swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.75f); // every ring is a circle: stretch to an oval
+            swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.75f) * 0.82f;
             Recolour(swirl);
             AddDemister(root, findVanilla);
 
