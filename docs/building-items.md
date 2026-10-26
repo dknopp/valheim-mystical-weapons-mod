@@ -101,8 +101,11 @@ a fresh, close look at the reference. Build in this order, with a review after e
 ## Custom models: before the first pass
 
 What separated our first Blender pass from a game artist's version of the same object (the Scroll of
-Hearth Portal against a downloaded Sketchfab scroll; see Lessons). Check these before building the
-blockout, so the first grey render already looks like the refined one:
+Hearth Portal against a downloaded Sketchfab scroll; see Lessons). These are for models with no set
+design to match: everyday objects (a scroll, a pouch) or a design of our own. An iconic item from its
+source (the Warglaives, Thunderfury) matches the source's form as closely as we can; don't exaggerate
+or regroup it. Before building the blockout of a model with no set design, check these, so the first
+grey render already looks like the refined one:
 
 1. **Exaggerate the signature shape.** Find the one outline that says what the object is and push it past
    life: game art pushes it 1.5 to 2 times. A real rolled scroll is a near-straight tube; a game scroll
