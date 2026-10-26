@@ -65,10 +65,14 @@ namespace MysticalWeapons.Items
             // EffectFade fades the swirl in only once a vanilla portal is linked; ours always shows
             Object.DestroyImmediate(swirl.GetComponent<EffectFade>());
             // Every ring is a circle (r 1.26, centred 1.37 m up in the effect): stretch to an oval 2.5 m tall, its
-            // bottom 0.63 m off the ground
+            // bottom 0.63 m off the ground, and squash its depth so the particles don't bow out behind it
             swirl.transform.localPosition = Vector3.up * 0.52f;
             swirl.transform.localRotation = Quaternion.identity;
-            swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.75f) * 0.82f;
+            swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.25f) * 0.82f;
+            // The dark void keeps its old depth: squashed, too few of its puffs overlap and it turns see-through
+            foreach (var ps in swirl.GetComponentsInChildren<ParticleSystem>(true))
+                if (ps.transform != swirl.transform && IsVoid(ps))
+                    ps.transform.localScale = Vector3.Scale(ps.transform.localScale, new Vector3(1f, 1f, 3f));
             Recolour(swirl);
             AddDemister(root, findVanilla);
 
@@ -105,6 +109,9 @@ namespace MysticalWeapons.Items
         }
 
         /// <summary>D2's white-hot blue to blue-violet, from the look test (references/town-portal.md).</summary>
+        /// <summary>Black_suck, the dark particles that make the portal's void.</summary>
+        private static bool IsVoid(ParticleSystem ps) => ps.main.startColor.colorMax.maxColorComponent < 0.1f;
+
         private static void Recolour(GameObject go)
         {
             var blue = new Color(0.30f, 0.42f, 1f);
@@ -113,7 +120,7 @@ namespace MysticalWeapons.Items
             {
                 var main = ps.main;
                 main.scalingMode = ParticleSystemScalingMode.Hierarchy; // so the oval stretch reaches the particles
-                var dark = main.startColor.colorMax.maxColorComponent < 0.1f; // Black_suck makes the void: keep it
+                var dark = IsVoid(ps); // keep the void dark
                 if (!dark) main.startColor = new ParticleSystem.MinMaxGradient(blue, violet);
                 var col = ps.colorOverLifetime;
                 if (col.enabled && !dark)

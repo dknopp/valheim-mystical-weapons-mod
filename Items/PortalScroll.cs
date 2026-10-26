@@ -92,7 +92,7 @@ namespace MysticalWeapons.Items
         /// <summary>The portal grows in over the last this-many seconds of the cast.</summary>
         private const float FormSeconds = 1f;
         /// <summary>Seconds from the pose starting to the point's arm reaching out; the pose starts this long before the portal forms.</summary>
-        private const float PoseLead = 1.5f;
+        private const float PoseLead = 1.25f;
         /// <summary>Walking further than this from where you started reading cancels the cast.</summary>
         private const float MoveTolerance = 0.3f;
 
