@@ -182,7 +182,9 @@ namespace MysticalWeapons.Items
             SellAtHaldor(scene);
         }
 
-        /// <summary>Adds the scroll to Haldor's stock on his prefab, so every Haldor spawned after this sells it.</summary>
+        private static Trader.TradeItem _tradeItem;
+
+        /// <summary>Adds the scroll to Haldor's stock on his prefab; <see cref="HaldorStock"/> covers the Haldors that aren't made from it.</summary>
         private void SellAtHaldor(ZNetScene scene)
         {
             if (_traderPrice.Value <= 0 || !Prefab) return;
@@ -192,14 +194,33 @@ namespace MysticalWeapons.Items
                 Plugin.Log.LogWarning($"{PrefabName}: Haldor not found; he won't sell scrolls");
                 return;
             }
-            var drop = Prefab.GetComponent<ItemDrop>();
-            if (trader.m_items.Exists(t => t.m_prefab == drop)) return;
-            trader.m_items.Add(new Trader.TradeItem
+            _tradeItem = new Trader.TradeItem
             {
-                m_prefab = drop, m_stack = 1, m_price = _traderPrice.Value, m_requiredGlobalKey = _traderKey.Value.Trim()
-            });
+                m_prefab = Prefab.GetComponent<ItemDrop>(), m_stack = 1, m_price = _traderPrice.Value, m_requiredGlobalKey = _traderKey.Value.Trim()
+            };
+            if (!AddToStock(trader)) return;
             Plugin.Log.LogInfo($"{PrefabName}: sold by Haldor for {_traderPrice.Value} coins" +
                                (_traderKey.Value.Trim().Length > 0 ? $" once '{_traderKey.Value.Trim()}' is set" : ""));
+        }
+
+        private static bool AddToStock(Trader trader)
+        {
+            if (_tradeItem == null || trader.m_items.Exists(t => t.m_prefab == _tradeItem.m_prefab)) return false;
+            trader.m_items.Add(_tradeItem);
+            return true;
+        }
+
+        /// <summary>
+        /// A freshly placed camp builds Haldor from its own copy inside the location, not from his prefab, so he
+        /// wouldn't sell the scroll until his area reloads. Adds it to every Haldor as he starts.
+        /// </summary>
+        [HarmonyPatch(typeof(Trader), "Start")]
+        private static class HaldorStock
+        {
+            private static void Postfix(Trader __instance)
+            {
+                if (Utils.GetPrefabName(__instance.gameObject) == "Haldor") AddToStock(__instance);
+            }
         }
 
         /// <summary>
