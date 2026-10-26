@@ -44,6 +44,46 @@ namespace MysticalWeapons.Items
             b.Prism(Cord, -0.023f, 0.023f, 0.019f, 12);
         }
 
+        // Lies on its side with the seal up: length along X, the seal (+Z in the model) facing +Y
+        protected override Vector3 ModelRotation => new Vector3(-90f, -90f, 0f);
+
+        /// <summary>
+        /// The mead's colliders are two upright boxes (bottle and neck) with their base at the origin, so the
+        /// scroll stood on end, half through the floor. Fits one box to the scroll instead and drops the rest.
+        /// </summary>
+        public override void DecorateModel(GameObject model)
+        {
+            var root = model.GetComponentInParent<ItemDrop>(true).transform;
+            BoxCollider box = null;
+            foreach (var c in root.GetComponentsInChildren<Collider>(true))
+            {
+                if (c.isTrigger) continue;
+                if (!box && c is BoxCollider b) box = b;
+                else UnityEngine.Object.DestroyImmediate(c);
+            }
+            if (!box) box = root.gameObject.AddComponent<BoxCollider>();
+            if (box.transform != root)
+            {
+                box.transform.localPosition = Vector3.zero;
+                box.transform.localRotation = Quaternion.identity;
+                box.transform.localScale = Vector3.one;
+            }
+
+            var mb = model.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var fit = new Bounds();
+            for (var i = 0; i < 8; i++)
+            {
+                var corner = mb.center + Vector3.Scale(mb.extents,
+                    new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                var p = box.transform.InverseTransformPoint(model.transform.TransformPoint(corner));
+                if (i == 0) fit = new Bounds(p, Vector3.zero);
+                else fit.Encapsulate(p);
+            }
+            box.center = fit.center;
+            box.size = fit.size;
+            Plugin.Log.LogInfo($"{PrefabName}: collider fitted to the scroll, centre {fit.center}, size {fit.size}");
+        }
+
         internal enum CastPose { Point, Kneel }
 
         /// <summary>The portal grows in over the last this-many seconds of the cast.</summary>
