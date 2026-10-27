@@ -124,17 +124,33 @@ namespace MysticalWeapons
         /// <summary>A renamed copy of a vanilla prefab that is never live itself, to register as a new prefab.</summary>
         protected static GameObject CloneVanilla(GameObject source, string name)
         {
-            if (!_holder)
-            {
-                // Instantiate under an inactive parent so no Awake() runs on the clones
-                var go = new GameObject("MysticalWeaponsPrefabs");
-                go.SetActive(false);
-                Object.DontDestroyOnLoad(go);
-                _holder = go.transform;
-            }
-            var clone = Object.Instantiate(source, _holder);
+            var clone = Object.Instantiate(source, Holder);
             clone.name = name;
             return clone;
+        }
+
+        /// <summary>An empty prefab of our own (never live itself), to fill with components and register.</summary>
+        internal static GameObject NewPrefab(string name)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(Holder, false);
+            return go;
+        }
+
+        private static Transform Holder
+        {
+            get
+            {
+                if (!_holder)
+                {
+                    // Instantiate under an inactive parent so no Awake() runs on the clones
+                    var go = new GameObject("MysticalWeaponsPrefabs");
+                    go.SetActive(false);
+                    Object.DontDestroyOnLoad(go);
+                    _holder = go.transform;
+                }
+                return _holder;
+            }
         }
 
         /// <summary>Adds a prefab to a ZNetScene so it can be spawned and synced; false if the name is taken.</summary>

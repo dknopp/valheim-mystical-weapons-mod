@@ -17,13 +17,23 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
 | **Sulfuras, Hand of Ragnaros** | ![Sulfuras in hand, flames licking off its head](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-wielded.jpg) | ![Sulfuras slung on the back](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/sulfuras-holstered.jpg) |
 | **Shardblade and Shardplate** | ![Shardblade held two-handed by a wearer of the full Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-wielded.jpg) | ![Shardblade on the back of the Shardplate](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/shardplate-holstered.jpg) |
 
-<!-- Optional: the latest big addition (a new item or set, or a major rework) that has a GIF or screenshots; not fixes or small changes. The next one replaces it, and this one's media moves to its own section below. -->
-## Newest: The Brotherhood (Assassin's Creed)
+<!-- Optional: big additions (a new item or set, or a major rework) that have a GIF or screenshots, newest first,
+     dated by when they reached the beta. Keep up to three; when a fourth comes, the oldest one's media moves to its
+     section in the items list. Not fixes or small changes. -->
+## What's new
+
+### Scroll of Hearth Portal (Diablo), 27 Oct 2026
+
+<img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal.webp" width="100%" alt="Reading the scroll: a blue portal forms in front of the reader, who steps through and arrives at the stone circle where the world starts">
+
+Diablo's Town Portal: read the scroll and a portal home opens in front of you. Full details below.
+
+### The Brotherhood (Assassin's Creed), 25 Oct 2026
 
 <img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/brotherhood-assassination.webp" width="100%" alt="A Leap of Faith into a haystack, an assassination with the hidden blades, then hiding in a box">
 
 A stealth set with Eagle Vision, the Leap of Faith and assassinations with the Hidden Blades.
-Full set details below.
+Full details below.
 
 ## Items
 
@@ -44,6 +54,16 @@ Full set details below.
 | Item | From | What it does | Crafted at |
 |---|---|---|---|
 | **Shardplate Helm**, **Breastplate**, **Greaves** | The Stormlight Archive | Slate plate with Stormlight-blue seams; the helm is modelled on Krajkoa's Shardplate. Full set: you stand 25% taller in a soft Stormlight glow, lightning cracks where your blows land, +50 carry weight, faster stamina regen and resistant to blunt damage. | Forge 5 |
+
+### Other
+
+| Item | From | What it does | Where to get it |
+|---|---|---|---|
+| **Scroll of Hearth Portal** | Diablo (Town Portal) | Read it, stand still for 3 s, and a portal opens in front of you with its twin at your bed (the world start if you have none). Anyone can use either end; ore and metal still can't go through. Each end clears the Mistlands mist around it like a Wisplight. Both close when you come back through the home end, when you read another scroll, or after an hour. Moving or getting hit while reading cancels it and keeps the scroll. Stacks to 20. | Haldor, 250 coins (after The Elder); Galdr table 1 |
+
+| In the Mistlands, clearing the mist | Portal end opens at your bed |
+|---|---|
+| ![A Hearth Portal in the Mistlands, clearing the mist around it](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal-mistlands.jpg) | ![The home end of a Hearth Portal standing at the foot of a bed in a stone house](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal-bed.jpg) |
 
 ### The Deathly Hallows (Harry Potter)
 

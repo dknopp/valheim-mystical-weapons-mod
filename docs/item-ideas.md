@@ -26,21 +26,6 @@ A stealth set that rewards staying unseen.
   hoods in renders first.
 - **Builds:** the first set with bonuses at 2, 3 and 4 pieces, which later sets can reuse.
 
-### Town Portal (Diablo)
-An escape scroll, not a replacement for portals.
-
-- Reading it opens a blue portal where you stand, linked to your bed. The home end stays open for a
-  few minutes so you (or your group) can go back to the same spot, then both ends close.
-- Follows vanilla's portal rules (no ore or metal unless the world allows it), so portals stay the
-  way to move hauls.
-- Single use and costly: sold by Haldor for a steep coin price, cheaper to craft later at the Galdr
-  table.
-- **Preview:** each end shows a snapshot of where it leads: the spot where you opened it (taken at
-  that moment) and home (taken when you last slept). A live view isn't possible because Valheim only
-  loads the world near players. Only the player who took the snapshot sees it; others see the plain
-  swirl.
-- Look: the vanilla portal effect recoloured to Diablo blue, with a shimmer and sound on opening.
-
 ## Favourites
 
 ### Mistborn (set)
@@ -116,6 +101,9 @@ every player see the change? Fallback: a wolf-skin buff with a glowing pelt and 
   Kusanagi and Muramasa (Japanese); the Nemean Lion's pelt, the Golden Fleece, Achilles' armour
   (Greek); Gáe Bolg and Fragarach (Irish).
 - **Borderline (sci-fi source):** the razor (Red Rising), mantis blades (Cyberpunk 2077).
+- **Upgrades to shipped items:** the Scroll of Hearth Portal's two ends could each show a snapshot of
+  where they lead (the spot it was read, taken then; home, taken when you last slept). Not a live
+  view: Valheim only loads the world near players.
 
 ## Known hard parts
 - Slowing time can't work in multiplayer; Dead Eye needs another form.

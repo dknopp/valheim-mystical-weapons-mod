@@ -18,7 +18,8 @@ items tables current when items change. Developer docs are in `docs/`.
   A `models/<PrefabName>.obj` next to the DLL replaces the code-built model at load.
 - `Core/MysticalArmor.cs`: recoloured vanilla armor, or our own painted textures from `models/textures/`
   (painted by `tools/textures/`); rigid pieces (helmets) can take a custom OBJ.
-- `Weapons/`, `Armor/`, `Hallows/`: one file per item (the Hallows set bonus is `DeathlyHallows.cs`).
+- `Weapons/`, `Armor/`, `Hallows/`, `Items/` (everything else): one file per item (the Hallows set bonus is
+  `DeathlyHallows.cs`; the portal a `PortalScroll` opens is `Items/TownPortal.cs`).
 - Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
   dual-wield hands and back holster, materials, see-through `SpectralMaterial`, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
   vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
@@ -57,8 +58,8 @@ items tables current when items change. Developer docs are in `docs/`.
 ## Adding an item
 Follow "Adding an item" in `docs/contributing.md`, add it to `Plugin.Items`, then add a row to the
 README items tables. Media is optional, but a big addition (new item or set, or a major rework) that
-has a GIF or screenshots takes the README's "Newest" section and the previous one's media moves down to its own section;
-fixes and small changes don't. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
+has a GIF or screenshots gets a dated entry at the top of the README's "What's new" (up to three; the oldest's media then
+moves down to its own section); fixes and small changes don't. Use `Weapons/Anduril.cs` as the model: stats/recipe as `Default*` overrides,
 extra settings via `BindConfig`, Harmony patches nested in the item class. Lessons from earlier items
 (borrowed attacks, status effects, multiplayer) are under "Lessons" in `docs/building-items.md`.
 

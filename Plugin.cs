@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using MysticalWeapons.Armor;
 using MysticalWeapons.Hallows;
+using MysticalWeapons.Items;
 using MysticalWeapons.Weapons;
 using UnityEngine;
 
@@ -38,6 +39,7 @@ namespace MysticalWeapons
             new BrotherhoodLegs(),
             new BrotherhoodCape(),
             new HiddenBlades(),
+            new PortalScroll(),
 
             new ElderWand(),
             new ResurrectionStone(),

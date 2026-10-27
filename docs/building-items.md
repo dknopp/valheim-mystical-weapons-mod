@@ -21,7 +21,9 @@ What I check on a new item, or when bringing one of mine up to date:
 - [ ] Inventory icon reads at a glance
 - [ ] Log clean: `Loaded N mystical items.` and no errors or warnings from this mod
 - [ ] Effects show for other players on a server (at least before a release)
-- [ ] README items tables updated; a big addition with a GIF or screenshots takes the "Newest" section
+- [ ] Tried everywhere a player will meet it, not only where the test world puts you: anything that
+      goes "home" at a bed indoors (wooden and dragon bed) as well as the world start
+- [ ] README items tables updated; a big addition with a GIF or screenshots gets a dated "What's new" entry
 - [ ] Changed defaults on an existing item: the PR says players must reset that item's config
       section (see Config below)
 - [ ] An existing item reads a setting in a new way (a new model or effect): tested with the value an
@@ -78,7 +80,8 @@ When an item gets a custom model (Thunderfury onwards), Claude Code does the han
 The Warglaives looked right because of the focused passes after the first build, each starting with
 a fresh, close look at the reference. Build in this order, with a review after each step:
 
-1. **Blockout.** Silhouette and proportions only, in plain grey. Check the size and hold in game now,
+1. **Blockout.** Silhouette and proportions only, in plain grey, following "Custom models: before the
+   first pass" below. Check the size and hold in game now,
    while parts are cheap to move (the Warglaives went from 0.88 m to 1.6 m and had their hold turned
    before any detail).
 2. **Construction.** List how the real thing is put together before detailing: which parts are separate
@@ -96,6 +99,34 @@ a fresh, close look at the reference. Build in this order, with a review after e
 6. **Texture from the shape.** Make the texture follow the geometry: glow on the edges, dark to bright
    across the bevel, the groove picked out, and materials changing by region (metal at the hub kindling
    into fel along the blade). A texture that ignores the shape flattens the depth the passes added.
+
+## Custom models: before the first pass
+
+What separated our first Blender pass from a game artist's version of the same object (the Scroll of
+Hearth Portal against a downloaded Sketchfab scroll; see Lessons). These are for models with no set
+design to match: everyday objects (a scroll, a pouch) or a design of our own. An iconic item from its
+source (the Warglaives, Thunderfury) matches the source's form as closely as we can; don't exaggerate
+or regroup it. Before building the blockout of a model with no set design, check these, so the first
+grey render already looks like the refined one:
+
+1. **Exaggerate the signature shape.** Find the one outline that says what the object is and push it past
+   life: game art pushes it 1.5 to 2 times. A real rolled scroll is a near-straight tube; a game scroll
+   is a bowtie, pinched hard at the tie. Check it with the grey render at icon size (128 px, from the
+   angle the mod draws icons): if it doesn't read there, it won't read in a hand or on the ground.
+2. **One focal point, detail stacked there.** Put the eye-catching parts in one cluster and leave the rest
+   as clean large forms. That cluster is where the identity colour goes (the scroll's blue band, from
+   Diablo II's icon). Small details spread over the model compete and all vanish. Within the cluster,
+   the identity colour gets the largest area and accents stay smaller: the scroll's seal grew until it
+   read in the icon, then outgrew the band, so the band grew longer along the roll. Judge this in a 128 px
+   render at the angle the mod draws the icon from.
+3. **Group thin details into masses.** At game size anything thinner than about 1/50 of the item's
+   length disappears unless it's part of the outline. Many wraps of cord read as one chunky band; two
+   thin loops read as nothing.
+4. **Show the construction where it can be seen.** Open ends, edges and seams carry the "how it's made"
+   story: the scroll's ends curl outward to show the spiral, instead of the layers hiding inside a tube.
+5. **Match the source game's style, not the real object.** Model the stylised version the source game
+   would draw (proportions, chunkiness), then add only the realistic touches that survive point 3.
+   Physically right detail at the wrong scale was the first pass's main mistake.
 
 ## Finding vanilla prefabs
 
@@ -176,6 +207,9 @@ valheim.tools and valheim.weirdgloop.org.
   inside a thick mesh never show.
 - For flames: world simulation space, small start speed and a negative gravity modifier, so they
   rise whichever way the item points and trail behind a swing.
+- Squashing a whole borrowed effect squashes every system in it: flattening the portal swirl's depth
+  also thinned its dark void (`Black_suck`) until you could see through it. Scale the parent for the
+  look, then give back the systems that need their own depth.
 
 ### Custom models
 - Read the reference part by part, not as a whole: Thunderfury's first reference sheet read an open
@@ -190,6 +224,15 @@ valheim.tools and valheim.weirdgloop.org.
   textures found, UVs) before the first launch.
 - The OBJ import mirrors X, so a model that isn't symmetric across X can face the wrong way in game
   (the Warglaive's hub first sat behind the fist). Check the hold in game before baking the texture.
+- **The scroll's three stages** (the source of "Custom models: before the first pass"). The code-built
+  placeholder was a stack of cylinders: it read as a rod. Our first Blender pass modelled a real scroll
+  faithfully (a spiral sheet, a peeling flap, a cord in two thin loops, a knot, tails, a seal off to one
+  side), about 1,100 triangles, yet its outline was still a straight tube and every detail was too thin
+  or too scattered to read. Pixel Life's Sketchfab scroll (CC BY 4.0, looked at only) fixed that with
+  a bowtie pinch, one wide cross-wrapped band with the seal on it, curled ends, and a slimmer roll
+  (about 7 times as long as it is wide, against our 5). Reworking ours that way took one round at the
+  same triangle count. The lesson: the gap was in how much each form was exaggerated, grouped and
+  focused, not in how many triangles or how much detail it had.
 
 ### Glow
 - A point light on an item hardly shows in daylight; emissive textures carry the glow.
@@ -279,12 +322,45 @@ valheim.tools and valheim.weirdgloop.org.
 - When detail fights the vanilla mesh, stop early and fall back to its own shading; note the attempt and
   why it failed so the next one starts from there.
 
+### Things placed at the player's home (the Hearth Portal)
+- "Home" is the bed far more often than the world start. The portal was only tried at the world start
+  until its PR was open; at a bed it stood on the mattress, faced a different way every cast and sent you
+  through when you woke up.
+- Place relative to the bed, not to how the player stood. The bed is usually unloaded when they act far
+  away, so note its pose whenever it loads or is used (`Bed.Awake`, `Bed.Interact`), in the player's
+  `m_customData`, and check it still matches their spawn point. Both vanilla beds put the spawn point
+  0.44 m above their base, facing the foot, with the bed's length along its forward axis.
+- Breaking your bed clears your spawn point straight away (checked in game), so anything sent "home"
+  after that goes to the world start, as the respawn does.
+- On a bed beats in front of it: nothing stands on a mattress, and the floor at the foot is where chests go.
+- A step-in trigger near where a player lies, sits or respawns fires when they get up (getting up from
+  sleep takes about 3 s). Ignore them while in bed or seated and for a while after (10 s), say so if they
+  step in then ("The portal is still settling"), and keep the wait after arriving short (3 s) so they
+  can turn straight back.
+- Time an emote by when its key pose lands, not when it starts, and tune it in quarter seconds in game:
+  the point twice landed before the portal formed.
+
 ### Testing without playing
 - The DevAutoRun launch (load the test world, run, quit) plus a temporary render script
   (`references/<item>/DevRender.cs.txt`, copied to the repo root while used) gives orthographic in-engine
   renders of the worn set from any side, crouched (`m_crouchToggled`) or with other gear swapped in.
   Raise DevAutoRun's `SettleSeconds` while it runs, and judge colours side by side in one run: the sky's
   light changes them between runs.
+- To learn a vanilla prefab's layout (which axis a bed's length runs along, which end is the foot), log
+  it once from a temporary probe (mesh bounds in the root's space, child names, colliders) instead of
+  guessing.
+- A probe that fails now and then usually trips over another probe's leftovers: the step-cancel probe
+  walked into the home end earlier probes had opened at the world start. Make probes keep clear of each
+  other rather than re-running until it's green.
+
+### README media
+- Video to webp: `ffmpeg` with `libwebp`, 960 wide, 12 fps, quality 65, looping. Moving grass makes it
+  big; stay under 10 MB so GitHub shows it. Compare a frame with the source before settling.
+- Screenshots: crop the full-size capture and scale down to 1280 wide, so a crop never upscales. In a
+  pair, match the subject's size by measuring both in one side-by-side picture; by eye on separate
+  images it was off by a quarter.
+- Show what players will meet most: the portal at a bed, not at the world start, so nobody thinks it
+  only goes to the stones.
 
 ### Multiplayer
 - Show an effect to everyone by working it out on every client from synced state: the equipment
