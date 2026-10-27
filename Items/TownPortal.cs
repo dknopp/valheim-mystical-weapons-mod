@@ -372,6 +372,8 @@ namespace MysticalWeapons.Items
         private const float BedReach = 0.9f;
         /// <summary>Seconds after arriving before any portal fires again.</summary>
         private const float ArrivalGrace = 3f;
+        /// <summary>The same after getting out of bed or up from a seat, or respawning: getting up from sleep alone takes ~3 s.</summary>
+        private const float GetUpGrace = 10f;
 
         private static float _graceUntil;
         private static Player _lastPlayer;
@@ -422,8 +424,8 @@ namespace MysticalWeapons.Items
             _inside = inside;
             // Arriving, lying in bed or sitting, or a new body after respawning: getting up next to a portal at your bed
             // isn't stepping into it
-            if (player.IsTeleporting() || player.InBed() || player.IsAttached() || player != _lastPlayer)
-                _graceUntil = Time.time + ArrivalGrace;
+            if (player.InBed() || player.IsAttached() || player != _lastPlayer) _graceUntil = Time.time + GetUpGrace;
+            else if (player.IsTeleporting()) _graceUntil = Mathf.Max(_graceUntil, Time.time + ArrivalGrace);
             _lastPlayer = player;
             if (!entered || player.IsDead()) return;
             if (Time.time < _graceUntil)
