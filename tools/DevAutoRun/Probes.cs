@@ -116,7 +116,7 @@ namespace DevAutoRun
 
         /// <summary>
         /// Builds a bed beside the player, makes it their spawn point (so the bed is noted as it loads), reads a scroll and
-        /// checks the home end stands over the foot of the mattress, facing the way the bed does.
+        /// checks the home end stands at the foot of the mattress, facing the way the bed does.
         /// </summary>
         private class BedHome
         {
@@ -138,7 +138,7 @@ namespace DevAutoRun
                     var read = new PortalRead();
                     yield return read.Run();
                     var home = read.Added.Select(id => ZDOMan.instance.GetZDO(id)).FirstOrDefault(z => z != null && z.GetBool("mw_portal_home"));
-                    var expected = at + rot * Vector3.forward * 1.2f;
+                    var expected = at + rot * Vector3.forward * 1.5f;
                     if (read.Problem != null) Problem = read.Problem;
                     else if (home == null) Problem = "no home end";
                     else if (Vector3.Distance(home.GetPosition(), expected) > 0.05f) Problem = $"home end at {home.GetPosition()}, expected {expected}";

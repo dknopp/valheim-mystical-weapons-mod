@@ -37,8 +37,8 @@ namespace MysticalWeapons.Items
         private const string BedDataKey = "mw_portal_bed";
         /// <summary>Both vanilla beds put their spawn point this high above their base, facing the foot.</summary>
         private const float BedSpawnHeight = 0.44f;
-        /// <summary>The home end stands over the foot half of the mattress, this far towards the foot from the spawn point.</summary>
-        private const float BedFootOffset = 1.2f;
+        /// <summary>The home end stands at the foot of the mattress, this far towards the foot from the spawn point (both beds end 1.7 to 1.9 m out).</summary>
+        private const float BedFootOffset = 1.5f;
 
         private const string CloseRpc = "MysticalWeapons_PortalScroll_Close";
 
@@ -198,7 +198,7 @@ namespace MysticalWeapons.Items
             var fieldPos = field.GetPosition();
             var fieldRot = field.GetRotation();
             var homeRot = Quaternion.LookRotation(fieldRot * Vector3.back);
-            // At a bed it's the same every time: over the foot of the mattress, facing out past the foot (nothing stands
+            // At a bed it's the same every time: at the foot of the mattress, facing out past the foot (nothing stands
             // on a bed, where in front of it a chest might)
             var atBed = BedFacing(home, out var bedRot);
             if (atBed)
@@ -368,8 +368,8 @@ namespace MysticalWeapons.Items
     {
         /// <summary>How far in front of the other end you arrive.</summary>
         private const float ExitDistance = 1.5f;
-        /// <summary>At a bed the ring reaches past the foot, so you can step in from the floor without climbing on.</summary>
-        private const float BedReach = 1.15f;
+        /// <summary>At a bed the ring reaches past the foot, so you can step in from the floor without climbing on, but not to where you lie.</summary>
+        private const float BedReach = 0.9f;
         /// <summary>Seconds after arriving before any portal fires again.</summary>
         private const float ArrivalGrace = 3f;
 
@@ -425,7 +425,12 @@ namespace MysticalWeapons.Items
             if (player.IsTeleporting() || player.InBed() || player.IsAttached() || player != _lastPlayer)
                 _graceUntil = Time.time + ArrivalGrace;
             _lastPlayer = player;
-            if (!entered || Time.time < _graceUntil || player.IsDead()) return;
+            if (!entered || player.IsDead()) return;
+            if (Time.time < _graceUntil)
+            {
+                player.Message(MessageHud.MessageType.Center, "The portal is still settling");
+                return;
+            }
             Send(player, zdo);
         }
 
