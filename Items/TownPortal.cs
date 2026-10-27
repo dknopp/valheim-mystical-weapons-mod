@@ -33,11 +33,12 @@ namespace MysticalWeapons.Items
         internal const string OpenedKey = "mw_portal_opened";
         internal const string ReadyKey = "mw_portal_ready";
 
-        /// <summary>Player custom data: the reader's bed as last seen loaded (its spawn point and yaw), as the bed may be far away when they read.</summary>
-        private const string BedDataKey = "mw_portal_bed";
-        /// <summary>Both vanilla beds put their spawn point this high above their base, facing the foot.</summary>
-        private const float BedSpawnHeight = 0.44f;
-        /// <summary>The home end stands at the foot of the mattress, this far towards the foot from the spawn point (both beds end 1.7 to 1.9 m out).</summary>
+        /// <summary>
+        /// Player custom data: the reader's bed as last seen loaded (its spawn point, its base and yaw), as the bed may be
+        /// far away when they read.
+        /// </summary>
+        private const string BedDataKey = "mw_portal_bed2";
+        /// <summary>The home end stands at the foot of the mattress, this far from the bed's centre along its length (vanilla beds end 1.7 to 1.9 m out).</summary>
         private const float BedFootOffset = 1.5f;
 
         private const string CloseRpc = "MysticalWeapons_PortalScroll_Close";
@@ -78,10 +79,20 @@ namespace MysticalWeapons.Items
             swirl.transform.localPosition = Vector3.up * 0.52f;
             swirl.transform.localRotation = Quaternion.identity;
             swirl.transform.localScale = new Vector3(0.75f, 1.2f, 0.25f) * 0.82f;
-            // The dark void keeps its old depth: squashed, too few of its puffs overlap and it turns see-through
+            // The dark void keeps its old depth: squashed, too few of its puffs overlap and it turns see-through. Parents
+            // come before children here, so each system ends up at its own depth whatever it sits under
+            var depth = new Dictionary<Transform, float>();
             foreach (var ps in swirl.GetComponentsInChildren<ParticleSystem>(true))
-                if (ps.transform != swirl.transform && IsVoid(ps))
-                    ps.transform.localScale = Vector3.Scale(ps.transform.localScale, new Vector3(1f, 1f, 3f));
+            {
+                if (ps.transform == swirl.transform) continue;
+                var inherited = 1f;
+                for (var t = ps.transform.parent; t != swirl.transform; t = t.parent)
+                    if (depth.TryGetValue(t, out var d)) inherited *= d;
+                var factor = (IsVoid(ps) ? 3f : 1f) / inherited;
+                if (Mathf.Approximately(factor, 1f)) continue;
+                ps.transform.localScale = Vector3.Scale(ps.transform.localScale, new Vector3(1f, 1f, factor));
+                depth[ps.transform] = factor;
+            }
             Recolour(swirl);
             AddDemister(root, findVanilla);
 
@@ -117,10 +128,10 @@ namespace MysticalWeapons.Items
             Plugin.Log.LogInfo($"{PrefabName}: clears mist like '{wisplight.name}' ({demister.name}, its radius {wispRange:0.#} m, ours {radius:0.#} m)");
         }
 
-        /// <summary>D2's white-hot blue to blue-violet, from the look test (references/town-portal.md).</summary>
         /// <summary>Black_suck, the dark particles that make the portal's void.</summary>
         private static bool IsVoid(ParticleSystem ps) => ps.main.startColor.colorMax.maxColorComponent < 0.1f;
 
+        /// <summary>D2's white-hot blue to blue-violet, from the look test (references/town-portal.md).</summary>
         private static void Recolour(GameObject go)
         {
             var blue = new Color(0.30f, 0.42f, 1f);
@@ -200,11 +211,11 @@ namespace MysticalWeapons.Items
             var homeRot = Quaternion.LookRotation(fieldRot * Vector3.back);
             // At a bed it's the same every time: at the foot of the mattress, facing out past the foot (nothing stands
             // on a bed, where in front of it a chest might)
-            var atBed = BedFacing(home, out var bedRot);
+            var atBed = BedPose(player, home, out var bedBase, out var bedRot);
             if (atBed)
             {
                 homeRot = bedRot;
-                home += Vector3.down * BedSpawnHeight + bedRot * Vector3.forward * BedFootOffset;
+                home = bedBase + bedRot * Vector3.forward * BedFootOffset;
             }
 
             // A new scroll closes your old pair
@@ -218,7 +229,7 @@ namespace MysticalWeapons.Items
             homeZdo.SetPrefab(hash);
             homeZdo.Persistent = true;
             homeZdo.SetRotation(homeRot);
-            homeZdo.Set(SnapKey, !atBed); // at a bed its height is known; the floor there would be the mattress
+            homeZdo.Set(SnapKey, true);
             homeZdo.Set(HomeKey, true);
             homeZdo.Set(AtBedKey, atBed);
 
@@ -304,19 +315,20 @@ namespace MysticalWeapons.Items
             }
         }
 
-        /// <summary>The facing of the reader's bed, if it's the bed at <paramref name="spawn"/> (their spawn point now).</summary>
-        private static bool BedFacing(Vector3 spawn, out Quaternion rot)
+        /// <summary>The base and facing of <paramref name="player"/>'s bed, if it's the bed at <paramref name="spawn"/> (their spawn point now).</summary>
+        private static bool BedPose(Player player, Vector3 spawn, out Vector3 bedBase, out Quaternion rot)
         {
+            bedBase = Vector3.zero;
             rot = Quaternion.identity;
-            var player = Player.m_localPlayer;
-            if (!player || !player.m_customData.TryGetValue(BedDataKey, out var data)) return false;
+            if (!player.m_customData.TryGetValue(BedDataKey, out var data)) return false;
             var f = data.Split(' ');
-            if (f.Length != 4) return false;
-            var v = new float[4];
-            for (var i = 0; i < 4; i++)
+            if (f.Length != 7) return false;
+            var v = new float[7];
+            for (var i = 0; i < 7; i++)
                 if (!float.TryParse(f[i], NumberStyles.Float, CultureInfo.InvariantCulture, out v[i])) return false;
             if ((new Vector3(v[0], v[1], v[2]) - spawn).sqrMagnitude > 0.01f) return false; // a different bed since
-            rot = Quaternion.Euler(0f, v[3], 0f);
+            bedBase = new Vector3(v[3], v[4], v[5]);
+            rot = Quaternion.Euler(0f, v[6], 0f);
             return true;
         }
 
@@ -335,10 +347,11 @@ namespace MysticalWeapons.Items
                 var player = Player.m_localPlayer;
                 var profile = Game.instance ? Game.instance.GetPlayerProfile() : null;
                 if (!player || profile == null || !profile.HaveCustomSpawnPoint() || !bed.m_spawnPoint) return;
-                var spawn = bed.m_spawnPoint;
-                if ((profile.GetCustomSpawnPoint() - spawn.position).sqrMagnitude > 0.01f) return;
-                player.m_customData[BedDataKey] = string.Format(CultureInfo.InvariantCulture, "{0:R} {1:R} {2:R} {3:R}",
-                    spawn.position.x, spawn.position.y, spawn.position.z, spawn.eulerAngles.y);
+                var spawn = bed.m_spawnPoint.position;
+                if ((profile.GetCustomSpawnPoint() - spawn).sqrMagnitude > 0.01f) return;
+                var root = bed.transform;
+                player.m_customData[BedDataKey] = string.Format(CultureInfo.InvariantCulture, "{0:R} {1:R} {2:R} {3:R} {4:R} {5:R} {6:R}",
+                    spawn.x, spawn.y, spawn.z, root.position.x, root.position.y, root.position.z, root.eulerAngles.y);
             }
         }
 
@@ -381,6 +394,7 @@ namespace MysticalWeapons.Items
         private ZNetView _nview;
         private bool _seen;
         private bool _inside;
+        private bool _atBed;
 
         // Growing in: the swirl's full scale, emission, light and hum, scaled up from nothing until the ready time
         private bool _formed;
@@ -397,7 +411,11 @@ namespace MysticalWeapons.Items
         {
             _nview = GetComponent<ZNetView>();
             if (_nview.GetZDO() == null) enabled = false;
-            else TownPortal.Seen(_nview.GetZDO());
+            else
+            {
+                TownPortal.Seen(_nview.GetZDO());
+                _atBed = _nview.GetZDO().GetBool(TownPortal.AtBedKey);
+            }
         }
 
         private void Update()
@@ -418,7 +436,7 @@ namespace MysticalWeapons.Items
 
             var player = Player.m_localPlayer;
             if (!player) return;
-            var inside = _formed && Inside(player.transform.position, zdo.GetBool(TownPortal.AtBedKey) ? BedReach : 0.6f);
+            var inside = _formed && Inside(player.transform.position, _atBed ? BedReach : 0.6f);
             var entered = _seen && inside && !_inside;
             _seen = true;
             _inside = inside;
@@ -471,6 +489,13 @@ namespace MysticalWeapons.Items
             for (var i = 0; i < _hums.Length; i++) _hums[i].volume = _volumes[i] * k;
         }
 
+        private static bool BedNear(Vector3 pos)
+        {
+            foreach (var hit in Physics.OverlapSphere(pos, 2.5f))
+                if (hit.GetComponentInParent<Bed>()) return true;
+            return false;
+        }
+
         /// <summary>Inside the ring: the oval's width, <paramref name="reach"/> either side of it, from the ground to above head height.</summary>
         private bool Inside(Vector3 pos, float reach)
         {
@@ -502,11 +527,19 @@ namespace MysticalWeapons.Items
                 TownPortal.Close(owner, zdo.GetLong(TownPortal.OpenedKey) + 1);
         }
 
-        /// <summary>The home end was placed at the bed's spawn point from afar; stand it on the floor once its area loads.</summary>
+        /// <summary>
+        /// The home end was placed from afar; stand it on the floor once its area loads. At a bed it was placed at the bed's
+        /// base and stays there (the floor found would be the mattress), unless the bed has gone since.
+        /// </summary>
         private void Snap(ZDO zdo)
         {
             var pos = transform.position;
             if (!ZNetScene.instance.IsAreaReady(pos)) return;
+            if (_atBed && BedNear(pos))
+            {
+                zdo.Set(TownPortal.SnapKey, false);
+                return;
+            }
             if (ZoneSystem.instance.FindFloor(pos + Vector3.up, out var floor))
             {
                 pos.y = floor;

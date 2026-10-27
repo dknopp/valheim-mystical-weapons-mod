@@ -132,7 +132,7 @@ namespace DevAutoRun
                 profile.SetCustomSpawnPoint(at + Vector3.up * 0.437f); // the wooden bed's spawn point
                 var bed = Object.Instantiate(ZNetScene.instance.GetPrefab("bed"), at, rot);
                 yield return null;
-                if (!player.m_customData.ContainsKey("mw_portal_bed")) Problem = "the bed wasn't noted as it loaded";
+                if (!player.m_customData.ContainsKey("mw_portal_bed2")) Problem = "the bed wasn't noted as it loaded";
                 else
                 {
                     var read = new PortalRead();
