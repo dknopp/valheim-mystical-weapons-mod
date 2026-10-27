@@ -192,8 +192,12 @@ namespace DevAutoRun
                     }
                     else
                     {
-                        // The body too: moving only the transform is sometimes undone by physics before the cast sees it
-                        var step = player.transform.right * 1f;
+                        // Away from the portals: the test world's start is also where home ends open, and stepping into
+                        // one closes the pair. The body too: moving only the transform is sometimes undone by physics
+                        var away = player.transform.right;
+                        var nearest = Zdos(portal).OrderBy(z => Vector3.Distance(z.GetPosition(), player.transform.position)).FirstOrDefault();
+                        if (nearest != null && Vector3.Dot(nearest.GetPosition() - player.transform.position, away) > 0f) away = -away;
+                        var step = away * 1f;
                         player.transform.position += step;
                         var body = player.GetComponent<Rigidbody>();
                         if (body) body.position = player.transform.position;

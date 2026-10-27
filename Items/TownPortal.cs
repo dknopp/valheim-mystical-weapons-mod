@@ -374,6 +374,7 @@ namespace MysticalWeapons.Items
         private const float ArrivalGrace = 3f;
 
         private static float _graceUntil;
+        private static Player _lastPlayer;
 
         private ZNetView _nview;
         private bool _seen;
@@ -419,7 +420,11 @@ namespace MysticalWeapons.Items
             var entered = _seen && inside && !_inside;
             _seen = true;
             _inside = inside;
-            if (player.IsTeleporting()) _graceUntil = Time.time + ArrivalGrace;
+            // Arriving, lying in bed or sitting, or a new body after respawning: getting up next to a portal at your bed
+            // isn't stepping into it
+            if (player.IsTeleporting() || player.InBed() || player.IsAttached() || player != _lastPlayer)
+                _graceUntil = Time.time + ArrivalGrace;
+            _lastPlayer = player;
             if (!entered || Time.time < _graceUntil || player.IsDead()) return;
             Send(player, zdo);
         }
