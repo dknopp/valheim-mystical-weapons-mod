@@ -76,6 +76,10 @@ namespace DevAutoRun
                     yield return cancel.Run();
                     Report(log, $"a {how} cancels the cast and keeps the scroll and the old pair", cancel.Problem, ref pass, ref fail);
                 }
+
+                var bed = new BedHome();
+                yield return bed.Run();
+                Report(log, "at a bed the home end stands over its foot, facing out", bed.Problem, ref pass, ref fail);
             }
             log.LogInfo($"DevAutoRun: RESULT pass {pass} fail {fail}");
         }
@@ -107,6 +111,40 @@ namespace DevAutoRun
                 // A few cm is slope and terrain mesh; standing on end put half the scroll (~0.2 m) under the floor
                 else if (floorFound && bounds.min.y < floor - 0.08f) Problem = $"{floor - bounds.min.y:0.000} m into the floor";
                 ZNetScene.instance.Destroy(item);
+            }
+        }
+
+        /// <summary>
+        /// Builds a bed beside the player, makes it their spawn point (so the bed is noted as it loads), reads a scroll and
+        /// checks the home end stands over the foot of the mattress, facing the way the bed does.
+        /// </summary>
+        private class BedHome
+        {
+            public string Problem;
+
+            public IEnumerator Run()
+            {
+                var player = Player.m_localPlayer;
+                var profile = Game.instance.GetPlayerProfile();
+                var at = player.transform.position + player.transform.right * 6f;
+                if (ZoneSystem.instance.FindFloor(at + Vector3.up * 2f, out var floor)) at.y = floor;
+                var rot = Quaternion.Euler(0f, 70f, 0f);
+                profile.SetCustomSpawnPoint(at + Vector3.up * 0.437f); // the wooden bed's spawn point
+                var bed = Object.Instantiate(ZNetScene.instance.GetPrefab("bed"), at, rot);
+                yield return null;
+                if (!player.m_customData.ContainsKey("mw_portal_bed")) Problem = "the bed wasn't noted as it loaded";
+                else
+                {
+                    var read = new PortalRead();
+                    yield return read.Run();
+                    var home = read.Added.Select(id => ZDOMan.instance.GetZDO(id)).FirstOrDefault(z => z != null && z.GetBool("mw_portal_home"));
+                    var expected = at + rot * Vector3.forward * 1.2f;
+                    if (read.Problem != null) Problem = read.Problem;
+                    else if (home == null) Problem = "no home end";
+                    else if (Vector3.Distance(home.GetPosition(), expected) > 0.05f) Problem = $"home end at {home.GetPosition()}, expected {expected}";
+                    else if (Quaternion.Angle(home.GetRotation(), rot) > 1f) Problem = $"home end faces {home.GetRotation().eulerAngles.y:0}, the bed {rot.eulerAngles.y:0}";
+                }
+                ZNetScene.instance.Destroy(bed);
             }
         }
 

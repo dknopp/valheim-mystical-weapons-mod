@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using HarmonyLib;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -28,8 +29,16 @@ namespace MysticalWeapons.Items
         internal const string OwnerKey = "mw_portal_owner";
         internal const string SnapKey = "mw_portal_snap";
         internal const string HomeKey = "mw_portal_home";
+        internal const string AtBedKey = "mw_portal_at_bed";
         internal const string OpenedKey = "mw_portal_opened";
         internal const string ReadyKey = "mw_portal_ready";
+
+        /// <summary>Player custom data: the reader's bed as last seen loaded (its spawn point and yaw), as the bed may be far away when they read.</summary>
+        private const string BedDataKey = "mw_portal_bed";
+        /// <summary>Both vanilla beds put their spawn point this high above their base, facing the foot.</summary>
+        private const float BedSpawnHeight = 0.44f;
+        /// <summary>The home end stands over the foot half of the mattress, this far towards the foot from the spawn point.</summary>
+        private const float BedFootOffset = 1.2f;
 
         private const string CloseRpc = "MysticalWeapons_PortalScroll_Close";
 
@@ -189,6 +198,14 @@ namespace MysticalWeapons.Items
             var fieldPos = field.GetPosition();
             var fieldRot = field.GetRotation();
             var homeRot = Quaternion.LookRotation(fieldRot * Vector3.back);
+            // At a bed it's the same every time: over the foot of the mattress, facing out past the foot (nothing stands
+            // on a bed, where in front of it a chest might)
+            var atBed = BedFacing(home, out var bedRot);
+            if (atBed)
+            {
+                homeRot = bedRot;
+                home += Vector3.down * BedSpawnHeight + bedRot * Vector3.forward * BedFootOffset;
+            }
 
             // A new scroll closes your old pair
             var owner = player.GetPlayerID();
@@ -201,12 +218,13 @@ namespace MysticalWeapons.Items
             homeZdo.SetPrefab(hash);
             homeZdo.Persistent = true;
             homeZdo.SetRotation(homeRot);
-            homeZdo.Set(SnapKey, true);
+            homeZdo.Set(SnapKey, !atBed); // at a bed its height is known; the floor there would be the mattress
             homeZdo.Set(HomeKey, true);
+            homeZdo.Set(AtBedKey, atBed);
 
             Link(field, homeZdo, home, homeRot, owner, opened, opened); // already formed
             Link(homeZdo, field, fieldPos, fieldRot, owner, opened, opened + (long)(formSeconds * TimeSpan.TicksPerSecond));
-            Plugin.Log.LogInfo($"{PrefabName}: opened {fieldPos} <-> {home} for {player.GetPlayerName()}");
+            Plugin.Log.LogInfo($"{PrefabName}: opened {fieldPos} <-> {home}{(atBed ? " (over the bed)" : "")} for {player.GetPlayerName()}");
             return true;
         }
 
@@ -286,6 +304,44 @@ namespace MysticalWeapons.Items
             }
         }
 
+        /// <summary>The facing of the reader's bed, if it's the bed at <paramref name="spawn"/> (their spawn point now).</summary>
+        private static bool BedFacing(Vector3 spawn, out Quaternion rot)
+        {
+            rot = Quaternion.identity;
+            var player = Player.m_localPlayer;
+            if (!player || !player.m_customData.TryGetValue(BedDataKey, out var data)) return false;
+            var f = data.Split(' ');
+            if (f.Length != 4) return false;
+            var v = new float[4];
+            for (var i = 0; i < 4; i++)
+                if (!float.TryParse(f[i], NumberStyles.Float, CultureInfo.InvariantCulture, out v[i])) return false;
+            if ((new Vector3(v[0], v[1], v[2]) - spawn).sqrMagnitude > 0.01f) return false; // a different bed since
+            rot = Quaternion.Euler(0f, v[3], 0f);
+            return true;
+        }
+
+        /// <summary>Notes the reader's bed (where it is, which way it faces) whenever it's loaded or used.</summary>
+        [HarmonyPatch(typeof(Bed))]
+        private static class RememberBed
+        {
+            [HarmonyPostfix, HarmonyPatch("Awake")]
+            private static void Loaded(Bed __instance) => Remember(__instance);
+
+            [HarmonyPostfix, HarmonyPatch(nameof(Bed.Interact))]
+            private static void Used(Bed __instance) => Remember(__instance);
+
+            private static void Remember(Bed bed)
+            {
+                var player = Player.m_localPlayer;
+                var profile = Game.instance ? Game.instance.GetPlayerProfile() : null;
+                if (!player || profile == null || !profile.HaveCustomSpawnPoint() || !bed.m_spawnPoint) return;
+                var spawn = bed.m_spawnPoint;
+                if ((profile.GetCustomSpawnPoint() - spawn.position).sqrMagnitude > 0.01f) return;
+                player.m_customData[BedDataKey] = string.Format(CultureInfo.InvariantCulture, "{0:R} {1:R} {2:R} {3:R}",
+                    spawn.position.x, spawn.position.y, spawn.position.z, spawn.eulerAngles.y);
+            }
+        }
+
         /// <summary>Where the game would respawn the player: their bed, else the world start (as <c>Game.FindSpawnPoint</c>).</summary>
         private static bool HomePoint(out Vector3 point)
         {
@@ -312,6 +368,8 @@ namespace MysticalWeapons.Items
     {
         /// <summary>How far in front of the other end you arrive.</summary>
         private const float ExitDistance = 1.5f;
+        /// <summary>At a bed the ring reaches past the foot, so you can step in from the floor without climbing on.</summary>
+        private const float BedReach = 1.15f;
         /// <summary>Seconds after arriving before any portal fires again.</summary>
         private const float ArrivalGrace = 3f;
 
@@ -357,7 +415,7 @@ namespace MysticalWeapons.Items
 
             var player = Player.m_localPlayer;
             if (!player) return;
-            var inside = _formed && Inside(player.transform.position);
+            var inside = _formed && Inside(player.transform.position, zdo.GetBool(TownPortal.AtBedKey) ? BedReach : 0.6f);
             var entered = _seen && inside && !_inside;
             _seen = true;
             _inside = inside;
@@ -401,11 +459,11 @@ namespace MysticalWeapons.Items
             for (var i = 0; i < _hums.Length; i++) _hums[i].volume = _volumes[i] * k;
         }
 
-        /// <summary>Inside the ring: the oval's width, a step either side of it, from the ground to above head height.</summary>
-        private bool Inside(Vector3 pos)
+        /// <summary>Inside the ring: the oval's width, <paramref name="reach"/> either side of it, from the ground to above head height.</summary>
+        private bool Inside(Vector3 pos, float reach)
         {
             var local = transform.InverseTransformPoint(pos);
-            return Mathf.Abs(local.x) < 0.8f && Mathf.Abs(local.z) < 0.6f && local.y > -0.5f && local.y < 2.5f;
+            return Mathf.Abs(local.x) < 0.8f && Mathf.Abs(local.z) < reach && local.y > -0.5f && local.y < 2.5f;
         }
 
         private static void Send(Player player, ZDO zdo)
