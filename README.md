@@ -22,11 +22,11 @@ needs nothing but BepInEx: no Jotunn and no asset bundles.
      section in the items list. Not fixes or small changes. -->
 ## What's new
 
-### Scroll of Hearth Portal (Diablo), 26 Oct 2026
+### Scroll of Hearth Portal (Diablo), 27 Oct 2026
 
 <img src="https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal.webp" width="100%" alt="Reading the scroll: a blue portal forms in front of the reader, who steps through and arrives at the stone circle where the world starts">
 
-Diablo's Town Portal: read the scroll and a portal home opens in front of you. Details under Other below.
+Diablo's Town Portal: read the scroll and a portal home opens in front of you. Full details below.
 
 ### The Brotherhood (Assassin's Creed), 25 Oct 2026
 
@@ -61,7 +61,7 @@ Full set details below.
 |---|---|---|---|
 | **Scroll of Hearth Portal** | Diablo (Town Portal) | Read it, stand still for 3 s, and a portal opens in front of you with its twin at your bed (the world start if you have none). Anyone can use either end; ore and metal still can't go through. Each end clears the Mistlands mist around it like a Wisplight. Both close when you come back through the home end, when you read another scroll, or after an hour. Moving or getting hit while reading cancels it and keeps the scroll. Stacks to 20. | Haldor, 250 coins (after The Elder); Galdr table 1 |
 
-| In the Mistlands, clearing the mist | Its twin opens at your bed, where you respawn |
+| In the Mistlands, clearing the mist | Portal end opens at your bed |
 |---|---|
 | ![A Hearth Portal in the Mistlands, clearing the mist around it](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal-mistlands.jpg) | ![The home end of a Hearth Portal standing at the foot of a bed in a stone house](https://raw.githubusercontent.com/dknopp/valheim-mystical-weapons-mod/develop/docs/screenshots/hearth-portal-bed.jpg) |
 
