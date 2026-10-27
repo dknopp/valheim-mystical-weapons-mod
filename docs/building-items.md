@@ -330,6 +330,8 @@ valheim.tools and valheim.weirdgloop.org.
   away, so note its pose whenever it loads or is used (`Bed.Awake`, `Bed.Interact`), in the player's
   `m_customData`, and check it still matches their spawn point. Both vanilla beds put the spawn point
   0.44 m above their base, facing the foot, with the bed's length along its forward axis.
+- Breaking your bed clears your spawn point straight away (checked in game), so anything sent "home"
+  after that goes to the world start, as the respawn does.
 - On a bed beats in front of it: nothing stands on a mattress, and the floor at the foot is where chests go.
 - A step-in trigger near where a player lies, sits or respawns fires when they get up (getting up from
   sleep takes about 3 s). Ignore them while in bed or seated and for a while after (10 s), say so if they
