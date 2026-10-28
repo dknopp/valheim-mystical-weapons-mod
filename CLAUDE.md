@@ -4,7 +4,9 @@ Valheim BepInEx mod (C#, .NET Framework 4.8) adding weapons, armor and the Death
 other worlds. No Jotunn, no asset bundles: models are built in code (`MeshBuilder`) or loaded from
 an OBJ in `models/`; armor is recoloured vanilla. Public repo, two maintainers: Dan (dknopp, repo
 owner) and Stephen (smpecoraro). README.md is the user-facing doc (items, install, config); keep its
-items tables current when items change. Developer docs are in `docs/`.
+items tables current when items change. `CHANGELOG.md` (Thunderstore's Changelog tab) gets a line
+under today's date for every change players notice (see "Workflow" in `docs/contributing.md`).
+Developer docs are in `docs/`.
 
 ## Layout
 - `Plugin.cs`: BepInEx entry point. `Plugin.Items` lists every item; Harmony postfixes on
@@ -122,6 +124,8 @@ and line, most severe first; say plainly when a PR looks good. Don't pad with st
 **Should fix**:
 - New or changed item not in the README items tables, `Plugin.Items`, or (for outside models)
   `models/CREDITS.md` and the README credits.
+- A change players notice with no `CHANGELOG.md` line, or a changed default whose line doesn't
+  say which config section to reset.
 - Balance clearly out of line: stats or recipe far above vanilla items of the same tier and
   station level, or an effect that trivialises a boss or biome. Compare with the vanilla source
   item named in `SourcePrefabs`.

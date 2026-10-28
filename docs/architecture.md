@@ -210,7 +210,8 @@ pre-release versions:
 
 The run number only goes up, so mod managers always see the newest beta as an update. Docs-only
 pushes (`docs/`, `tools/`, `CLAUDE.md`) skip the beta. The beta's Thunderstore page puts a beta
-notice above the README.
+notice above the README. Both pages' Changelog tab shows `CHANGELOG.md`, which `thunderstore.toml`
+copies into the package.
 
 Both packages are the same mod with the same `Plugin.Guid` and prefab names, so a profile must have
 **one or the other**, never both: BepInEx would load only one of them. Like the stable mod, the beta
@@ -225,8 +226,9 @@ has to be on the server and on every player's game.
 
 ### Cutting a stable release
 
-1. On a branch from `develop`, bump `Version` in `Plugin.cs` and merge it into `develop`. (That
-   publishes one more beta, now numbered from the new version.)
+1. On a branch from `develop`, bump `Version` in `Plugin.cs`, add the version to the newest date
+   heading in `CHANGELOG.md` (`## 1.7.0, 2 Nov 2026`), and merge it into `develop`. (That publishes
+   one more beta, now numbered from the new version.)
 2. Open a pull request from `develop` into `main` and merge it once reviewed.
 3. Tag the merge commit on `main` and push the tag:
    ```bash

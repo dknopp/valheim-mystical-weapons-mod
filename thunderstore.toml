@@ -29,6 +29,11 @@ target = "plugins/"
 source = "./models"
 target = "plugins/models"
 
+# Thunderstore fills the Changelog tab from CHANGELOG.md at the package root
+[[build.copy]]
+source = "./CHANGELOG.md"
+target = "CHANGELOG.md"
+
 [[build.copy]]
 source = "./LICENSE"
 target = "LICENSE"
