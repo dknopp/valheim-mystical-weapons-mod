@@ -11,6 +11,7 @@
 ## Checklist
 - [ ] Ran `/review` in Claude Code and dealt with what it found
 - [ ] README items tables updated (new or changed items)
+- [ ] `CHANGELOG.md` line under today's date (changes players notice)
 - [ ] Outside models credited in `models/CREDITS.md` and the README
 - [ ] No `PrefabName`, config key or `Plugin.Guid` renamed; `Version` not bumped (feature PRs)
 - [ ] Changed defaults on an existing item are called out: players must reset that config section

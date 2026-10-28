@@ -74,10 +74,13 @@ Edit or delete the line in the profile's `BepInEx/config/omm.valheim.mysticalwea
 ## Workflow
 
 1. Branch from `develop`, one branch per change.
-2. Commit, push and open a pull request into `develop`. Fill in the template's test notes.
-3. Run Claude Code's `/review <pr number>` on it and fix what it finds. The review guidelines are in
+2. If players will notice the change, add a line to [CHANGELOG.md](../CHANGELOG.md) under today's date
+   (add the heading if it isn't there): "Added:", "Changed:" or "Fixed:", in players' words. If it
+   changes a default, say which config section to reset. Docs, CI and dev tools don't go in.
+3. Commit, push and open a pull request into `develop`. Fill in the template's test notes.
+4. Run Claude Code's `/review <pr number>` on it and fix what it finds. The review guidelines are in
    [CLAUDE.md](../CLAUDE.md) ("Reviewing changes").
-4. The other maintainer reviews and merges.
+5. The other maintainer reviews and merges.
 
 Every merge into `develop` publishes a beta to Thunderstore (`MysticalWeapons_BETA`) for play
 testing on our server. `main` only takes pull requests from `develop`, when cutting a stable
