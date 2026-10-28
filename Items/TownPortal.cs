@@ -385,10 +385,11 @@ namespace MysticalWeapons.Items
         private const float BedReach = 0.9f;
         /// <summary>Seconds after arriving before any portal fires again.</summary>
         private const float ArrivalGrace = 3f;
-        /// <summary>The same after getting out of bed or up from a seat, or respawning: getting up from sleep alone takes ~3 s.</summary>
+        /// <summary>The same at a bed end after getting out of bed or up from a seat, or respawning: getting up from sleep alone takes ~3 s.</summary>
         private const float GetUpGrace = 10f;
 
-        private static float _graceUntil;
+        private static float _arrivalUntil;
+        private static float _getUpUntil;
         private static Player _lastPlayer;
 
         private ZNetView _nview;
@@ -440,13 +441,13 @@ namespace MysticalWeapons.Items
             var entered = _seen && inside && !_inside;
             _seen = true;
             _inside = inside;
-            // Arriving, lying in bed or sitting, or a new body after respawning: getting up next to a portal at your bed
-            // isn't stepping into it
-            if (player.InBed() || player.IsAttached() || player != _lastPlayer) _graceUntil = Time.time + GetUpGrace;
-            else if (player.IsTeleporting()) _graceUntil = Mathf.Max(_graceUntil, Time.time + ArrivalGrace);
+            // Lying in bed or sitting, or a new body after respawning: getting up next to a portal at your bed isn't
+            // stepping into it. Only the bed end waits for that: the first portal of a session also sees a "new" body.
+            if (player.InBed() || player.IsAttached() || player != _lastPlayer) _getUpUntil = Time.time + GetUpGrace;
+            if (player.IsTeleporting()) _arrivalUntil = Mathf.Max(_arrivalUntil, Time.time + ArrivalGrace);
             _lastPlayer = player;
             if (!entered || player.IsDead()) return;
-            if (Time.time < _graceUntil)
+            if (Time.time < _arrivalUntil || _atBed && Time.time < _getUpUntil)
             {
                 player.Message(MessageHud.MessageType.Center, "The portal is still settling");
                 return;
@@ -520,7 +521,7 @@ namespace MysticalWeapons.Items
             if (target == Vector3.zero) return;
             var rot = zdo.GetQuaternion(TownPortal.TargetRotKey, Quaternion.identity);
             player.TeleportTo(target + rot * Vector3.forward * ExitDistance + Vector3.up, rot, true);
-            _graceUntil = Time.time + ArrivalGrace;
+            _arrivalUntil = Time.time + ArrivalGrace;
             // The reader heading back out through the home end closes the pair (D2's rule); anyone else leaves it open
             var owner = zdo.GetLong(TownPortal.OwnerKey);
             if (zdo.GetBool(TownPortal.HomeKey) && owner == player.GetPlayerID())

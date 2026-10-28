@@ -336,7 +336,8 @@ valheim.tools and valheim.weirdgloop.org.
 - A step-in trigger near where a player lies, sits or respawns fires when they get up (getting up from
   sleep takes about 3 s). Ignore them while in bed or seated and for a while after (10 s), say so if they
   step in then ("The portal is still settling"), and keep the wait after arriving short (3 s) so they
-  can turn straight back.
+  can turn straight back. Apply the long wait only to the trigger at the bed: "is this a new body?"
+  is also true for the first one a session sees, which locked a freshly cast field portal for 10 s.
 - Time an emote by when its key pose lands, not when it starts, and tune it in quarter seconds in game:
   the point twice landed before the portal formed.
 
