@@ -168,8 +168,8 @@ namespace DevAutoRun
         }
 
         /// <summary>
-        /// Wears the Sacred Heart and checks its icon and extra health, then starts the burst at half health and checks
-        /// it heals and that a bow shot homes in without the Debug toggle.
+        /// Wears the Sacred Heart and checks its icon and extra health, then starts the burst at half health and no stamina and checks
+        /// it heals, fills stamina and that a bow shot homes in without the Debug toggle.
         /// </summary>
         private class HeartRead
         {
@@ -202,10 +202,15 @@ namespace DevAutoRun
 
                 player.SetHealth(player.GetMaxHealth() * 0.5f);
                 var low = player.GetHealth();
+                player.UseStamina(player.GetStamina());
+                var lowStamina = player.GetStamina();
                 player.GetSEMan().AddStatusEffect(shared.m_fullAdrenalineSE.NameHash(), true);
                 yield return null;
                 log.LogInfo($"DevAutoRun: Sacred Heart burst health {low:0} -> {player.GetHealth():0}");
                 Results.Add(new KeyValuePair<string, string>("the burst heals", player.GetHealth() > low + 1f ? null : "no heal"));
+                log.LogInfo($"DevAutoRun: Sacred Heart burst stamina {lowStamina:0} -> {player.GetStamina():0} of {player.GetMaxStamina():0}");
+                Results.Add(new KeyValuePair<string, string>("the burst fills stamina",
+                    player.GetStamina() >= player.GetMaxStamina() - 1f ? null : $"{player.GetStamina():0} of {player.GetMaxStamina():0}"));
 
                 var bow = ObjectDB.instance.GetItemPrefab("Bow").GetComponent<ItemDrop>().m_itemData.Clone();
                 var shot = new HomingShot();

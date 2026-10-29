@@ -24,7 +24,7 @@ namespace MysticalWeapons.Items
         protected override int DefaultStationLevel => 1;
 
         private static ConfigEntry<float> _maxHealth, _projectileDamage, _drawSlowdown, _maxAdrenaline, _hitAdrenaline,
-            _duration, _burstDamage, _burstHeal, _homingRange, _homingCone, _homingTurnRate, _burstShotSpeed, _burstGravity, _minDraw;
+            _duration, _burstDamage, _burstHeal, _burstStamina, _homingRange, _homingCone, _homingTurnRate, _burstShotSpeed, _burstGravity, _minDraw;
         private static ConfigEntry<bool> _homing, _burstMessage;
 
         public override void BindConfig(ConfigFile cfg)
@@ -45,6 +45,8 @@ namespace MysticalWeapons.Items
             _burstDamage = cfg.Bind(s, "BurstDamage", 0.5f,
                 "Extra damage for everything you fire or throw during the burst (0.5 = +50%), on top of ProjectileDamage.");
             _burstHeal = cfg.Bind(s, "BurstHeal", 0.25f, "Health restored when the burst starts, as a share of your maximum (0.25 = 25%).");
+            _burstStamina = cfg.Bind(s, "BurstStamina", 1f,
+                "Stamina restored when the burst starts, as a share of your maximum (1 = full), so you can draw at once.");
             _homing = cfg.Bind(s, "Homing", true,
                 "During the burst, each shot locks on to the enemy nearest where you aimed and curves into it. It never switches " +
                 "target; with no enemy near your aim, it flies straight.");
@@ -106,13 +108,16 @@ namespace MysticalWeapons.Items
             if (_burst && !db.m_StatusEffects.Contains(_burst)) db.m_StatusEffects.Add(_burst);
         }
 
-        /// <summary>The burst: heals on start, and no adrenaline while it runs, so hits can't keep restarting it.</summary>
+        /// <summary>The burst: heals and restores stamina on start, and no adrenaline while it runs, so hits can't keep restarting it.</summary>
         private class Burst : SE_Stats
         {
             public override void Setup(Character character)
             {
                 base.Setup(character);
-                if (character == Player.m_localPlayer) character.Heal(character.GetMaxHealth() * _burstHeal.Value, true);
+                if (!(character is Player p) || p != Player.m_localPlayer) return;
+                p.Heal(p.GetMaxHealth() * _burstHeal.Value, true);
+                // The bar fills mid-fight, when stamina is usually spent
+                p.AddStamina(p.GetMaxStamina() * _burstStamina.Value);
             }
 
             public override void ModifyAdrenaline(float baseValue, ref float use) => use = 0f;
