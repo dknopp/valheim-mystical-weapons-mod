@@ -81,13 +81,79 @@ namespace DevAutoRun
                 yield return bed.Run();
                 Report(log, "at a bed the home end stands over its foot, facing out", bed.Problem, ref pass, ref fail);
             }
+
+            var homingTest = DevAutoRunPlugin.MysticalConfig<bool>("Debug", "HomingTest");
+            if (homingTest == null) Report(log, "Debug.HomingTest config entry exists", "missing", ref pass, ref fail, "Homing");
+            else
+            {
+                var was = homingTest.Value;
+                homingTest.Value = true;
+                var on = new HomingShot();
+                yield return on.Run(log);
+                Report(log, "an arrow aimed 4 m wide curves into the enemy", on.Hit ? null : $"missed by {on.Closest:0.0} m", ref pass, ref fail, "Homing");
+                homingTest.Value = false;
+                var off = new HomingShot();
+                yield return off.Run(log);
+                Report(log, "with the toggle off the same arrow flies straight past", off.Hit ? "it hit" : null, ref pass, ref fail, "Homing");
+                homingTest.Value = was;
+            }
             log.LogInfo($"DevAutoRun: RESULT pass {pass} fail {fail}");
         }
 
-        private static void Report(ManualLogSource log, string check, string problem, ref int pass, ref int fail)
+        private static void Report(ManualLogSource log, string check, string problem, ref int pass, ref int fail, string subject = "PortalScroll")
         {
-            if (problem == null) { pass++; log.LogInfo($"DevAutoRun: PROBE PortalScroll {check} OK"); }
-            else { fail++; log.LogError($"DevAutoRun: PROBE PortalScroll {check} FAIL ({problem})"); }
+            if (problem == null) { pass++; log.LogInfo($"DevAutoRun: PROBE {subject} {check} OK"); }
+            else { fail++; log.LogError($"DevAutoRun: PROBE {subject} {check} FAIL ({problem})"); }
+        }
+
+        /// <summary>
+        /// Puts a frozen Greydwarf 14 m behind the player and 4 m to the side, fires an arrow straight that way at its height and
+        /// watches whether it gets hit.
+        /// </summary>
+        private class HomingShot
+        {
+            public bool Hit;
+            public float Closest = float.MaxValue;
+
+            public IEnumerator Run(ManualLogSource log)
+            {
+                var player = Player.m_localPlayer;
+                // Behind the player: the portal probes leave things in front that stop the arrow
+                var fwd = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
+                var right = Vector3.Cross(Vector3.up, fwd);
+                var at = player.transform.position + fwd * 14f + right * 4f;
+                if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
+                var enemy = Object.Instantiate(ZNetScene.instance.GetPrefab("Greydwarf"), at, Quaternion.LookRotation(-fwd)).GetComponent<Character>();
+                enemy.GetComponent<BaseAI>().enabled = false; // stands still
+                yield return new WaitForSeconds(0.5f);
+                var health = enemy.GetHealth();
+
+                var target = enemy.GetCenterPoint();
+                var origin = player.transform.position + fwd * 1.5f;
+                origin.y = target.y;
+                var arrow = Object.Instantiate(ZNetScene.instance.GetPrefab("bow_projectile"), origin, Quaternion.LookRotation(fwd));
+                var hit = new HitData { m_skill = Skills.SkillType.Bows };
+                hit.m_damage.m_pierce = 5f;
+                arrow.GetComponent<Projectile>().Setup(player, fwd * 50f, -1f, hit, null, null);
+
+                var last = origin;
+                for (var t = 0f; t < 2f && !Hit; t += Time.deltaTime)
+                {
+                    if (arrow)
+                    {
+                        last = arrow.transform.position;
+                        Closest = Mathf.Min(Closest, Vector3.Distance(last, enemy.GetCenterPoint()));
+                    }
+                    Hit = enemy.GetHealth() < health;
+                    yield return null;
+                }
+                var end = last - origin;
+                log.LogInfo($"DevAutoRun: homing shot hit={Hit} closest={Closest:0.00} m, ended {Vector3.Dot(end, fwd):0.0} m ahead, " +
+                    $"{Vector3.Dot(end, right):0.0} m right, {end.y:0.0} m up; enemy {Vector3.Dot(target - origin, fwd):0.0} ahead, " +
+                    $"{Vector3.Dot(target - origin, right):0.0} right");
+                if (arrow) ZNetScene.instance.Destroy(arrow);
+                ZNetScene.instance.Destroy(enemy.gameObject);
+            }
         }
 
         /// <summary>Drops a scroll beside the player and checks it settles lying down, resting on the floor rather than in it.</summary>

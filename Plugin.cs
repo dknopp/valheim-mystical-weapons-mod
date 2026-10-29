@@ -55,6 +55,7 @@ namespace MysticalWeapons
             foreach (var item in Items) item.BindConfig(Config);
             DeathlyHallows.BindConfig(Config);
             ItemReport.BindConfig(Config);
+            ProjectileHoming.BindConfig(Config);
             new Harmony(Guid).PatchAll();
             Log.LogInfo($"Loaded {Items.Count} mystical items.");
         }

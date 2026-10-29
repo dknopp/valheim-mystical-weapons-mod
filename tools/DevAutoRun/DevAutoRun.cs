@@ -124,6 +124,13 @@ namespace DevAutoRun
             Process.GetCurrentProcess().Kill();
         }
 
+        /// <summary>A Mystical Weapons config entry, or null if the plugin or the entry isn't there.</summary>
+        internal static ConfigEntry<T> MysticalConfig<T>(string section, string key)
+        {
+            if (!Chainloader.PluginInfos.TryGetValue(MysticalGuid, out var info) || !info.Instance) return null;
+            return info.Instance.Config.TryGetEntry<T>(section, key, out var entry) ? entry : null;
+        }
+
         /// <summary>The Mystical Weapons item list, read from the loaded plugin so this tool needn't build against it.</summary>
         internal static IEnumerable<object> MysticalItems()
         {
