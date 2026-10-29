@@ -168,6 +168,9 @@ vanilla texture are the parts of the mesh. `tools/textures/paint_brotherhood.py`
 set this way; its header says what it needs. Which island is which part is easiest to find in game,
 with a test texture that colours each island differently.
 
+Icons can be built the same way: `tools/textures/paint_sacred_heart_icon.py` paints layers that go behind
+and over a vanilla icon, and `ModelUtil.LayerIcon` puts them together when the game loads.
+
 The shipped models are made by headless Blender scripts in `tools/blender/` (each header has the
 command), so they can be regenerated:
 - `make_sulfuras_texture.py` bakes Sulfuras's procedural textures onto the code-built shape. The

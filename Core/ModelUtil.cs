@@ -854,6 +854,52 @@ namespace MysticalWeapons
             }
         }
 
+        /// <summary>
+        /// Copies a vanilla icon into <paramref name="place"/> (0-1, from the bottom left) of a new icon the size of
+        /// <paramref name="back"/>, between our own <paramref name="back"/> and <paramref name="front"/> layers.
+        /// Returns null if the copy fails.
+        /// </summary>
+        public static Sprite LayerIcon(Sprite source, Rect place, Texture2D back, Texture2D front)
+        {
+            try
+            {
+                var src = ReadableIcon(source);
+                src.filterMode = FilterMode.Bilinear;
+                int w = back.width, h = back.height;
+                var under = back.GetPixels();
+                var over = front.GetPixels();
+                var pixels = new Color[w * h];
+                for (var y = 0; y < h; y++)
+                for (var x = 0; x < w; x++)
+                {
+                    var i = y * w + x;
+                    float u = ((x + 0.5f) / w - place.x) / place.width, v = ((y + 0.5f) / h - place.y) / place.height;
+                    var c = u >= 0f && u <= 1f && v >= 0f && v <= 1f ? Over(src.GetPixelBilinear(u, v), under[i]) : under[i];
+                    pixels[i] = Over(over[i], c);
+                }
+                var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = source.name + "_layered" };
+                tex.SetPixels(pixels);
+                tex.Apply();
+                var sprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f));
+                sprite.name = tex.name;
+                return sprite;
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogWarning($"Could not layer icon {source.name}: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>Straight-alpha "over": <paramref name="top"/> painted onto <paramref name="bottom"/>.</summary>
+        private static Color Over(Color top, Color bottom)
+        {
+            var a = top.a + bottom.a * (1f - top.a);
+            if (a <= 0f) return Color.clear;
+            var rgb = ((Vector4)top * top.a + (Vector4)bottom * bottom.a * (1f - top.a)) / a;
+            return new Color(rgb.x, rgb.y, rgb.z, a);
+        }
+
         /// <summary>Copies an icon out of its (unreadable) atlas via the GPU.</summary>
         private static Texture2D ReadableIcon(Sprite source) => ReadableCopy(source.texture, source.textureRect, false);
 

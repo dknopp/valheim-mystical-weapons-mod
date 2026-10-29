@@ -1,3 +1,4 @@
+using System.IO;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -67,11 +68,25 @@ namespace MysticalWeapons.Items
         private static Burst _burst;
         private static int _burstHash;
 
+        /// <summary>Where the Morgen heart sits in our icon (0-1, from the bottom left): shrunk and low, leaving room for the flame.</summary>
+        private static readonly Rect HeartRect = new Rect((1f - 0.74f) / 2f + 2f / 64f, 1f / 64f, 0.74f, 0.74f);
+
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
-            // Placeholder icon until our own flame-and-cross: the Morgen's heart
+            // The Morgen's heart, with our flame behind and over it and a cross on its face (tools/textures/paint_sacred_heart_icon.py)
             var heart = FindVanilla("MorgenHeart")?.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_icons;
-            if (heart != null && heart.Length > 0) shared.m_icons = new[] { heart[0] };
+            if (heart != null && heart.Length > 0)
+            {
+                var dir = Path.Combine(ModelUtil.CustomModelDir, "textures");
+                var back = Path.Combine(dir, PrefabName + "_IconBack.png");
+                var front = Path.Combine(dir, PrefabName + "_IconFront.png");
+                var layered = File.Exists(back) && File.Exists(front)
+                    ? ModelUtil.LayerIcon(heart[0], HeartRect, ModelUtil.LoadTexture(back), ModelUtil.LoadTexture(front))
+                    : null;
+                if (!layered) Plugin.Log.LogWarning($"{PrefabName}: icon layers missing or broken; using the plain Morgen heart");
+                shared.m_icons = new[] { layered ? layered : heart[0] };
+                Plugin.Log.LogInfo($"{PrefabName}: icon from MorgenHeart{(layered ? " with our flame and cross" : "")}");
+            }
             else Plugin.Log.LogWarning($"{PrefabName}: MorgenHeart icon not found; keeping the bronze trinket's");
             Icon = shared.m_icons[0];
         }

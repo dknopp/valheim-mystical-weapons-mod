@@ -182,7 +182,8 @@ namespace DevAutoRun
                 var player = Player.m_localPlayer;
                 var shared = prefab.GetComponent<ItemDrop>().m_itemData.m_shared;
                 var icon = shared.m_icons.Length > 0 && shared.m_icons[0] ? shared.m_icons[0].name : "none";
-                Results.Add(new KeyValuePair<string, string>("has the Morgen heart icon", icon == "MorgenHeart" ? null : icon));
+                Results.Add(new KeyValuePair<string, string>("has the Morgen heart icon with our flame and cross",
+                    icon == "MorgenHeart_layered" ? null : icon));
 
                 // The test character can still carry one from an earlier run; start without it
                 foreach (var old in player.GetInventory().GetAllItems().Where(i => i.m_shared.m_name == shared.m_name).ToList())
