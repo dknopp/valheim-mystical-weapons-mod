@@ -3,6 +3,10 @@
 Newest first. Your saved config keeps its old values when a default changes; where an entry says to reset
 a section, delete it from `BepInEx/config/omm.valheim.mysticalweapons.cfg` to get the new defaults.
 
+## 29 Oct 2026
+- Fixed: Brotherhood set: an arrow, bolt or thrown weapon that lands after you switch to the Hidden Blades no longer
+  counts as an assassination.
+
 ## 28 Oct 2026
 - Fixed: Hearth Portal: a freshly cast portal no longer says "The portal is still settling" when you step in.
 

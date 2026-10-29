@@ -52,6 +52,8 @@ namespace MysticalWeapons.Armor
                 if (!SetBonus) return;
                 var player = Player.m_localPlayer;
                 if (!player || hit.GetAttacker() != player || __instance.IsPlayer() || __instance.IsTamed() || __instance.IsDead()) return;
+                // The weapon in hand when the hit lands: without this, an arrow or bomb that lands after a switch to the blades counted
+                if (hit.m_ranged) return;
                 var weapon = player.GetCurrentWeapon();
                 if (weapon?.m_dropPrefab == null || weapon.m_dropPrefab.name != HiddenBlades.Id) return;
                 if (!player.GetSEMan().HaveStatusEffect(SetBonus.NameHash())) return;
