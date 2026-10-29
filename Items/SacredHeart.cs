@@ -48,11 +48,11 @@ namespace MysticalWeapons.Items
             _burstStamina = cfg.Bind(s, "BurstStamina", 1f,
                 "Stamina restored when the burst starts, as a share of your maximum (1 = full), so you can draw at once.");
             _homing = cfg.Bind(s, "Homing", true,
-                "During the burst, each shot locks on to the enemy nearest where you aimed and curves into it. It never switches " +
-                "target; with no enemy near your aim, it flies straight.");
-            _homingRange = cfg.Bind(s, "HomingRange", 20f, "Metres from the shot an enemy can be to be locked on to.");
-            _homingCone = cfg.Bind(s, "HomingCone", 15f,
-                "Degrees from where you aimed an enemy can be to be locked on to. Wider forgives more, but may pick an enemy you didn't mean.");
+                "During the burst, your shots curve into the enemy closest to their path. Once a shot picks an enemy it doesn't " +
+                "switch to another.");
+            _homingRange = cfg.Bind(s, "HomingRange", 20f, "Metres from a shot an enemy must be for it to start homing in.");
+            _homingCone = cfg.Bind(s, "HomingCone", 45f,
+                "Degrees either side of a shot's path it looks for an enemy. Wider forgives more, but may pick an enemy you didn't mean.");
             _homingTurnRate = cfg.Bind(s, "HomingTurnRate", 180f,
                 "Degrees per second a homing shot can turn. Lower curves in more gently; higher snaps on.");
             _burstShotSpeed = cfg.Bind(s, "BurstShotSpeed", 0.15f,
@@ -177,7 +177,7 @@ namespace MysticalWeapons.Items
                     ProjectileHoming.Range = _homingRange.Value;
                     ProjectileHoming.ConeDegrees = _homingCone.Value;
                     ProjectileHoming.TurnRateDegrees = _homingTurnRate.Value;
-                    ProjectileHoming.LockOn(__instance, owner, __instance.transform.position, ___m_vel.normalized);
+                    ProjectileHoming.Mark(__instance);
                 }
             }
         }

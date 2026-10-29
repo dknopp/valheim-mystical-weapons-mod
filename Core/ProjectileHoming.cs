@@ -6,9 +6,9 @@ using UnityEngine;
 namespace MysticalWeapons
 {
     /// <summary>
-    /// Steers the local player's projectiles toward the enemy they were aimed at, turning at a limited rate so they curve
-    /// in. The target is picked once, as the shot leaves, and never changes: the shot goes for what you aimed at or flies
-    /// straight. The Sacred Heart's burst locks its shots; the Debug toggle locks every shot.
+    /// Steers the local player's projectiles toward an enemy, turning at a limited rate so they curve in. Until it has a
+    /// target, a shot keeps looking for the enemy closest to its line; once it has one it never switches, so it doesn't
+    /// curve off to another enemy mid-flight. The Sacred Heart's burst marks its shots; the Debug toggle marks every shot.
     /// </summary>
     internal static class ProjectileHoming
     {
@@ -16,11 +16,11 @@ namespace MysticalWeapons
 
         // The Sacred Heart sets these from its config as it locks a shot.
         internal static float Range = 20f;
-        internal static float ConeDegrees = 15f;
+        internal static float ConeDegrees = 45f;
         internal static float TurnRateDegrees = 180f;
 
-        /// <summary>A shot's target; null once it has none (nothing aimed at, dead, or passed).</summary>
-        private class Lock { public Character Target; }
+        /// <summary>A shot's target, null while it is still looking; Done once its target died or was passed.</summary>
+        private class Lock { public Character Target; public bool Done; }
 
         /// <summary>Locked shots; entries go when the projectile does.</summary>
         private static readonly ConditionalWeakTable<Projectile, Lock> Locks = new ConditionalWeakTable<Projectile, Lock>();
@@ -28,14 +28,13 @@ namespace MysticalWeapons
         public static void BindConfig(ConfigFile cfg)
         {
             _test = cfg.Bind("Debug", "HomingTest", false,
-                "For mod developers: every projectile you fire or throw homes in on the enemy it was aimed at, to test the steering.");
+                "For mod developers: every projectile you fire or throw homes in on an enemy ahead, to test the steering.");
         }
 
-        /// <summary>Picks the enemy closest to the shot's line within the cone and range; once per shot.</summary>
-        internal static void LockOn(Projectile p, Character owner, Vector3 from, Vector3 aim)
+        /// <summary>Makes a shot home; it picks its target in flight.</summary>
+        internal static void Mark(Projectile p)
         {
-            if (Locks.TryGetValue(p, out _)) return;
-            Locks.Add(p, new Lock { Target = FindTarget(owner, from, aim) });
+            if (!Locks.TryGetValue(p, out _)) Locks.Add(p, new Lock());
         }
 
         /// <summary>
@@ -57,15 +56,16 @@ namespace MysticalWeapons
                 if (!Locks.TryGetValue(__instance, out var lk))
                 {
                     if (_test == null || !_test.Value) return;
-                    LockOn(__instance, ___m_owner, from, heading);
-                    Locks.TryGetValue(__instance, out lk);
+                    Locks.Add(__instance, lk = new Lock());
                 }
+                if (lk.Done) return;
+                // Still looking every step, so an enemy out of range at release is picked up as the shot closes in
+                if (!lk.Target && !(lk.Target = FindTarget(___m_owner, from, heading))) return;
                 var target = lk.Target;
-                if (!target) return;
 
                 var want = target.GetCenterPoint() - from;
-                // Dropping a target the shot has passed stops it circling back
-                if (target.IsDead() || Vector3.Angle(heading, want) > 90f) { lk.Target = null; return; }
+                // Dropping a target the shot has passed stops it circling back; it doesn't take another
+                if (target.IsDead() || Vector3.Angle(heading, want) > 90f) { lk.Target = null; lk.Done = true; return; }
                 ___m_vel = Vector3.RotateTowards(___m_vel, want.normalized * speed,
                     TurnRateDegrees * Mathf.Deg2Rad * Time.fixedDeltaTime, 0f);
             }

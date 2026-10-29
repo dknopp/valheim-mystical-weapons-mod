@@ -116,7 +116,7 @@ namespace DevAutoRun
         }
 
         /// <summary>
-        /// Puts a frozen Greydwarf 14 m behind the player and a little to the side, fires an arrow straight that way at its height and
+        /// Puts a frozen Greydwarf behind the player (14 m unless set) and a little to the side, fires an arrow straight that way at its height and
         /// watches whether it gets hit.
         /// </summary>
         private class HomingShot
@@ -125,6 +125,8 @@ namespace DevAutoRun
             public float Closest = float.MaxValue;
             /// <summary>How far to the side of the arrow's line the enemy stands, in metres (2.5 m is about 11 degrees off).</summary>
             public float Side = 2.5f;
+            /// <summary>How far down the arrow's line the enemy stands, in metres.</summary>
+            public float Ahead = 14f;
 
             public IEnumerator Run(ManualLogSource log, ItemDrop.ItemData bow = null)
             {
@@ -132,7 +134,7 @@ namespace DevAutoRun
                 // Behind the player: the portal probes leave things in front that stop the arrow
                 var fwd = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
                 var right = Vector3.Cross(Vector3.up, fwd);
-                var at = player.transform.position + fwd * 14f + right * Side;
+                var at = player.transform.position + fwd * Ahead + right * Side;
                 if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
                 var enemy = Object.Instantiate(ZNetScene.instance.GetPrefab("Greydwarf"), at, Quaternion.LookRotation(-fwd)).GetComponent<Character>();
                 enemy.GetComponent<BaseAI>().enabled = false; // stands still
@@ -217,9 +219,13 @@ namespace DevAutoRun
                 yield return shot.Run(log, bow);
                 Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 2.5 m wide curves into the enemy",
                     shot.Hit ? null : $"missed by {shot.Closest:0.0} m"));
-                var wide = new HomingShot { Side = 6f };
+                var far = new HomingShot { Ahead = 32f, Side = 4f };
+                yield return far.Run(log, bow);
+                Results.Add(new KeyValuePair<string, string>("during the burst an arrow at an enemy 32 m off (past HomingRange at release), aimed 4 m wide, curves in",
+                    far.Hit ? null : $"missed by {far.Closest:0.0} m"));
+                var wide = new HomingShot { Side = 16f };
                 yield return wide.Run(log, bow);
-                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 6 m wide (outside the lock cone) flies straight",
+                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 16 m wide (outside HomingCone) flies straight",
                     wide.Hit ? "it hit" : null));
 
                 player.GetSEMan().RemoveStatusEffect(shared.m_fullAdrenalineSE.NameHash());
