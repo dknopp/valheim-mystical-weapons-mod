@@ -131,11 +131,24 @@ namespace DevAutoRun
             public IEnumerator Run(ManualLogSource log, ItemDrop.ItemData bow = null)
             {
                 var player = Player.m_localPlayer;
-                // Behind the player: the portal probes leave things in front that stop the arrow
-                var fwd = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
-                var right = Vector3.Cross(Vector3.up, fwd);
-                var at = player.transform.position + fwd * Ahead + right * Side;
-                if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
+                // Behind the player first (the portal probes leave things in front), turning until nothing in the test world
+                // (terrain, buildings) blocks the straight line or the line to the enemy; which way the player faces varies by run
+                var back = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
+                Vector3 fwd = back, right = Vector3.zero, at = Vector3.zero;
+                for (var turn = 0; turn < 360; turn += 30)
+                {
+                    fwd = Quaternion.Euler(0f, turn, 0f) * back;
+                    right = Vector3.Cross(Vector3.up, fwd);
+                    at = player.transform.position + fwd * Ahead + right * Side;
+                    if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
+                    // A Greydwarf's centre is about a metre up
+                    var start = player.transform.position + fwd * 1.5f;
+                    start.y = at.y + 1f;
+                    if (!Physics.Linecast(start, start + fwd * (Ahead + 3f), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) &&
+                        !Physics.Linecast(start, at + Vector3.up, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                        break;
+                    if (turn == 330) log.LogWarning("DevAutoRun: homing shot found no clear lane; firing anyway");
+                }
                 var enemy = Object.Instantiate(ZNetScene.instance.GetPrefab("Greydwarf"), at, Quaternion.LookRotation(-fwd)).GetComponent<Character>();
                 enemy.GetComponent<BaseAI>().enabled = false; // stands still
                 yield return new WaitForSeconds(0.5f);
