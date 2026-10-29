@@ -57,6 +57,7 @@ namespace MysticalWeapons
         /// </summary>
         private static readonly Dictionary<string, string> BossTrophies = new Dictionary<string, string>
         {
+            { "SacredHeart", "TrophyTheElder" },              // homing burst
             { "ResurrectionStone", "TrophyBonemass" },        // no skill loss on death
             { "ShardplateHelm", "TrophyDragonQueen" },        // Moder: armour above its tier, and the set bonus
             { "ShardplateBreastplate", "TrophyDragonQueen" },

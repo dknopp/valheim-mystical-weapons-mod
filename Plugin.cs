@@ -40,6 +40,7 @@ namespace MysticalWeapons
             new BrotherhoodCape(),
             new HiddenBlades(),
             new PortalScroll(),
+            new SacredHeart(),
 
             new ElderWand(),
             new ResurrectionStone(),

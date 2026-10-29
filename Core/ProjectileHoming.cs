@@ -7,19 +7,26 @@ namespace MysticalWeapons
 {
     /// <summary>
     /// Steers the local player's projectiles toward the nearest enemy ahead of the shot, turning at a limited rate so
-    /// they curve in. For the Sacred Heart's burst; for now only the Debug toggle turns it on.
+    /// they curve in. The Sacred Heart's burst marks the shots that home; the Debug toggle makes every shot home.
     /// </summary>
     internal static class ProjectileHoming
     {
         private static ConfigEntry<bool> _test;
 
-        // The Sacred Heart's config will set these.
+        // The Sacred Heart sets these from its config as it marks a shot.
         internal static float Range = 20f;
         internal static float ConeDegrees = 45f;
         internal static float TurnRateDegrees = 180f;
 
         /// <summary>The enemy each projectile is locked on to; entries go when the projectile does.</summary>
         private static readonly ConditionalWeakTable<Projectile, Character> Targets = new ConditionalWeakTable<Projectile, Character>();
+        /// <summary>Projectiles that home without the Debug toggle.</summary>
+        private static readonly ConditionalWeakTable<Projectile, object> Marked = new ConditionalWeakTable<Projectile, object>();
+
+        internal static void Mark(Projectile p)
+        {
+            if (!Marked.TryGetValue(p, out _)) Marked.Add(p, null);
+        }
 
         public static void BindConfig(ConfigFile cfg)
         {
@@ -27,8 +34,8 @@ namespace MysticalWeapons
                 "For mod developers: every projectile you fire or throw homes in on the nearest enemy ahead, to test the steering.");
         }
 
-        private static bool Active(Character owner) =>
-            owner && owner == Player.m_localPlayer && _test != null && _test.Value;
+        private static bool Active(Projectile p, Character owner) =>
+            owner && owner == Player.m_localPlayer && (_test != null && _test.Value || Marked.TryGetValue(p, out _));
 
         /// <summary>
         /// Runs before the game moves the projectile, which it only does on the owner's client; the position syncs to
@@ -39,7 +46,7 @@ namespace MysticalWeapons
         {
             private static void Prefix(Projectile __instance, ref Vector3 ___m_vel, Character ___m_owner, ZNetView ___m_nview, bool ___m_didHit)
             {
-                if (___m_didHit || !Active(___m_owner) || !___m_nview || !___m_nview.IsValid() || !___m_nview.IsOwner()) return;
+                if (___m_didHit || !Active(__instance, ___m_owner) || !___m_nview || !___m_nview.IsValid() || !___m_nview.IsOwner()) return;
                 var speed = ___m_vel.magnitude;
                 if (speed < 0.1f) return;
 

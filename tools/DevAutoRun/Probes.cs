@@ -97,6 +97,15 @@ namespace DevAutoRun
                 Report(log, "with the toggle off the same arrow flies straight past", off.Hit ? "it hit" : null, ref pass, ref fail, "Homing");
                 homingTest.Value = was;
             }
+
+            var heartPrefab = ObjectDB.instance.GetItemPrefab("SacredHeart");
+            if (heartPrefab)
+            {
+                var heart = new HeartRead();
+                yield return heart.Run(log, heartPrefab);
+                foreach (var problem in heart.Results)
+                    Report(log, problem.Key, problem.Value, ref pass, ref fail, "SacredHeart");
+            }
             log.LogInfo($"DevAutoRun: RESULT pass {pass} fail {fail}");
         }
 
@@ -115,7 +124,7 @@ namespace DevAutoRun
             public bool Hit;
             public float Closest = float.MaxValue;
 
-            public IEnumerator Run(ManualLogSource log)
+            public IEnumerator Run(ManualLogSource log, ItemDrop.ItemData bow = null)
             {
                 var player = Player.m_localPlayer;
                 // Behind the player: the portal probes leave things in front that stop the arrow
@@ -134,7 +143,7 @@ namespace DevAutoRun
                 var arrow = Object.Instantiate(ZNetScene.instance.GetPrefab("bow_projectile"), origin, Quaternion.LookRotation(fwd));
                 var hit = new HitData { m_skill = Skills.SkillType.Bows };
                 hit.m_damage.m_pierce = 5f;
-                arrow.GetComponent<Projectile>().Setup(player, fwd * 50f, -1f, hit, null, null);
+                arrow.GetComponent<Projectile>().Setup(player, fwd * 50f, -1f, hit, bow, null);
 
                 var last = origin;
                 for (var t = 0f; t < 2f && !Hit; t += Time.deltaTime)
@@ -153,6 +162,49 @@ namespace DevAutoRun
                     $"{Vector3.Dot(target - origin, right):0.0} right");
                 if (arrow) ZNetScene.instance.Destroy(arrow);
                 ZNetScene.instance.Destroy(enemy.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Wears the Sacred Heart and checks its icon and extra health, then starts the burst at half health and checks
+        /// it heals and that a bow shot homes in without the Debug toggle.
+        /// </summary>
+        private class HeartRead
+        {
+            public readonly List<KeyValuePair<string, string>> Results = new List<KeyValuePair<string, string>>();
+
+            public IEnumerator Run(ManualLogSource log, GameObject prefab)
+            {
+                var player = Player.m_localPlayer;
+                var shared = prefab.GetComponent<ItemDrop>().m_itemData.m_shared;
+                var icon = shared.m_icons.Length > 0 && shared.m_icons[0] ? shared.m_icons[0].name : "none";
+                Results.Add(new KeyValuePair<string, string>("has the Morgen heart icon", icon == "MorgenHeart" ? null : icon));
+
+                var before = player.GetMaxHealth();
+                player.GetInventory().AddItem(prefab, 1);
+                var item = player.GetInventory().GetAllItems().Last(i => i.m_shared.m_name == shared.m_name);
+                player.EquipItem(item);
+                yield return new WaitForSeconds(1.5f);
+                var gained = player.GetMaxHealth() - before;
+                log.LogInfo($"DevAutoRun: Sacred Heart max health {before:0} -> {player.GetMaxHealth():0}");
+                Results.Add(new KeyValuePair<string, string>("adds max health", gained > 1f ? null : $"gained {gained:0.0}"));
+
+                player.SetHealth(player.GetMaxHealth() * 0.5f);
+                var low = player.GetHealth();
+                player.GetSEMan().AddStatusEffect(shared.m_fullAdrenalineSE.NameHash(), true);
+                yield return null;
+                log.LogInfo($"DevAutoRun: Sacred Heart burst health {low:0} -> {player.GetHealth():0}");
+                Results.Add(new KeyValuePair<string, string>("the burst heals", player.GetHealth() > low + 1f ? null : "no heal"));
+
+                var bow = ObjectDB.instance.GetItemPrefab("Bow").GetComponent<ItemDrop>().m_itemData.Clone();
+                var shot = new HomingShot();
+                yield return shot.Run(log, bow);
+                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 4 m wide curves into the enemy",
+                    shot.Hit ? null : $"missed by {shot.Closest:0.0} m"));
+
+                player.GetSEMan().RemoveStatusEffect(shared.m_fullAdrenalineSE.NameHash());
+                player.UnequipItem(item);
+                player.GetInventory().RemoveItem(item);
             }
         }
 
