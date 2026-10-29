@@ -24,7 +24,7 @@ namespace MysticalWeapons.Items
         protected override int DefaultStationLevel => 1;
 
         private static ConfigEntry<float> _maxHealth, _projectileDamage, _drawSlowdown, _maxAdrenaline, _hitAdrenaline,
-            _duration, _burstDamage, _burstHeal, _homingRange, _homingCone, _homingTurnRate, _burstShotSpeed, _burstGravity;
+            _duration, _burstDamage, _burstHeal, _homingRange, _homingCone, _homingTurnRate, _burstShotSpeed, _burstGravity, _minDraw;
         private static ConfigEntry<bool> _homing, _burstMessage;
 
         public override void BindConfig(ConfigFile cfg)
@@ -45,15 +45,20 @@ namespace MysticalWeapons.Items
             _burstDamage = cfg.Bind(s, "BurstDamage", 0.5f,
                 "Extra damage for everything you fire or throw during the burst (0.5 = +50%), on top of ProjectileDamage.");
             _burstHeal = cfg.Bind(s, "BurstHeal", 0.25f, "Health restored when the burst starts, as a share of your maximum (0.25 = 25%).");
-            _homing = cfg.Bind(s, "Homing", true, "During the burst, your shots curve toward the nearest enemy ahead.");
-            _homingRange = cfg.Bind(s, "HomingRange", 20f, "Metres a homing shot looks for an enemy.");
-            _homingCone = cfg.Bind(s, "HomingCone", 45f,
-                "Degrees either side of a homing shot's path it looks for an enemy, so it only chases roughly where you aimed.");
+            _homing = cfg.Bind(s, "Homing", true,
+                "During the burst, each shot locks on to the enemy nearest where you aimed and curves into it. It never switches " +
+                "target; with no enemy near your aim, it flies straight.");
+            _homingRange = cfg.Bind(s, "HomingRange", 20f, "Metres from the shot an enemy can be to be locked on to.");
+            _homingCone = cfg.Bind(s, "HomingCone", 15f,
+                "Degrees from where you aimed an enemy can be to be locked on to. Wider forgives more, but may pick an enemy you didn't mean.");
             _homingTurnRate = cfg.Bind(s, "HomingTurnRate", 180f,
                 "Degrees per second a homing shot can turn. Lower curves in more gently; higher snaps on.");
             _burstShotSpeed = cfg.Bind(s, "BurstShotSpeed", 0.15f,
                 "During the burst, your shots fly this much slower (0.15 = 15%), giving them room to curve.");
             _burstGravity = cfg.Bind(s, "BurstGravity", 0.6f, "During the burst, your shots drop this much less (0.6 = 60%).");
+            _minDraw = cfg.Bind(s, "MinDraw", 0.5f,
+                "During the burst, bow shots drawn less than this (0.5 = half) don't home, slow or float: they fly like plain " +
+                "arrows. Crossbows and thrown weapons always count.");
             _burstMessage = cfg.Bind(s, "BurstMessage", true, "Show \"Homing shots + DMG up\" mid-screen as the burst starts. Restart to apply.");
         }
 
@@ -157,7 +162,9 @@ namespace MysticalWeapons.Items
                 }
                 ___m_adrenaline += _hitAdrenaline.Value;
 
-                if (!bursting) return;
+                // A weak bow shot (no stamina to draw) stays a plain vanilla arrow: slowed, floating and homing, spam
+                // clicks would all drift into the target
+                if (!bursting || Draw(owner) < _minDraw.Value) return;
                 ___m_vel *= 1f - _burstShotSpeed.Value;
                 ___m_gravity *= 1f - _burstGravity.Value;
                 if (_homing.Value)
@@ -165,9 +172,21 @@ namespace MysticalWeapons.Items
                     ProjectileHoming.Range = _homingRange.Value;
                     ProjectileHoming.ConeDegrees = _homingCone.Value;
                     ProjectileHoming.TurnRateDegrees = _homingTurnRate.Value;
-                    ProjectileHoming.Mark(__instance);
+                    ProjectileHoming.LockOn(__instance, owner, __instance.transform.position, ___m_vel.normalized);
                 }
             }
+        }
+
+        private static readonly AccessTools.FieldRef<Humanoid, Attack> CurrentAttack =
+            AccessTools.FieldRefAccess<Humanoid, Attack>("m_currentAttack");
+        private static readonly AccessTools.FieldRef<Attack, float> DrawPercentage =
+            AccessTools.FieldRefAccess<Attack, float>("m_attackDrawPercentage");
+
+        /// <summary>How far the shot was drawn, 0 to 1; 1 for anything without a draw (crossbows, throws).</summary>
+        private static float Draw(Character owner)
+        {
+            var attack = owner is Humanoid h ? CurrentAttack(h) : null;
+            return attack != null && attack.m_bowDraw ? DrawPercentage(attack) : 1f;
         }
 
         /// <summary>Bow draw time builds up from <c>dt</c>; less of it draws slower.</summary>

@@ -90,7 +90,7 @@ namespace DevAutoRun
                 homingTest.Value = true;
                 var on = new HomingShot();
                 yield return on.Run(log);
-                Report(log, "an arrow aimed 4 m wide curves into the enemy", on.Hit ? null : $"missed by {on.Closest:0.0} m", ref pass, ref fail, "Homing");
+                Report(log, "an arrow aimed 2.5 m wide curves into the enemy", on.Hit ? null : $"missed by {on.Closest:0.0} m", ref pass, ref fail, "Homing");
                 homingTest.Value = false;
                 var off = new HomingShot();
                 yield return off.Run(log);
@@ -116,13 +116,15 @@ namespace DevAutoRun
         }
 
         /// <summary>
-        /// Puts a frozen Greydwarf 14 m behind the player and 4 m to the side, fires an arrow straight that way at its height and
+        /// Puts a frozen Greydwarf 14 m behind the player and a little to the side, fires an arrow straight that way at its height and
         /// watches whether it gets hit.
         /// </summary>
         private class HomingShot
         {
             public bool Hit;
             public float Closest = float.MaxValue;
+            /// <summary>How far to the side of the arrow's line the enemy stands, in metres (2.5 m is about 11 degrees off).</summary>
+            public float Side = 2.5f;
 
             public IEnumerator Run(ManualLogSource log, ItemDrop.ItemData bow = null)
             {
@@ -130,7 +132,7 @@ namespace DevAutoRun
                 // Behind the player: the portal probes leave things in front that stop the arrow
                 var fwd = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
                 var right = Vector3.Cross(Vector3.up, fwd);
-                var at = player.transform.position + fwd * 14f + right * 4f;
+                var at = player.transform.position + fwd * 14f + right * Side;
                 if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
                 var enemy = Object.Instantiate(ZNetScene.instance.GetPrefab("Greydwarf"), at, Quaternion.LookRotation(-fwd)).GetComponent<Character>();
                 enemy.GetComponent<BaseAI>().enabled = false; // stands still
@@ -180,13 +182,22 @@ namespace DevAutoRun
                 var icon = shared.m_icons.Length > 0 && shared.m_icons[0] ? shared.m_icons[0].name : "none";
                 Results.Add(new KeyValuePair<string, string>("has the Morgen heart icon", icon == "MorgenHeart" ? null : icon));
 
+                // The test character can still carry one from an earlier run; start without it
+                foreach (var old in player.GetInventory().GetAllItems().Where(i => i.m_shared.m_name == shared.m_name).ToList())
+                {
+                    player.UnequipItem(old);
+                    player.GetInventory().RemoveItem(old);
+                }
+                yield return new WaitForSeconds(1.5f);
                 var before = player.GetMaxHealth();
                 player.GetInventory().AddItem(prefab, 1);
                 var item = player.GetInventory().GetAllItems().Last(i => i.m_shared.m_name == shared.m_name);
-                player.EquipItem(item);
-                yield return new WaitForSeconds(1.5f);
+                var equipped = player.EquipItem(item);
+                // The game refreshes max health from food about once a second
+                for (var t = 0f; t < 3f && player.GetMaxHealth() - before < 1f; t += 0.25f)
+                    yield return new WaitForSeconds(0.25f);
                 var gained = player.GetMaxHealth() - before;
-                log.LogInfo($"DevAutoRun: Sacred Heart max health {before:0} -> {player.GetMaxHealth():0}");
+                log.LogInfo($"DevAutoRun: Sacred Heart equipped={equipped} ({item.m_equipped}), max health {before:0} -> {player.GetMaxHealth():0}");
                 Results.Add(new KeyValuePair<string, string>("adds max health", gained > 1f ? null : $"gained {gained:0.0}"));
 
                 player.SetHealth(player.GetMaxHealth() * 0.5f);
@@ -199,8 +210,12 @@ namespace DevAutoRun
                 var bow = ObjectDB.instance.GetItemPrefab("Bow").GetComponent<ItemDrop>().m_itemData.Clone();
                 var shot = new HomingShot();
                 yield return shot.Run(log, bow);
-                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 4 m wide curves into the enemy",
+                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 2.5 m wide curves into the enemy",
                     shot.Hit ? null : $"missed by {shot.Closest:0.0} m"));
+                var wide = new HomingShot { Side = 6f };
+                yield return wide.Run(log, bow);
+                Results.Add(new KeyValuePair<string, string>("during the burst an arrow aimed 6 m wide (outside the lock cone) flies straight",
+                    wide.Hit ? "it hit" : null));
 
                 player.GetSEMan().RemoveStatusEffect(shared.m_fullAdrenalineSE.NameHash());
                 player.UnequipItem(item);
