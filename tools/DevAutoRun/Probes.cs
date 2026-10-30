@@ -190,6 +190,10 @@ namespace DevAutoRun
         {
             public readonly List<KeyValuePair<string, string>> Results = new List<KeyValuePair<string, string>>();
 
+            /// <summary>Whether the bronze trinket's skinned mesh, named after it, is on the character.</summary>
+            private static bool WornBronze(Player player) =>
+                player.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(r => r.name.StartsWith("TrinketBronzeHealth"));
+
             public IEnumerator Run(ManualLogSource log, GameObject prefab)
             {
                 var player = Player.m_localPlayer;
@@ -226,6 +230,8 @@ namespace DevAutoRun
                 var gained = player.GetMaxHealth() - before;
                 log.LogInfo($"DevAutoRun: Sacred Heart equipped={equipped} ({item.m_equipped}), max health {before:0} -> {player.GetMaxHealth():0}");
                 Results.Add(new KeyValuePair<string, string>("adds max health", gained > 1f ? null : $"gained {gained:0.0}"));
+                Results.Add(new KeyValuePair<string, string>("shows nothing on the character while worn",
+                    WornBronze(player) ? "the bronze piece shows" : null));
 
                 player.SetHealth(player.GetMaxHealth() * 0.5f);
                 var low = player.GetHealth();

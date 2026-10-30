@@ -85,6 +85,10 @@ namespace MysticalWeapons.Items
             }
             else Plugin.Log.LogWarning($"{PrefabName}: MorgenHeart model not found; keeping the bronze trinket's");
 
+            // Nothing shows on the character while it's worn: the game wears the attach_skin child, the bronze piece
+            var worn = prefab.transform.Find("attach_skin");
+            if (worn) Object.DestroyImmediate(worn.gameObject);
+
             // The Morgen's heart, with our flame behind and over it and a cross on its face (tools/textures/paint_sacred_heart_icon.py)
             var heart = morgen?.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_icons;
             if (heart != null && heart.Length > 0)
