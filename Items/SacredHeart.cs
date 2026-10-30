@@ -17,7 +17,7 @@ namespace MysticalWeapons.Items
         public override string[] SourcePrefabs => new[] { "TrinketBronzeHealth" };
         public override string DisplayName => "Sacred Heart";
         public override string Description =>
-            "A heart wreathed in flame beneath a cross. It beats slow and heavy: your aim grows patient, and your shots " +
+            "A heart crowned with flame and marked with a cross. It beats slow and heavy: your aim grows patient, and your shots " +
             "remember where you meant them to go.";
 
         // Vanilla trinkets: 5 metal, 5 of a material, a trophy, Forge 1. The Elder's trophy is the trophy here
@@ -73,8 +73,20 @@ namespace MysticalWeapons.Items
 
         protected override void Setup(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
+            var morgen = FindVanilla("MorgenHeart");
+
+            // On the ground, the Morgen's heart in place of the bronze trinket's model
+            var attach = prefab.transform.Find("attach");
+            var heartModel = morgen ? morgen.transform.Find("default") : null;
+            if (attach && heartModel)
+            {
+                for (var i = attach.childCount - 1; i >= 0; i--) Object.DestroyImmediate(attach.GetChild(i).gameObject);
+                Object.Instantiate(heartModel.gameObject, attach, false).name = "heart";
+            }
+            else Plugin.Log.LogWarning($"{PrefabName}: MorgenHeart model not found; keeping the bronze trinket's");
+
             // The Morgen's heart, with our flame behind and over it and a cross on its face (tools/textures/paint_sacred_heart_icon.py)
-            var heart = FindVanilla("MorgenHeart")?.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_icons;
+            var heart = morgen?.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_icons;
             if (heart != null && heart.Length > 0)
             {
                 var dir = Path.Combine(ModelUtil.CustomModelDir, "textures");

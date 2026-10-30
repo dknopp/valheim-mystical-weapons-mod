@@ -22,7 +22,7 @@ Developer docs are in `docs/`.
   (painted by `tools/textures/`); rigid pieces (helmets) can take a custom OBJ.
 - `Weapons/`, `Armor/`, `Hallows/`, `Items/` (everything else): one file per item (the Hallows set bonus is
   `DeathlyHallows.cs`; the portal a `PortalScroll` opens is `Items/TownPortal.cs`).
-- Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ModelUtil.cs` (model swap,
+- Also in `Core/`: `MeshBuilder.cs` (blades, prisms, slabs, ribbons), `ProjectileHoming.cs` (steers shots toward an enemy), `ModelUtil.cs` (model swap,
   dual-wield hands and back holster, materials, see-through `SpectralMaterial`, icon rendering, custom model loading), `VanillaTextures.cs` (textures borrowed from
   vanilla items at runtime), `ObjImport.cs`/`ObjExport.cs`, `ItemReport.cs` (debug pictures next to
   vanilla peers).

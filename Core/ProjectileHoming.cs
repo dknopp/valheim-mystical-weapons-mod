@@ -14,7 +14,7 @@ namespace MysticalWeapons
     {
         private static ConfigEntry<bool> _test;
 
-        // The Sacred Heart sets these from its config as it locks a shot.
+        // The Sacred Heart sets these from its config as it marks a shot.
         internal static float Range = 20f;
         internal static float ConeDegrees = 45f;
         internal static float TurnRateDegrees = 180f;
@@ -22,7 +22,7 @@ namespace MysticalWeapons
         /// <summary>A shot's target, null while it is still looking; Done once its target died or was passed.</summary>
         private class Lock { public Character Target; public bool Done; }
 
-        /// <summary>Locked shots; entries go when the projectile does.</summary>
+        /// <summary>Homing shots; entries go when the projectile does.</summary>
         private static readonly ConditionalWeakTable<Projectile, Lock> Locks = new ConditionalWeakTable<Projectile, Lock>();
 
         public static void BindConfig(ConfigFile cfg)

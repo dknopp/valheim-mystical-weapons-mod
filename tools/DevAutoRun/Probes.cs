@@ -131,16 +131,15 @@ namespace DevAutoRun
             public IEnumerator Run(ManualLogSource log, ItemDrop.ItemData bow = null)
             {
                 var player = Player.m_localPlayer;
-                // Behind the player first (the portal probes leave things in front), turning until nothing in the test world
-                // (terrain, buildings) blocks the straight line or the line to the enemy; which way the player faces varies by run
+                // High in the air, so wherever the test character stands (a house, a slope), nothing blocks the arrow. Still turns
+                // until the lane is clear, for a nearby mountain or tall tree; which way the player faces varies by run
                 var back = -Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
                 Vector3 fwd = back, right = Vector3.zero, at = Vector3.zero;
                 for (var turn = 0; turn < 360; turn += 30)
                 {
                     fwd = Quaternion.Euler(0f, turn, 0f) * back;
                     right = Vector3.Cross(Vector3.up, fwd);
-                    at = player.transform.position + fwd * Ahead + right * Side;
-                    if (ZoneSystem.instance.FindFloor(at + Vector3.up * 5f, out var floor)) at.y = floor;
+                    at = player.transform.position + Vector3.up * 40f + fwd * Ahead + right * Side;
                     // A Greydwarf's centre is about a metre up
                     var start = player.transform.position + fwd * 1.5f;
                     start.y = at.y + 1f;
@@ -151,6 +150,7 @@ namespace DevAutoRun
                 }
                 var enemy = Object.Instantiate(ZNetScene.instance.GetPrefab("Greydwarf"), at, Quaternion.LookRotation(-fwd)).GetComponent<Character>();
                 enemy.GetComponent<BaseAI>().enabled = false; // stands still
+                enemy.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll; // and doesn't fall
                 yield return new WaitForSeconds(0.5f);
                 var health = enemy.GetHealth();
 
@@ -197,6 +197,17 @@ namespace DevAutoRun
                 var icon = shared.m_icons.Length > 0 && shared.m_icons[0] ? shared.m_icons[0].name : "none";
                 Results.Add(new KeyValuePair<string, string>("has the Morgen heart icon with our flame and cross",
                     icon == "MorgenHeart_layered" ? null : icon));
+
+                var dropped = Object.Instantiate(prefab, player.transform.position + player.transform.right * 3f + Vector3.up * 1.5f, Quaternion.identity);
+                dropped.GetComponent<ItemDrop>().m_autoPickup = false; // else the player picks it up as it lands
+                var dropHeight = dropped.transform.position.y;
+                yield return new WaitForSeconds(4f);
+                var model = dropped ? dropped.GetComponentsInChildren<MeshRenderer>().FirstOrDefault(r => r.enabled) : null;
+                // The bronze trinket's model is 2 cm tall, the heart 37
+                Results.Add(new KeyValuePair<string, string>("drops as the Morgen heart's model, resting on the floor",
+                    !model ? "no model" : model.bounds.size.y < 0.15f ? $"{model.bounds.size.y:0.00} m tall" :
+                    dropHeight - dropped.transform.position.y > 6f ? "fell through the floor" : null));
+                if (dropped) ZNetScene.instance.Destroy(dropped);
 
                 // The test character can still carry one from an earlier run; start without it
                 foreach (var old in player.GetInventory().GetAllItems().Where(i => i.m_shared.m_name == shared.m_name).ToList())
